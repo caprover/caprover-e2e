@@ -29,6 +29,7 @@ describe('loadConfig', () => {
 
     test.each([
         'captain.example.com',
+        'http://captain.example.com',
         'ftp://captain.example.com',
         'https://captain.example.com/api/v2',
         'https://captain.example.com?query=value',
