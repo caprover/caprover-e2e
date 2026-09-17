@@ -1,5 +1,4 @@
 import { randomBytes } from 'node:crypto'
-import { appendFile } from 'node:fs/promises'
 import {
     configureCapRover,
     generateCapRoverPassword,
@@ -71,7 +70,6 @@ export async function provisionEnvironment(
             SSH_PRIVATE_KEY: config.sshPrivateKey,
         }
 
-        await exportGitHubEnvironment(testEnvironment)
         console.log('Fresh CapRover environment is ready for E2E tests.')
         return { state, testEnvironment }
     } catch (error) {
@@ -86,23 +84,6 @@ export async function provisionEnvironment(
         }
         throw error
     }
-}
-
-async function exportGitHubEnvironment(
-    environment: NodeJS.ProcessEnv
-): Promise<void> {
-    const githubEnv = process.env.GITHUB_ENV
-    if (!githubEnv) return
-
-    const content = Object.entries(environment)
-        .filter((entry): entry is [string, string] => entry[1] !== undefined)
-        .map(
-            ([key, value]) =>
-                `${key}<<CAPROVER_E2E_EOF\n${value}\nCAPROVER_E2E_EOF`
-        )
-        .join('\n')
-
-    await appendFile(githubEnv, `${content}\n`)
 }
 
 function maskSecret(value: string): void {

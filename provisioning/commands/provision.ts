@@ -1,5 +1,6 @@
 import { loadProvisioningConfig } from '../config.js'
 import { provisionEnvironment } from '../environment/provision.js'
+import { exportGitHubEnvironment } from './github-environment.js'
 
 main().catch((error) => {
     console.error(error)
@@ -7,5 +8,6 @@ main().catch((error) => {
 })
 
 async function main(): Promise<void> {
-    await provisionEnvironment(loadProvisioningConfig())
+    const provisioned = await provisionEnvironment(loadProvisioningConfig())
+    await exportGitHubEnvironment(provisioned.testEnvironment)
 }
