@@ -10,6 +10,10 @@
     "scripts": {
         "test": "npm run typecheck && vitest run",
         "test:unit": "vitest run tests/unit",
+        "test:ephemeral": "npm run build:provisioning && node .provisioning-dist/provisioning/run-ephemeral.js",
+        "provision": "npm run build:provisioning && node .provisioning-dist/provisioning/provision.js",
+        "destroy": "npm run build:provisioning && node .provisioning-dist/provisioning/destroy.js",
+        "build:provisioning": "tsc -p tsconfig.provisioning.json",
         "typecheck": "tsc --noEmit",
         "format": "prettier --check .",
         "format:write": "prettier --write ."
