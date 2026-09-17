@@ -2,8 +2,7 @@
 
 The provisioning code is organized by responsibility:
 
-- `commands/` contains the executable entry points and GitHub Actions output
-  adapter used by the npm scripts.
+- `commands/` contains the executable entry points used by the npm scripts.
 - `environment/` owns the create, destroy, and persisted-state lifecycle.
 - `infrastructure/` contains the DigitalOcean, Cloudflare, and SSH adapters.
 - `caprover.ts` configures the installed CapRover instance.

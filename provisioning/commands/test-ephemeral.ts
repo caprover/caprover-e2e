@@ -3,12 +3,9 @@ import { loadProvisioningConfig } from '../config.js'
 import { destroyEnvironment } from '../environment/destroy.js'
 import { provisionEnvironment } from '../environment/provision.js'
 
-main().catch((error) => {
-    console.error(error)
-    process.exitCode = 1
-})
+runEphemeralTests()
 
-async function main(): Promise<void> {
+async function runEphemeralTests(): Promise<void> {
     const config = loadProvisioningConfig()
     const provisioned = await provisionEnvironment(config)
     let exitCode = 1
