@@ -1,0 +1,52 @@
+name: CapRover E2E
+
+on:
+    workflow_dispatch:
+        inputs:
+            captain_url:
+                description: CapRover dashboard URL
+                required: true
+                type: string
+            ssh_host:
+                description: Docker Swarm manager host
+                required: true
+                type: string
+            ssh_user:
+                description: SSH user
+                required: true
+                type: string
+            ssh_port:
+                description: SSH port
+                required: true
+                default: '22'
+                type: string
+
+permissions:
+    contents: read
+
+jobs:
+    e2e:
+        runs-on: ubuntu-latest
+        timeout-minutes: 8
+        env:
+            CAPROVER_URL: ${{ inputs.captain_url }}
+            CAPROVER_PASSWORD: ${{ secrets.CAPROVER_E2E_PASSWORD }}
+            SSH_HOST: ${{ inputs.ssh_host }}
+            SSH_PORT: ${{ inputs.ssh_port }}
+            SSH_USER: ${{ inputs.ssh_user }}
+            SSH_PRIVATE_KEY: ${{ secrets.CAPROVER_E2E_SSH_PRIVATE_KEY }}
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run E2E suite
+              run: npm test
