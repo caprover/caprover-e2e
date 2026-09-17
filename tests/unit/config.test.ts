@@ -4,7 +4,6 @@ import { loadConfig } from '../../src/config.js'
 const validEnvironment = {
     CAPROVER_URL: 'https://captain.example.com',
     CAPROVER_PASSWORD: 'password',
-    SSH_HOST: '192.0.2.10',
     SSH_USER: 'root',
     SSH_PRIVATE_KEY: 'line-one\\nline-two',
 }
@@ -14,16 +13,22 @@ describe('loadConfig', () => {
         expect(loadConfig(validEnvironment)).toEqual({
             caproverUrl: 'https://captain.example.com',
             caproverPassword: 'password',
-            sshHost: '192.0.2.10',
+            sshHost: 'captain.example.com',
             sshPort: 22,
             sshUser: 'root',
             sshPrivateKey: 'line-one\nline-two',
         })
     })
 
+    test('allows overriding the SSH host', () => {
+        expect(
+            loadConfig({ ...validEnvironment, SSH_HOST: '192.0.2.10' }).sshHost
+        ).toBe('192.0.2.10')
+    })
+
     test('reports the missing variable without exposing other values', () => {
-        expect(() => loadConfig({ ...validEnvironment, SSH_HOST: '' })).toThrow(
-            'Missing required environment variable: SSH_HOST'
+        expect(() => loadConfig({ ...validEnvironment, SSH_USER: '' })).toThrow(
+            'Missing required environment variable: SSH_USER'
         )
     })
 
