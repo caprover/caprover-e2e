@@ -57,13 +57,14 @@ Run the suite:
 ```bash
 CAPROVER_URL=https://captain.example.com \
 CAPROVER_PASSWORD='password' \
-SSH_HOST=1.2.3.4 \
 SSH_PORT=22 \
 SSH_USER=root \
 SSH_PRIVATE_KEY="$(< ~/.ssh/caprover-e2e)" \
 npm test
 ```
 
+The SSH host defaults to the hostname from `CAPROVER_URL`. Set `SSH_HOST`
+explicitly only when SSH is exposed through a different hostname or IP address.
 `SSH_PORT` is optional and defaults to `22`.
 
 The test output never prints the CapRover password or SSH private key. Failure
@@ -84,12 +85,12 @@ Configure these repository secrets first:
 Each run asks for:
 
 - CapRover dashboard URL
-- SSH host
 - SSH user
 - SSH port
 
-The workflow only supplies configuration and runs `npm test`; all test logic
-lives in the TypeScript suite.
+The SSH host is derived from the CapRover dashboard URL. The workflow only
+supplies configuration and runs `npm test`; all test logic lives in the
+TypeScript suite.
 
 ## Development checks
 
