@@ -8,6 +8,7 @@ interface CloudflareResponse<T> {
 
 interface DnsRecord {
     id: string
+    name: string
 }
 
 export class CloudflareClient {
@@ -31,6 +32,13 @@ export class CloudflareClient {
         return response.id
     }
 
+    async findRecordId(recordName: string): Promise<string | undefined> {
+        const records = await this.request<DnsRecord[]>(
+            `/dns_records?type=A&name=${encodeURIComponent(recordName)}`
+        )
+        return records.find((record) => record.name === recordName)?.id
+    }
+
     async deleteRecord(recordId: string): Promise<void> {
         await this.request(
             `/dns_records/${recordId}`,
@@ -41,13 +49,14 @@ export class CloudflareClient {
 
     private async request<T = unknown>(
         path: string,
-        init: RequestInit,
+        init: RequestInit = {},
         ignoreNotFound = false
     ): Promise<T> {
         const response = await fetch(
             `https://api.cloudflare.com/client/v4/zones/${this.config.cloudflareZoneId}${path}`,
             {
                 ...init,
+                signal: init.signal ?? AbortSignal.timeout(30_000),
                 headers: {
                     Authorization: `Bearer ${this.config.cloudflareApiToken}`,
                     'Content-Type': 'application/json',

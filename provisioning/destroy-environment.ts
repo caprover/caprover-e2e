@@ -9,12 +9,37 @@ export async function destroyEnvironment(
     config: ProvisioningConfig
 ): Promise<void> {
     const failures: Error[] = []
+    const cloudflare = new CloudflareClient(config)
+    const digitalOcean = new DigitalOceanClient(config)
+
+    if (!state.dnsRecordId && state.dnsRecordName) {
+        try {
+            state.dnsRecordId = await cloudflare.findRecordId(
+                state.dnsRecordName
+            )
+            await saveState(state)
+        } catch (error) {
+            failures.push(asError(error))
+        }
+    }
 
     if (state.dnsRecordId) {
         try {
             console.log('Deleting temporary DNS record...')
-            await new CloudflareClient(config).deleteRecord(state.dnsRecordId)
+            await cloudflare.deleteRecord(state.dnsRecordId)
             state.dnsRecordId = undefined
+            state.dnsRecordName = undefined
+            await saveState(state)
+        } catch (error) {
+            failures.push(asError(error))
+        }
+    }
+
+    if (!state.dropletId && state.dropletName) {
+        try {
+            state.dropletId = await digitalOcean.findDropletIdByName(
+                state.dropletName
+            )
             await saveState(state)
         } catch (error) {
             failures.push(asError(error))
@@ -24,8 +49,9 @@ export async function destroyEnvironment(
     if (state.dropletId) {
         try {
             console.log('Deleting temporary DigitalOcean droplet...')
-            await new DigitalOceanClient(config).deleteDroplet(state.dropletId)
+            await digitalOcean.deleteDroplet(state.dropletId)
             state.dropletId = undefined
+            state.dropletName = undefined
             await saveState(state)
         } catch (error) {
             failures.push(asError(error))
@@ -37,7 +63,10 @@ export async function destroyEnvironment(
         return
     }
 
-    throw new AggregateError(failures, 'Failed to fully clean up E2E environment')
+    throw new AggregateError(
+        failures,
+        'Failed to fully clean up E2E environment'
+    )
 }
 
 function asError(error: unknown): Error {

@@ -9,7 +9,7 @@ permissions:
 jobs:
     e2e:
         runs-on: ubuntu-latest
-        timeout-minutes: 30
+        timeout-minutes: 45
         env:
             DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
             DIGITALOCEAN_SSH_KEY_ID: ${{ secrets.DIGITALOCEAN_SSH_KEY_ID }}
@@ -32,7 +32,7 @@ jobs:
               run: npm ci
 
             - name: Provision fresh CapRover server
-              timeout-minutes: 10
+              timeout-minutes: 20
               run: npm run provision
 
             - name: Run E2E suite

@@ -35,18 +35,24 @@ export function loadProvisioningConfig(
         }
     }
 
+    const baseDomain = environment
+        .E2E_BASE_DOMAIN!.trim()
+        .replace(/^\.+|\.+$/g, '')
+    if (!baseDomain) {
+        throw new Error('E2E_BASE_DOMAIN must contain a domain name')
+    }
+
     return {
         digitalOceanToken: environment.DIGITALOCEAN_TOKEN!.trim(),
         digitalOceanSshKeyId: environment.DIGITALOCEAN_SSH_KEY_ID!.trim(),
         cloudflareApiToken: environment.CLOUDFLARE_API_TOKEN!.trim(),
         cloudflareZoneId: environment.CLOUDFLARE_ZONE_ID!.trim(),
-        baseDomain: environment.E2E_BASE_DOMAIN!.trim().replace(/^\.+|\.+$/g, ''),
+        baseDomain,
         sshPrivateKey: environment.CAPROVER_E2E_SSH_PRIVATE_KEY!.replace(
             /\\n/g,
             '\n'
         ),
-        digitalOceanRegion:
-            environment.DIGITALOCEAN_REGION?.trim() || 'nyc3',
+        digitalOceanRegion: environment.DIGITALOCEAN_REGION?.trim() || 'nyc3',
         digitalOceanSize:
             environment.DIGITALOCEAN_SIZE?.trim() || 's-1vcpu-2gb',
         digitalOceanImage:

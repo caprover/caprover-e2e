@@ -17,8 +17,8 @@ export async function provisionEnvironment(
     const cloudflare = new CloudflareClient(config)
     const suffix = `${Date.now().toString(36)}-${randomBytes(3).toString('hex')}`
     const rootDomain = `e2e-${suffix}.${config.baseDomain}`
-    const initialPassword = randomBytes(24).toString('base64url')
-    const password = randomBytes(24).toString('base64url')
+    const initialPassword = generateCapRoverPassword()
+    const password = generateCapRoverPassword()
 
     maskSecret(initialPassword)
     maskSecret(password)
@@ -26,7 +26,9 @@ export async function provisionEnvironment(
 
     try {
         console.log('Creating temporary DigitalOcean droplet...')
-        state.dropletId = await digitalOcean.createDroplet(`caprover-e2e-${suffix}`)
+        state.dropletName = `caprover-e2e-${suffix}`
+        await saveState(state)
+        state.dropletId = await digitalOcean.createDroplet(state.dropletName)
         await saveState(state)
 
         state.ipAddress = await digitalOcean.waitForPublicIp(state.dropletId)
@@ -34,6 +36,8 @@ export async function provisionEnvironment(
 
         console.log('Creating temporary wildcard DNS record...')
         state.rootDomain = rootDomain
+        state.dnsRecordName = `*.${rootDomain}`
+        await saveState(state)
         state.dnsRecordId = await cloudflare.createWildcardRecord(
             rootDomain,
             state.ipAddress
@@ -71,7 +75,10 @@ export async function provisionEnvironment(
         try {
             await destroyEnvironment(state, config)
         } catch (cleanupError) {
-            console.error('Cleanup after provisioning failure also failed:', cleanupError)
+            console.error(
+                'Cleanup after provisioning failure also failed:',
+                cleanupError
+            )
         }
         throw error
     }
@@ -85,7 +92,10 @@ async function exportGitHubEnvironment(
 
     const content = Object.entries(environment)
         .filter((entry): entry is [string, string] => entry[1] !== undefined)
-        .map(([key, value]) => `${key}<<CAPROVER_E2E_EOF\n${value}\nCAPROVER_E2E_EOF`)
+        .map(
+            ([key, value]) =>
+                `${key}<<CAPROVER_E2E_EOF\n${value}\nCAPROVER_E2E_EOF`
+        )
         .join('\n')
 
     await appendFile(githubEnv, `${content}\n`)
@@ -95,4 +105,9 @@ function maskSecret(value: string): void {
     if (process.env.GITHUB_ACTIONS === 'true') {
         console.log(`::add-mask::${value}`)
     }
+}
+
+export function generateCapRoverPassword(): string {
+    // CapRover's login endpoint rejects passwords longer than 29 characters.
+    return randomBytes(21).toString('base64url')
 }

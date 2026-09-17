@@ -6,11 +6,16 @@ const API_BASE = 'https://api.digitalocean.com/v2'
 interface DropletResponse {
     droplet: {
         id: number
+        name: string
         status: string
         networks: {
             v4: Array<{ ip_address: string; type: string }>
         }
     }
+}
+
+interface DropletsResponse {
+    droplets: DropletResponse['droplet'][]
 }
 
 export class DigitalOceanClient {
@@ -25,19 +30,27 @@ export class DigitalOceanClient {
                 size: this.config.digitalOceanSize,
                 image: this.config.digitalOceanImage,
                 ssh_keys: [this.config.digitalOceanSshKeyId],
-                tags: ['caprover-e2e'],
+                tags: ['caprover-e2e', name],
             }),
         })
 
         return response.droplet.id
     }
 
+    async findDropletIdByName(name: string): Promise<number | undefined> {
+        const response = await this.request<DropletsResponse>(
+            `/droplets?tag_name=${encodeURIComponent(name)}`
+        )
+        return response.droplets.find((droplet) => droplet.name === name)?.id
+    }
+
     async waitForPublicIp(dropletId: number): Promise<string> {
         return retryUntil(
             'DigitalOcean droplet public IP',
-            async () => {
+            async (signal) => {
                 const response = await this.request<DropletResponse>(
-                    `/droplets/${dropletId}`
+                    `/droplets/${dropletId}`,
+                    { signal }
                 )
                 const publicIp = response.droplet.networks.v4.find(
                     (network) => network.type === 'public'
@@ -68,6 +81,7 @@ export class DigitalOceanClient {
     ): Promise<T> {
         const response = await fetch(`${API_BASE}${path}`, {
             ...init,
+            signal: init.signal ?? AbortSignal.timeout(30_000),
             headers: {
                 Authorization: `Bearer ${this.config.digitalOceanToken}`,
                 'Content-Type': 'application/json',

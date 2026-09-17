@@ -10,7 +10,9 @@ main().catch((error) => {
 async function main(): Promise<void> {
     const state = await loadState()
     if (!state) {
-        console.log('No ephemeral E2E environment state found; nothing to clean up.')
+        console.log(
+            'No ephemeral E2E environment state found; nothing to clean up.'
+        )
         return
     }
 

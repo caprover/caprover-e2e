@@ -105,10 +105,10 @@ E2E → Run workflow** and reuses an already-provisioned server.
 
 Configure these repository secrets first:
 
-| Secret                         | Description                                            |
-| ------------------------------ | ------------------------------------------------------ |
+| Secret                         | Description                                           |
+| ------------------------------ | ----------------------------------------------------- |
 | `CAPROVER_E2E_PASSWORD`        | Password configured on the disposable CapRover server |
-| `CAPROVER_E2E_SSH_PRIVATE_KEY` | Private key matching an authorized key on the server   |
+| `CAPROVER_E2E_SSH_PRIVATE_KEY` | Private key matching an authorized key on the server  |
 
 Each run asks for:
 

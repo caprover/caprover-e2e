@@ -1,20 +1,33 @@
 export async function retryUntil<T>(
     description: string,
-    operation: () => Promise<T>,
+    operation: (signal: AbortSignal) => Promise<T>,
     options: { timeoutMs: number; intervalMs?: number }
 ): Promise<T> {
-    const startedAt = Date.now()
+    const deadline = Date.now() + options.timeoutMs
     const intervalMs = options.intervalMs ?? 5_000
     let lastError: unknown
 
-    while (Date.now() - startedAt < options.timeoutMs) {
+    while (Date.now() < deadline) {
+        const remainingMs = deadline - Date.now()
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), remainingMs)
+
         try {
-            return await operation()
+            return await withTimeout(
+                operation(controller.signal),
+                remainingMs,
+                description
+            )
         } catch (error) {
             lastError = error
+        } finally {
+            clearTimeout(timer)
         }
 
-        await sleep(intervalMs)
+        const delayMs = Math.min(intervalMs, deadline - Date.now())
+        if (delayMs > 0) {
+            await sleep(delayMs)
+        }
     }
 
     throw new Error(
@@ -30,7 +43,10 @@ export function withTimeout<T>(
 ): Promise<T> {
     return new Promise((resolve, reject) => {
         const timer = setTimeout(
-            () => reject(new Error(`${description} timed out after ${timeoutMs}ms`)),
+            () =>
+                reject(
+                    new Error(`${description} timed out after ${timeoutMs}ms`)
+                ),
             timeoutMs
         )
 
