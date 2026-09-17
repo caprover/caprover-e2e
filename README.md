@@ -36,7 +36,7 @@ The suite supports the current `<appName>` Docker service naming and the legacy
 - SSH access to the Docker Swarm manager
 - Docker access for the configured SSH user
 
-The CapRover URL must be the dashboard origin, for example:
+The CapRover URL must use HTTPS and be the dashboard origin, for example:
 
 ```text
 https://captain.example.com
