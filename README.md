@@ -30,7 +30,8 @@ The suite supports the current `<appName>` Docker service naming and the legacy
 ## Requirements
 
 - Node.js 22.12 or newer
-- For existing-server runs: a disposable CapRover installation with a configured root domain
+- For existing-server runs: a disposable CapRover installation with a configured
+  root domain
 - Public wildcard DNS for application subdomains
 - Ports 80 and 443 reachable from the test runner
 - SSH access to the Docker Swarm manager
@@ -76,13 +77,9 @@ infrastructure in one command, fill in the ephemeral provisioning values in
 npm run test:ephemeral
 ```
 
-You can also manage the temporary environment separately:
-
-```bash
-npm run provision
-npm test
-npm run destroy
-```
+The workflow uses `npm run provision` and `npm run destroy` as lower-level
+commands. For local end-to-end runs, prefer `npm run test:ephemeral` so the
+generated connection details are passed directly to the test process.
 
 `provision` creates one DigitalOcean droplet, creates a unique unproxied
 Cloudflare wildcard DNS record, installs Docker, starts a fresh CapRover
