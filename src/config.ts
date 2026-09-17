@@ -48,8 +48,8 @@ function normalizeCapRoverUrl(value: string): string {
         throw new Error('CAPROVER_URL must be a valid absolute URL')
     }
 
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-        throw new Error('CAPROVER_URL must use http or https')
+    if (url.protocol !== 'https:') {
+        throw new Error('CAPROVER_URL must use https')
     }
 
     if (url.pathname !== '/' || url.search || url.hash) {
