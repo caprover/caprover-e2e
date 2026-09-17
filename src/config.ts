@@ -10,7 +10,6 @@ export interface TestConfig {
 const REQUIRED_VARIABLES = [
     'CAPROVER_URL',
     'CAPROVER_PASSWORD',
-    'SSH_HOST',
     'SSH_USER',
     'SSH_PRIVATE_KEY',
 ] as const
@@ -32,7 +31,7 @@ export function loadConfig(
     return {
         caproverUrl,
         caproverPassword: environment.CAPROVER_PASSWORD!,
-        sshHost: environment.SSH_HOST!.trim(),
+        sshHost: environment.SSH_HOST?.trim() || new URL(caproverUrl).hostname,
         sshPort,
         sshUser: environment.SSH_USER!.trim(),
         sshPrivateKey: environment.SSH_PRIVATE_KEY!.replace(/\\n/g, '\n'),
