@@ -1,6 +1,6 @@
-import { SshClient } from '../src/clients/ssh.js'
-import type { ProvisioningConfig } from './config.js'
-import { retryUntil } from './retry.js'
+import { SshClient } from '../../src/clients/ssh.js'
+import type { ProvisioningConfig } from '../config.js'
+import { retryUntil } from '../retry.js'
 
 export async function prepareServer(
     ipAddress: string,

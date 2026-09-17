@@ -1,5 +1,5 @@
-import type { ProvisioningConfig } from './config.js'
-import { retryUntil } from './retry.js'
+import type { ProvisioningConfig } from '../config.js'
+import { retryUntil } from '../retry.js'
 
 const API_BASE = 'https://api.digitalocean.com/v2'
 

@@ -1,8 +1,8 @@
-import type { ProvisioningConfig } from './config.js'
-import { CloudflareClient } from './cloudflare.js'
-import { DigitalOceanClient } from './digitalocean.js'
+import type { ProvisioningConfig } from '../config.js'
+import { CloudflareClient } from '../infrastructure/cloudflare.js'
+import { DigitalOceanClient } from '../infrastructure/digitalocean.js'
 import { removeState, saveState } from './state.js'
-import type { ProvisioningState } from './types.js'
+import type { ProvisioningState } from '../types.js'
 
 export async function destroyEnvironment(
     state: ProvisioningState,

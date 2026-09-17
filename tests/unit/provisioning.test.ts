@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
+import { generateCapRoverPassword } from '../../provisioning/caprover.js'
 import { loadProvisioningConfig } from '../../provisioning/config.js'
-import { generateCapRoverPassword } from '../../provisioning/provision-environment.js'
 import { retryUntil } from '../../provisioning/retry.js'
 
 const validEnvironment = {

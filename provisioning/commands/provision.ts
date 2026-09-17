@@ -1,5 +1,5 @@
-import { loadProvisioningConfig } from './config.js'
-import { provisionEnvironment } from './provision-environment.js'
+import { loadProvisioningConfig } from '../config.js'
+import { provisionEnvironment } from '../environment/provision.js'
 
 main().catch((error) => {
     console.error(error)

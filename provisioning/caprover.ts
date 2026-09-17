@@ -1,6 +1,12 @@
+import { randomBytes } from 'node:crypto'
 import { resolve4 } from 'node:dns/promises'
 import CapRoverAPI, { SimpleAuthenticationProvider } from 'caprover-api'
 import { retryUntil, withTimeout } from './retry.js'
+
+export function generateCapRoverPassword(): string {
+    // CapRover's login endpoint rejects passwords longer than 29 characters.
+    return randomBytes(21).toString('base64url')
+}
 
 export async function waitForWildcardDns(
     rootDomain: string,

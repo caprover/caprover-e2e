@@ -1,13 +1,17 @@
 import { randomBytes } from 'node:crypto'
 import { appendFile } from 'node:fs/promises'
-import type { ProvisioningConfig } from './config.js'
-import { CloudflareClient } from './cloudflare.js'
-import { configureCapRover, waitForWildcardDns } from './caprover.js'
-import { destroyEnvironment } from './destroy-environment.js'
-import { DigitalOceanClient } from './digitalocean.js'
-import { prepareServer } from './server.js'
+import {
+    configureCapRover,
+    generateCapRoverPassword,
+    waitForWildcardDns,
+} from '../caprover.js'
+import type { ProvisioningConfig } from '../config.js'
+import { CloudflareClient } from '../infrastructure/cloudflare.js'
+import { DigitalOceanClient } from '../infrastructure/digitalocean.js'
+import { prepareServer } from '../infrastructure/server.js'
+import type { ProvisionedEnvironment, ProvisioningState } from '../types.js'
+import { destroyEnvironment } from './destroy.js'
 import { saveState } from './state.js'
-import type { ProvisionedEnvironment, ProvisioningState } from './types.js'
 
 export async function provisionEnvironment(
     config: ProvisioningConfig
@@ -105,9 +109,4 @@ function maskSecret(value: string): void {
     if (process.env.GITHUB_ACTIONS === 'true') {
         console.log(`::add-mask::${value}`)
     }
-}
-
-export function generateCapRoverPassword(): string {
-    // CapRover's login endpoint rejects passwords longer than 29 characters.
-    return randomBytes(21).toString('base64url')
 }

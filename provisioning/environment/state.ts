@@ -1,5 +1,5 @@
 import { readFile, rename, rm, writeFile } from 'node:fs/promises'
-import type { ProvisioningState } from './types.js'
+import type { ProvisioningState } from '../types.js'
 
 export const STATE_FILE = '.e2e-provisioning-state.json'
 const TEMP_STATE_FILE = `${STATE_FILE}.tmp`

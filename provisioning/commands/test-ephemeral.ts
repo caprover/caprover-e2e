@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
-import { loadProvisioningConfig } from './config.js'
-import { destroyEnvironment } from './destroy-environment.js'
-import { provisionEnvironment } from './provision-environment.js'
+import { loadProvisioningConfig } from '../config.js'
+import { destroyEnvironment } from '../environment/destroy.js'
+import { provisionEnvironment } from '../environment/provision.js'
 
 main().catch((error) => {
     console.error(error)

@@ -1,4 +1,4 @@
-import type { ProvisioningConfig } from './config.js'
+import type { ProvisioningConfig } from '../config.js'
 
 interface CloudflareResponse<T> {
     success: boolean

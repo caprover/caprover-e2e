@@ -1,6 +1,6 @@
-import { loadProvisioningConfig } from './config.js'
-import { destroyEnvironment } from './destroy-environment.js'
-import { loadState } from './state.js'
+import { loadProvisioningConfig } from '../config.js'
+import { destroyEnvironment } from '../environment/destroy.js'
+import { loadState } from '../environment/state.js'
 
 main().catch((error) => {
     console.error(error)
