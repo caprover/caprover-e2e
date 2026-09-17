@@ -44,7 +44,7 @@ https://captain.example.com
 
 Do not include `/api/v2`, a trailing path, query parameters, or a fragment.
 
-## Local execution
+## Local development
 
 Install dependencies:
 
@@ -52,16 +52,22 @@ Install dependencies:
 npm ci
 ```
 
-Run the suite:
+Create your local environment file and fill in the values for the disposable
+CapRover server:
 
 ```bash
-CAPROVER_URL=https://captain.example.com \
-CAPROVER_PASSWORD='password' \
-SSH_PORT=22 \
-SSH_USER=root \
-SSH_PRIVATE_KEY="$(< ~/.ssh/caprover-e2e)" \
+cp .env.template .env
+```
+
+Then run the suite:
+
+```bash
 npm test
 ```
+
+`.env` is gitignored and is loaded automatically only for local runs. CI systems
+such as GitHub Actions provide their environment variables directly and do not
+load `.env`.
 
 The SSH host defaults to the hostname from `CAPROVER_URL`. Set `SSH_HOST`
 explicitly only when SSH is exposed through a different hostname or IP address.
@@ -77,10 +83,10 @@ The workflow runs manually through **Actions → CapRover E2E → Run workflow**
 
 Configure these repository secrets first:
 
-| Secret                         | Description                                           |
-| ------------------------------ | ----------------------------------------------------- |
+| Secret                         | Description                                            |
+| ------------------------------ | ------------------------------------------------------ |
 | `CAPROVER_E2E_PASSWORD`        | Password configured on the disposable CapRover server |
-| `CAPROVER_E2E_SSH_PRIVATE_KEY` | Private key matching an authorized key on the server  |
+| `CAPROVER_E2E_SSH_PRIVATE_KEY` | Private key matching an authorized key on the server   |
 
 Each run asks for:
 
