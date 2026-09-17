@@ -1,0 +1,87 @@
+import { eventually } from '../helpers/retry.js'
+
+export interface HttpResult {
+    status: number
+    body: string
+    finalUrl: string
+}
+
+export class HttpClient {
+    constructor(private readonly requestTimeoutMs = 10_000) {}
+
+    async get(url: string): Promise<HttpResult> {
+        const response = await fetch(url, {
+            redirect: 'follow',
+            signal: AbortSignal.timeout(this.requestTimeoutMs),
+        })
+
+        return {
+            status: response.status,
+            body: await response.text(),
+            finalUrl: response.url,
+        }
+    }
+
+    async getStatus(url: string): Promise<number> {
+        return (await this.get(url)).status
+    }
+
+    waitUntilReachable(
+        url: string,
+        expectedBodyText: string,
+        timeoutMs = 30_000
+    ): Promise<HttpResult> {
+        return eventually(
+            async () => {
+                const response = await this.get(url)
+                if (response.status !== 200) {
+                    throw new Error(
+                        `Expected HTTP 200 from ${url}, received ${response.status}`
+                    )
+                }
+                if (!response.body.includes(expectedBodyText)) {
+                    throw new Error(
+                        `Response from ${url} did not contain the expected application content`
+                    )
+                }
+                return response
+            },
+            {
+                timeoutMs,
+                description: `${url} to serve expected application content`,
+            }
+        )
+    }
+
+    waitUntilNotMatching(
+        url: string,
+        unexpectedBodyText: string,
+        timeoutMs = 30_000
+    ): Promise<HttpResult | undefined> {
+        return eventually(
+            async () => {
+                try {
+                    const response = await this.get(url)
+                    if (response.body.includes(unexpectedBodyText)) {
+                        throw new Error(
+                            `${url} still serves the deleted application's content`
+                        )
+                    }
+                    return response
+                } catch (error) {
+                    if (isExpectedNetworkFailure(error)) return undefined
+                    throw error
+                }
+            },
+            {
+                timeoutMs,
+                description: `${url} to stop serving application content`,
+            }
+        )
+    }
+}
+
+function isExpectedNetworkFailure(error: unknown): boolean {
+    if (!(error instanceof TypeError)) return false
+    return error.message === 'fetch failed'
+}
