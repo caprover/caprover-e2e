@@ -65,7 +65,6 @@ export interface DockerDiagnostics {
 }
 
 const APP_NAME_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,47}[a-z0-9])?$/
-const TASK_ID_PATTERN = /^[a-f0-9]+$/
 
 export class DockerInspector {
     constructor(private readonly ssh: SshClient) {}
@@ -229,9 +228,6 @@ export class DockerInspector {
             .filter(Boolean)
 
         if (taskIds.length === 0) return []
-        if (taskIds.some((taskId) => !TASK_ID_PATTERN.test(taskId))) {
-            throw new Error('Docker returned an invalid task ID')
-        }
 
         const inspectResult = await this.exec(
             `docker inspect ${taskIds.map(shellQuote).join(' ')}`
