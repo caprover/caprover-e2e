@@ -87,6 +87,9 @@ instance, configures its root domain and HTTPS, and generates a temporary
 CapRover password. The generated cleanup state is stored locally in
 `.e2e-provisioning-state.json` and is gitignored.
 
+See [Provisioning design](provisioning/README.md) for the full lifecycle,
+failure-recovery behavior, credential flow, and code layout.
+
 The default provisioning configuration uses `nyc3`, `s-1vcpu-2gb`,
 `ubuntu-24-04-x64`, and `caprover/caprover-edge`. These can be overridden with
 `DIGITALOCEAN_REGION`, `DIGITALOCEAN_SIZE`, `DIGITALOCEAN_IMAGE`, and
