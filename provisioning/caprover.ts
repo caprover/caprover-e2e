@@ -33,14 +33,26 @@ export async function configureCapRover(
     password: string,
     certificateEmail: string
 ): Promise<string> {
+    const setupUrl = `http://${ipAddress}:3000`
+    console.log('Waiting for the CapRover bootstrap HTTP endpoint...')
+    await waitForHttpResponse(
+        setupUrl,
+        'CapRover bootstrap HTTP endpoint',
+        120_000
+    )
+
     console.log('Waiting for the CapRover setup API...')
-    const setupApi = createApi(`http://${ipAddress}:3000`, initialPassword)
+    const setupApi = createApi(setupUrl, initialPassword)
 
     try {
         await retryUntil(
             'CapRover setup API',
             () => setupApi.login(initialPassword),
-            { timeoutMs: 120_000, intervalMs: 5_000 }
+            {
+                timeoutMs: 120_000,
+                intervalMs: 5_000,
+                attemptTimeoutMs: 10_000,
+            }
         )
 
         console.log('Configuring CapRover root domain...')
@@ -54,12 +66,19 @@ export async function configureCapRover(
     }
 
     const httpUrl = `http://captain.${rootDomain}`
+    console.log('Waiting for the CapRover HTTP domain...')
+    await waitForHttpResponse(httpUrl, 'CapRover HTTP domain', 60_000)
+
     const domainApi = createApi(httpUrl, initialPassword)
     try {
         await retryUntil(
             'CapRover domain API',
             () => domainApi.login(initialPassword),
-            { timeoutMs: 60_000, intervalMs: 3_000 }
+            {
+                timeoutMs: 60_000,
+                intervalMs: 3_000,
+                attemptTimeoutMs: 10_000,
+            }
         )
 
         console.log('Enabling HTTPS...')
@@ -78,7 +97,11 @@ export async function configureCapRover(
         await retryUntil(
             'CapRover HTTPS API',
             () => secureApi.login(initialPassword),
-            { timeoutMs: 90_000, intervalMs: 3_000 }
+            {
+                timeoutMs: 90_000,
+                intervalMs: 3_000,
+                attemptTimeoutMs: 10_000,
+            }
         )
 
         await withTimeout(
@@ -103,13 +126,38 @@ export async function configureCapRover(
                 await verificationApi.login(password)
                 await verificationApi.getCaptainInfo()
             },
-            { timeoutMs: 60_000, intervalMs: 3_000 }
+            {
+                timeoutMs: 60_000,
+                intervalMs: 3_000,
+                attemptTimeoutMs: 10_000,
+            }
         )
     } finally {
         verificationApi.destroy()
     }
 
     return httpsUrl
+}
+
+async function waitForHttpResponse(
+    url: string,
+    description: string,
+    timeoutMs: number
+): Promise<void> {
+    await retryUntil(
+        description,
+        async (signal) => {
+            await fetch(url, {
+                redirect: 'manual',
+                signal,
+            })
+        },
+        {
+            timeoutMs,
+            intervalMs: 3_000,
+            attemptTimeoutMs: 5_000,
+        }
+    )
 }
 
 function createApi(baseUrl: string, password: string): CapRoverAPI {
