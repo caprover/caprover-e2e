@@ -56,7 +56,7 @@ export function loadProvisioningConfig(
         digitalOceanSize:
             environment.DIGITALOCEAN_SIZE?.trim() || 's-1vcpu-2gb',
         digitalOceanImage:
-            environment.DIGITALOCEAN_IMAGE?.trim() || 'ubuntu-24-04-x64',
+            environment.DIGITALOCEAN_IMAGE?.trim() || 'docker-20-04',
         caproverImage:
             environment.CAPROVER_IMAGE?.trim() || 'caprover/caprover-edge',
     }
