@@ -6,14 +6,33 @@ server workflow does not use this code.
 
 ## Lifecycle
 
-```mermaid
-flowchart TD
-    A["config.ts: load and validate configuration"] --> B["infrastructure/digitalocean.ts: create droplet"]
-    B --> C["infrastructure/cloudflare.ts: create wildcard DNS"]
-    C --> D["infrastructure/server.ts: install Docker and CapRover"]
-    D --> E["caprover.ts: configure domain, HTTPS, and password"]
-    E --> F["tests/app-lifecycle.test.ts: run E2E suite"]
-    F --> G["environment/destroy.ts: delete DNS and droplet"]
+The fresh-server workflow has three main phases:
+
+```text
+.github/workflows/e2e-ephemeral.yml
+  → npm run provision
+      → provisioning/commands/provision.ts
+      → loadProvisioningConfig()
+      → provisionEnvironment()
+          → create DigitalOcean droplet
+          → create Cloudflare wildcard DNS
+          → prepare server and start CapRover
+          → configure CapRover
+          → return testEnvironment
+      → write testEnvironment to GITHUB_ENV
+
+  → npm test
+      → npm run typecheck
+      → vitest run
+          → tests/unit/*.test.ts
+          → tests/app-lifecycle.test.ts
+
+  → npm run destroy  (runs with if: always())
+      → loadState()
+      → destroyEnvironment()
+          → delete Cloudflare DNS record
+          → delete DigitalOcean droplet
+          → remove persisted state
 ```
 
 The provisioner returns the same environment variables accepted by the regular
@@ -39,19 +58,6 @@ so test failures remain visible and the cleanup step can use `if: always()`.
 
 ## Function call chains
 
-The fresh-server GitHub Actions workflow coordinates three separate commands:
-
-```text
-.github/workflows/e2e-ephemeral.yml
-  → npm run provision
-  → npm test
-      → npm run typecheck
-      → vitest run
-          → tests/unit/*.test.ts
-          → tests/app-lifecycle.test.ts
-  → npm run destroy  (runs with if: always())
-```
-
 ### Provisioning
 
 ```text
@@ -60,42 +66,103 @@ npm run provision
   → provisioning/commands/provision.ts
       → loadProvisioningConfig()
       → provisionEnvironment()
-          → saveState()  (persist droplet name before creation)
-          → DigitalOceanClient.createDroplet()
-          → saveState()  (persist droplet ID)
-          → DigitalOceanClient.waitForPublicIp()
-          → saveState()  (persist public IP)
-          → saveState()  (persist wildcard DNS name before creation)
-          → CloudflareClient.createWildcardRecord()
-          → saveState()  (persist DNS record ID)
-          → prepareServer()
-              → connectWithRetry()
-                  → SshClient.connect()
-              → runChecked()  (install and start Docker)
-                  → SshClient.exec()
-              → runChecked()  (pull and run CapRover)
-                  → SshClient.exec()
-              → SshClient.close()
-          → waitForWildcardDns()
-              → retryUntil(resolve4(captain.<root-domain>))
-          → configureCapRover()
-              → login at http://<IP>:3000
-              → updateRootDomain()
-              → login at http://captain.<root-domain>
-              → enableRootSsl()
-              → login at https://captain.<root-domain>
-              → forceSsl()
-              → changePass()
-              → login with the new password
-              → getCaptainInfo()
-          → saveState()  (persist CapRover URL)
+          → DigitalOcean
+              → DigitalOceanClient.createDroplet()
+              → DigitalOceanClient.waitForPublicIp()
+
+          → Cloudflare
+              → CloudflareClient.createWildcardRecord()
+
+          → Server setup
+              → prepareServer()
+                  → connectWithRetry()
+                      → SshClient.connect()
+                  → install / verify Docker
+                  → docker pull CapRover image
+                  → docker run CapRover
+
+          → DNS
+              → waitForWildcardDns()
+
+          → CapRover
+              → configureCapRover()
+                  → login at http://<IP>:3000
+                  → updateRootDomain()
+                  → login at http://captain.<root-domain>
+                  → enableRootSsl()
+                  → login at https://captain.<root-domain>
+                  → forceSsl()
+                  → changePass()
+                  → verify login with the new password
+
           → return { state, testEnvironment }
+
       → append testEnvironment to GITHUB_ENV  (when GITHUB_ENV is set)
 ```
 
 If any provisioning operation throws, `provisionEnvironment()` calls
 `destroyEnvironment()` with the partial in-memory state before rethrowing the
 error.
+
+### E2E application lifecycle
+
+```text
+tests/app-lifecycle.test.ts
+  → loadConfig()
+  → createTestContext()
+      → CapRoverClient
+      → SshClient
+      → DockerInspector
+      → HttpClient
+
+  → environment validation
+      → CapRoverClient.login()
+      → CapRoverClient.getServerInfo()
+      → CapRoverClient.getApps()
+      → SshClient.connect()
+      → DockerInspector.validateEnvironment()
+
+  → create app
+      → CapRoverClient.createApp()
+      → verify CapRover state
+      → verify Docker service exists
+
+  → rename app
+      → CapRoverClient.renameApp()
+      → verify CapRover state
+      → verify Docker state
+
+  → configure environment
+      → CapRoverClient.getApp()
+      → CapRoverClient.updateApp()
+      → verify CapRover environment
+      → verify Docker service environment
+
+  → deploy nginx v1
+      → deployAndVerify()
+          → CapRoverClient.deployImage()
+          → verify CapRover deployed version
+          → verify Docker image and tasks
+          → verify HTTP response
+
+  → scale to 2
+      → CapRoverClient.updateApp(instanceCount = 2)
+      → verify CapRover instanceCount
+      → verify Docker desired/running replicas
+      → verify HTTP response
+
+  → scale to 1
+      → same verification
+
+  → deploy nginx v2
+      → deployAndVerify()
+
+  → delete app
+      → CapRoverClient.deleteApp()
+      → verify removed from CapRover
+      → verify removed from Docker
+      → verify app URL stops serving nginx
+```
 
 ### Cleanup
 
@@ -104,20 +171,17 @@ npm run destroy
   → npm run build:provisioning
   → provisioning/commands/destroy.ts
       → loadState()
-      → when state exists:
-          → loadProvisioningConfig()
-          → destroyEnvironment()
-              → CloudflareClient.findRecordId()  (when the ID was not persisted)
-              → CloudflareClient.deleteRecord()
-              → saveState()
-              → DigitalOceanClient.findDropletIdByName()  (when the ID was not persisted)
-              → DigitalOceanClient.deleteDroplet()
-              → saveState()
-              → removeState()
+      → loadProvisioningConfig()
+      → destroyEnvironment()
+          → CloudflareClient.deleteRecord()
+          → DigitalOceanClient.deleteDroplet()
+          → removeState()
 ```
 
-DNS and droplet cleanup are attempted independently. `removeState()` runs only
-after both resources have been deleted successfully.
+DNS and droplet cleanup are attempted independently. If an ID was not persisted,
+`destroyEnvironment()` can recover the resource by its saved name before
+deleting it. `removeState()` runs only after both resources have been deleted
+successfully.
 
 ### Local all-in-one command
 
@@ -129,10 +193,6 @@ npm run test:ephemeral
       → provisionEnvironment()
       → runTests(testEnvironment)
           → spawn("npm", ["test"])
-              → npm run typecheck
-              → vitest run
-                  → tests/unit/*.test.ts
-                  → tests/app-lifecycle.test.ts
       → destroyEnvironment()  (runs in finally)
       → preserve the test process exit code
 ```
