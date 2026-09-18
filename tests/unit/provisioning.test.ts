@@ -56,4 +56,25 @@ describe('provisioning helpers', () => {
 
         expect(Date.now() - startedAt).toBeLessThan(250)
     })
+
+    test('retries stalled operations when an attempt timeout is set', async () => {
+        let attempts = 0
+
+        await expect(
+            retryUntil(
+                'retrying stalled operation',
+                () => {
+                    attempts += 1
+                    return new Promise(() => undefined)
+                },
+                {
+                    timeoutMs: 45,
+                    intervalMs: 1,
+                    attemptTimeoutMs: 10,
+                }
+            )
+        ).rejects.toThrow('did not become ready within 45ms')
+
+        expect(attempts).toBeGreaterThan(1)
+    })
 })

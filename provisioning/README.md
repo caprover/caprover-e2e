@@ -78,6 +78,7 @@ npm run provision
                   → connectWithRetry()
                       → SshClient.connect()
                   → verify Docker / install if missing
+                  → open CapRover ports in UFW when available
                   → docker pull CapRover image
                   → docker run CapRover
 
@@ -86,8 +87,10 @@ npm run provision
 
           → CapRover
               → configureCapRover()
+                  → wait for http://<IP>:3000 to respond
                   → login at http://<IP>:3000
                   → updateRootDomain()
+                  → wait for http://captain.<root-domain> to respond
                   → login at http://captain.<root-domain>
                   → enableRootSsl()
                   → login at https://captain.<root-domain>

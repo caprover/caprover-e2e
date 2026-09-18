@@ -1,7 +1,11 @@
 export async function retryUntil<T>(
     description: string,
     operation: (signal: AbortSignal) => Promise<T>,
-    options: { timeoutMs: number; intervalMs?: number }
+    options: {
+        timeoutMs: number
+        intervalMs?: number
+        attemptTimeoutMs?: number
+    }
 ): Promise<T> {
     const deadline = Date.now() + options.timeoutMs
     const intervalMs = options.intervalMs ?? 5_000
@@ -9,13 +13,17 @@ export async function retryUntil<T>(
 
     while (Date.now() < deadline) {
         const remainingMs = deadline - Date.now()
+        const attemptTimeoutMs = Math.min(
+            options.attemptTimeoutMs ?? remainingMs,
+            remainingMs
+        )
         const controller = new AbortController()
-        const timer = setTimeout(() => controller.abort(), remainingMs)
+        const timer = setTimeout(() => controller.abort(), attemptTimeoutMs)
 
         try {
             return await withTimeout(
                 operation(controller.signal),
-                remainingMs,
+                attemptTimeoutMs,
                 description
             )
         } catch (error) {
