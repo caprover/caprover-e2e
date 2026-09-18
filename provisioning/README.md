@@ -77,7 +77,7 @@ npm run provision
               → prepareServer()
                   → connectWithRetry()
                       → SshClient.connect()
-                  → install / verify Docker
+                  → verify Docker / install if missing
                   → docker pull CapRover image
                   → docker run CapRover
 
@@ -272,7 +272,7 @@ Required credentials and identifiers are documented in the repository
 | --------------------- | ------------------------ |
 | `DIGITALOCEAN_REGION` | `nyc3`                   |
 | `DIGITALOCEAN_SIZE`   | `s-1vcpu-2gb`            |
-| `DIGITALOCEAN_IMAGE`  | `ubuntu-24-04-x64`       |
+| `DIGITALOCEAN_IMAGE`  | `docker-20-04`            |
 | `CAPROVER_IMAGE`      | `caprover/caprover-edge` |
 
 Local execution loads a gitignored `.env` file. CI supplies environment variables
