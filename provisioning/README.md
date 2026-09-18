@@ -37,6 +37,106 @@ process during local runs.
 The GitHub Actions workflow uses separate `provision`, test, and `destroy` steps
 so test failures remain visible and the cleanup step can use `if: always()`.
 
+## Function call chains
+
+The fresh-server GitHub Actions workflow coordinates three separate commands:
+
+```text
+.github/workflows/e2e-ephemeral.yml
+  → npm run provision
+  → npm test
+      → npm run typecheck
+      → vitest run
+          → tests/unit/*.test.ts
+          → tests/app-lifecycle.test.ts
+  → npm run destroy  (runs with if: always())
+```
+
+### Provisioning
+
+```text
+npm run provision
+  → npm run build:provisioning
+  → provisioning/commands/provision.ts
+      → loadProvisioningConfig()
+      → provisionEnvironment()
+          → saveState()  (persist droplet name before creation)
+          → DigitalOceanClient.createDroplet()
+          → saveState()  (persist droplet ID)
+          → DigitalOceanClient.waitForPublicIp()
+          → saveState()  (persist public IP)
+          → saveState()  (persist wildcard DNS name before creation)
+          → CloudflareClient.createWildcardRecord()
+          → saveState()  (persist DNS record ID)
+          → prepareServer()
+              → connectWithRetry()
+                  → SshClient.connect()
+              → runChecked()  (install and start Docker)
+                  → SshClient.exec()
+              → runChecked()  (pull and run CapRover)
+                  → SshClient.exec()
+              → SshClient.close()
+          → waitForWildcardDns()
+              → retryUntil(resolve4(captain.<root-domain>))
+          → configureCapRover()
+              → login at http://<IP>:3000
+              → updateRootDomain()
+              → login at http://captain.<root-domain>
+              → enableRootSsl()
+              → login at https://captain.<root-domain>
+              → forceSsl()
+              → changePass()
+              → login with the new password
+              → getCaptainInfo()
+          → saveState()  (persist CapRover URL)
+          → return { state, testEnvironment }
+      → append testEnvironment to GITHUB_ENV  (when GITHUB_ENV is set)
+```
+
+If any provisioning operation throws, `provisionEnvironment()` calls
+`destroyEnvironment()` with the partial in-memory state before rethrowing the
+error.
+
+### Cleanup
+
+```text
+npm run destroy
+  → npm run build:provisioning
+  → provisioning/commands/destroy.ts
+      → loadState()
+      → when state exists:
+          → loadProvisioningConfig()
+          → destroyEnvironment()
+              → CloudflareClient.findRecordId()  (when the ID was not persisted)
+              → CloudflareClient.deleteRecord()
+              → saveState()
+              → DigitalOceanClient.findDropletIdByName()  (when the ID was not persisted)
+              → DigitalOceanClient.deleteDroplet()
+              → saveState()
+              → removeState()
+```
+
+DNS and droplet cleanup are attempted independently. `removeState()` runs only
+after both resources have been deleted successfully.
+
+### Local all-in-one command
+
+```text
+npm run test:ephemeral
+  → npm run build:provisioning
+  → provisioning/commands/test-ephemeral.ts
+      → loadProvisioningConfig()
+      → provisionEnvironment()
+      → runTests(testEnvironment)
+          → spawn("npm", ["test"])
+              → npm run typecheck
+              → vitest run
+                  → tests/unit/*.test.ts
+                  → tests/app-lifecycle.test.ts
+      → destroyEnvironment()  (runs in finally)
+      → preserve the test process exit code
+```
+
 ## Code layout
 
 | Path                             | Responsibility                                                |
