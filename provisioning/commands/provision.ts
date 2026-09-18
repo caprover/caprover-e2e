@@ -1,6 +1,6 @@
 import { appendFile } from 'node:fs/promises'
-import { loadProvisioningConfig } from '../config.js'
-import { provisionEnvironment } from '../environment/provision.js'
+import { loadProvisioningConfig } from '../config'
+import { provisionEnvironment } from '../environment/provision'
 
 provisionEnvironment(loadProvisioningConfig()).then(
     async ({ testEnvironment }) => {

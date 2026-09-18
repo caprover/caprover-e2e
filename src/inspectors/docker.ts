@@ -1,4 +1,4 @@
-import { SshClient, SshCommandResult } from '../clients/ssh.js'
+import { SshClient, SshCommandResult } from '../clients/ssh'
 
 interface DockerService {
     ID?: string

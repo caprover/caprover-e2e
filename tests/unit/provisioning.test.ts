@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
-import { generateCapRoverPassword } from '../../provisioning/caprover.js'
-import { loadProvisioningConfig } from '../../provisioning/config.js'
-import { retryUntil } from '../../provisioning/retry.js'
+import { generateCapRoverPassword } from '../../provisioning/caprover'
+import { loadProvisioningConfig } from '../../provisioning/config'
+import { retryUntil } from '../../provisioning/retry'
 
 const validEnvironment = {
     DIGITALOCEAN_TOKEN: 'digital-ocean-token',

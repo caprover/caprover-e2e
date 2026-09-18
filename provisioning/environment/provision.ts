@@ -3,14 +3,14 @@ import {
     configureCapRover,
     generateCapRoverPassword,
     waitForWildcardDns,
-} from '../caprover.js'
-import type { ProvisioningConfig } from '../config.js'
-import { CloudflareClient } from '../infrastructure/cloudflare.js'
-import { DigitalOceanClient } from '../infrastructure/digitalocean.js'
-import { prepareServer } from '../infrastructure/server.js'
-import type { ProvisionedEnvironment, ProvisioningState } from '../types.js'
-import { destroyEnvironment } from './destroy.js'
-import { saveState } from './state.js'
+} from '../caprover'
+import type { ProvisioningConfig } from '../config'
+import { CloudflareClient } from '../infrastructure/cloudflare'
+import { DigitalOceanClient } from '../infrastructure/digitalocean'
+import { prepareServer } from '../infrastructure/server'
+import type { ProvisionedEnvironment, ProvisioningState } from '../types'
+import { destroyEnvironment } from './destroy'
+import { saveState } from './state'
 
 export async function provisionEnvironment(
     config: ProvisioningConfig

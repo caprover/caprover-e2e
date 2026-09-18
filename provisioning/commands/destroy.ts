@@ -1,6 +1,6 @@
-import { loadProvisioningConfig } from '../config.js'
-import { destroyEnvironment } from '../environment/destroy.js'
-import { loadState } from '../environment/state.js'
+import { loadProvisioningConfig } from '../config'
+import { destroyEnvironment } from '../environment/destroy'
+import { loadState } from '../environment/state'
 
 loadState().then((state) => {
     if (state) {

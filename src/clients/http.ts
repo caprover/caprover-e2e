@@ -1,4 +1,4 @@
-import { eventually } from '../helpers/retry.js'
+import { eventually } from '../helpers/retry'
 
 export interface HttpResult {
     status: number

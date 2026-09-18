@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
-import { loadProvisioningConfig } from '../config.js'
-import { destroyEnvironment } from '../environment/destroy.js'
-import { provisionEnvironment } from '../environment/provision.js'
+import { loadProvisioningConfig } from '../config'
+import { destroyEnvironment } from '../environment/destroy'
+import { provisionEnvironment } from '../environment/provision'
 
 runEphemeralTests()
 
