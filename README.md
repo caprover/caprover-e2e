@@ -82,16 +82,17 @@ commands. For local end-to-end runs, prefer `npm run test:ephemeral` so the
 generated connection details are passed directly to the test process.
 
 `provision` creates one DigitalOcean droplet, creates a unique unproxied
-Cloudflare wildcard DNS record, installs Docker, starts a fresh CapRover
-instance, configures its root domain and HTTPS, and generates a temporary
-CapRover password. The generated cleanup state is stored locally in
+Cloudflare wildcard DNS record, verifies Docker is available, starts a fresh
+CapRover instance, configures its root domain and HTTPS, and generates a temporary
+CapRover password. The default DigitalOcean image has Docker preinstalled; custom
+images still use the existing Docker installation fallback when needed. The generated cleanup state is stored locally in
 `.e2e-provisioning-state.json` and is gitignored.
 
 See [Provisioning design](provisioning/README.md) for the full lifecycle,
 failure-recovery behavior, credential flow, and code layout.
 
 The default provisioning configuration uses `nyc3`, `s-1vcpu-2gb`,
-`ubuntu-24-04-x64`, and `caprover/caprover-edge`. These can be overridden with
+`docker-20-04`, and `caprover/caprover-edge`. These can be overridden with
 `DIGITALOCEAN_REGION`, `DIGITALOCEAN_SIZE`, `DIGITALOCEAN_IMAGE`, and
 `CAPROVER_IMAGE`.
 
