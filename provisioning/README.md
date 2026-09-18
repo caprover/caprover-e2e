@@ -22,7 +22,10 @@ The fresh-server workflow has three main phases:
       → write testEnvironment to GITHUB_ENV
 
   → npm test
-      → tests/app-lifecycle.test.ts
+      → npm run typecheck
+      → vitest run
+          → tests/unit/*.test.ts
+          → tests/app-lifecycle.test.ts
 
   → npm run destroy  (runs with if: always())
       → loadState()
