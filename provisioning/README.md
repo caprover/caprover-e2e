@@ -8,12 +8,12 @@ server workflow does not use this code.
 
 ```mermaid
 flowchart TD
-    A["Load and validate configuration"] --> B["Create DigitalOcean droplet"]
-    B --> C["Create Cloudflare wildcard DNS"]
-    C --> D["Install Docker and CapRover over SSH"]
-    D --> E["Configure domain, HTTPS, and password"]
-    E --> F["Run the existing E2E suite"]
-    F --> G["Delete DNS record and droplet"]
+    A["config.ts: load and validate configuration"] --> B["infrastructure/digitalocean.ts: create droplet"]
+    B --> C["infrastructure/cloudflare.ts: create wildcard DNS"]
+    C --> D["infrastructure/server.ts: install Docker and CapRover"]
+    D --> E["caprover.ts: configure domain, HTTPS, and password"]
+    E --> F["tests/app-lifecycle.test.ts: run E2E suite"]
+    F --> G["environment/destroy.ts: delete DNS and droplet"]
 ```
 
 The provisioner returns the same environment variables accepted by the regular
@@ -61,12 +61,12 @@ details, but no passwords, API tokens, or SSH private keys.
 
 ```mermaid
 flowchart TD
-    A["Persist unique resource name"] --> B["Send provider create request"]
-    B --> C["Persist returned resource ID"]
-    B -. "Response is lost" .-> D["Find resource by name or tag"]
-    C --> E["Delete resource"]
+    A["environment/state.ts: persist resource name"] --> B["infrastructure provider: send create request"]
+    B --> C["environment/state.ts: persist returned ID"]
+    B -. "Response is lost" .-> D["environment/destroy.ts: find by name or tag"]
+    C --> E["environment/destroy.ts: delete resource"]
     D --> E
-    E --> F["Remove cleanup state"]
+    E --> F["environment/state.ts: remove cleanup state"]
 ```
 
 Resource names are saved before provider create requests. If a provider creates
