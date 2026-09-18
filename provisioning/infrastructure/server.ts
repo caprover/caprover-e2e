@@ -23,7 +23,13 @@ if ! command -v docker >/dev/null 2>&1; then
     sh /tmp/get-docker.sh
 fi
 systemctl enable --now docker >/dev/null 2>&1 || true
-docker version >/dev/null`,
+docker version >/dev/null
+
+if command -v ufw >/dev/null 2>&1; then
+    ufw allow 80/tcp
+    ufw allow 443/tcp
+    ufw allow 3000/tcp
+fi`,
             180_000
         )
 
