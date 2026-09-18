@@ -78,6 +78,7 @@ npm run provision
                   → connectWithRetry()
                       → SshClient.connect()
                   → verify Docker / install if missing
+                  → open CapRover ports in UFW when available
                   → docker pull CapRover image
                   → docker run CapRover
 
