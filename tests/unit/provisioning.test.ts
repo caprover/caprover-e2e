@@ -30,6 +30,12 @@ describe('provisioning configuration', () => {
             })
         ).toThrow('E2E_BASE_DOMAIN must contain a domain name')
     })
+
+    test('defaults to the DigitalOcean Docker image', () => {
+        expect(loadProvisioningConfig(validEnvironment).digitalOceanImage).toBe(
+            'docker-20-04'
+        )
+    })
 })
 
 describe('provisioning helpers', () => {
