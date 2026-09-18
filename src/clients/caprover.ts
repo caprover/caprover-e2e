@@ -2,7 +2,7 @@ import CapRoverAPI, {
     CapRoverModels,
     SimpleAuthenticationProvider,
 } from 'caprover-api'
-import { withTimeout } from '../helpers/retry.js'
+import { withTimeout } from '../helpers/retry'
 
 type AppDefinition = CapRoverModels.IAppDef & {
     isLegacyAppName?: boolean

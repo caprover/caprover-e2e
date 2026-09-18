@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { SshClient } from '../../src/clients/ssh.js'
-import { DockerInspector } from '../../src/inspectors/docker.js'
+import { SshClient } from '../../src/clients/ssh'
+import { DockerInspector } from '../../src/inspectors/docker'
 
 const docker = new DockerInspector({} as SshClient)
 

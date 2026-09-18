@@ -1,0 +1,45 @@
+name: CapRover E2E - Fresh Server
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    e2e:
+        runs-on: ubuntu-latest
+        timeout-minutes: 55
+        env:
+            DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+            DIGITALOCEAN_SSH_KEY_ID: ${{ secrets.DIGITALOCEAN_SSH_KEY_ID }}
+            CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+            CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+            E2E_BASE_DOMAIN: ${{ secrets.E2E_BASE_DOMAIN }}
+            CAPROVER_E2E_SSH_PRIVATE_KEY: ${{ secrets.CAPROVER_E2E_SSH_PRIVATE_KEY }}
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+
+            - name: Install dependencies
+              timeout-minutes: 5
+              run: npm ci
+
+            - name: Provision fresh CapRover server
+              timeout-minutes: 30
+              run: npm run provision
+
+            - name: Run E2E suite
+              timeout-minutes: 8
+              run: npm test
+
+            - name: Destroy temporary infrastructure
+              if: always()
+              timeout-minutes: 5
+              run: npm run destroy

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { loadConfig } from '../../src/config.js'
+import { loadConfig } from '../../src/config'
 
 const validEnvironment = {
     CAPROVER_URL: 'https://captain.example.com',

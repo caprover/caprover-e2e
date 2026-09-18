@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { createTestNames } from '../../src/helpers/names.js'
-import { eventually } from '../../src/helpers/retry.js'
+import { createTestNames } from '../../src/helpers/names'
+import { eventually } from '../../src/helpers/retry'
 
 describe('createTestNames', () => {
     test('creates valid, related, unique app names', () => {

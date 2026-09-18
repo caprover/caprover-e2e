@@ -1,8 +1,8 @@
-import { CapRoverClient } from './clients/caprover.js'
-import { HttpClient } from './clients/http.js'
-import { SshClient } from './clients/ssh.js'
-import { TestConfig } from './config.js'
-import { DockerInspector } from './inspectors/docker.js'
+import { CapRoverClient } from './clients/caprover'
+import { HttpClient } from './clients/http'
+import { SshClient } from './clients/ssh'
+import { TestConfig } from './config'
+import { DockerInspector } from './inspectors/docker'
 
 export interface TestContext {
     caprover: CapRoverClient

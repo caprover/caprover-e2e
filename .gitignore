@@ -1,4 +1,6 @@
 node_modules/
 coverage/
 .env
+.provisioning-dist/
+.e2e-provisioning-state.json
 *.log

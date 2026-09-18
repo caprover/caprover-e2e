@@ -1,0 +1,10 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmit": false,
+        "outDir": ".provisioning-dist",
+        "rootDir": ".",
+        "types": ["node"]
+    },
+    "include": ["provisioning", "src/clients/ssh.ts"]
+}

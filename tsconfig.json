@@ -10,5 +10,5 @@
         "noEmit": true,
         "types": ["node", "vitest/globals"]
     },
-    "include": ["src", "tests", "vitest.config.mts"]
+    "include": ["src", "tests", "provisioning", "vitest.config.mts"]
 }
