@@ -6,21 +6,21 @@ The existing suite covers login, application creation, rename, one environment u
 
 Future agents should check each item as it lands. A PR is complete only when every required checkbox in its section is checked or an explicitly deferred item links to a follow-up issue.
 
-## Testing principles
+## Implementation rules
 
-- [ ] Keep the existing full-update lifecycle using `updateConfigAndSave()`.
-- [ ] Test PATCH through a separate regression path focused on preserving omitted fields.
-- [ ] Validate important mutations through CapRover API state.
-- [ ] Validate relevant mutations through Docker state over SSH.
-- [ ] Validate routing and application behavior through public HTTP where applicable.
-- [ ] Run mutating tests serially.
-- [ ] Generate unique names for apps, projects, themes, domains, and volumes.
-- [ ] Register cleanup immediately after creating each resource.
-- [ ] Run cleanup in LIFO order and preserve the original test failure.
-- [ ] Save and restore global settings modified by tests.
-- [ ] Use small, pinned container images.
-- [ ] Keep each PR independently reviewable and green.
-- [ ] Extend workflow timeouts only as actual suite runtime grows.
+- Keep the existing full-update lifecycle using `updateConfigAndSave()`.
+- Test PATCH through a separate regression path focused on preserving omitted fields.
+- Validate important mutations through CapRover API state.
+- Validate relevant mutations through Docker state over SSH.
+- Validate routing and application behavior through public HTTP where applicable.
+- Run mutating tests serially.
+- Generate unique names for apps, projects, themes, domains, and volumes.
+- Register cleanup immediately after creating each resource.
+- Run cleanup in LIFO order and preserve the original test failure.
+- Save and restore global settings modified by tests.
+- Use small, pinned container images.
+- Keep each PR independently reviewable and green.
+- Extend workflow timeouts only as actual suite runtime grows.
 
 ## PR1: Upgrade the API package and prepare the harness
 
