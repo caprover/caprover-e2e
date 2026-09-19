@@ -51,6 +51,13 @@ docker run --rm \\
     ${image}`,
             180_000
         )
+        console.log(`Requested CapRover image: ${config.caproverImage}`)
+        const imageResult = await ssh.exec(
+            "docker service inspect captain-captain --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'"
+        )
+        if (imageResult.exitCode !== 0)
+            throw new Error('Unable to resolve running CapRover image')
+        console.log(`Running CapRover image: ${imageResult.stdout.trim()}`)
     } finally {
         ssh.close()
     }

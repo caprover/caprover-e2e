@@ -1,4 +1,5 @@
 export interface TestConfig {
+    environment: string
     caproverUrl: string
     caproverPassword: string
     sshHost: string
@@ -29,6 +30,7 @@ export function loadConfig(
     const sshPort = parseSshPort(environment.SSH_PORT)
 
     return {
+        environment: environment.CAPROVER_E2E_ENVIRONMENT ?? 'persistent',
         caproverUrl,
         caproverPassword: environment.CAPROVER_PASSWORD!,
         sshHost: environment.SSH_HOST?.trim() || new URL(caproverUrl).hostname,

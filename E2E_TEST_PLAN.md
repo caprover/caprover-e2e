@@ -8,7 +8,7 @@ Future agents should check each implementation item as it lands. A PR is complet
 
 ## Implementation sequence and prerequisites
 
-Proposed first batch: PR1 through PR6. Confirm that batch before implementation, then use its measured runtime and reliability to guide the remaining work.
+Confirmed first batch: PR1 through PR6. Use its measured runtime and reliability to guide the remaining work.
 
 - Confirm the existing DigitalOcean, Cloudflare, and SSH provisioning secrets are present and valid in GitHub Actions. Update missing or expired values in GitHub; keep credentials out of this document and PR discussions.
 - Keep the backend custom-port fix (PR10) and SDK prerequisites (PR13 and PR17) as separate repository changes. Link their PRs and the consumed package versions or server images before enabling dependent assertions.
