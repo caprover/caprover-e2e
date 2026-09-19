@@ -33,62 +33,66 @@ The suite should expose these commands:
 - `npm run test:smoke`: the existing application lifecycle.
 - `npm run test:core`: deterministic tests safe for a dedicated existing test server.
 - `npm run test:destructive`: global configuration and resource-deletion tests.
-- `npm run test:all`: every suite allowed by the current environment.
+- `npm run test:all`: unit, smoke, and core; also destructive when `CAPROVER_E2E_ENVIRONMENT=ephemeral`. Exclude destructive files before execution on persistent servers.
 
-Provisioned runs should set `CAPROVER_E2E_ENVIRONMENT=ephemeral`. Destructive tests must fail fast unless that exact value is present.
+Provisioned runs should set `CAPROVER_E2E_ENVIRONMENT=ephemeral` in `provisionEnvironment().testEnvironment`, which the provisioning command exports to `$GITHUB_ENV`. Explicit `test:destructive` invocations and direct execution of destructive files must fail before any mutation unless that exact value is present.
 
 The existing-server workflow should run smoke and core tests. The fresh-server workflow can run smoke, core, and destructive tests.
 
-## PR1: Upgrade the API package and add safety foundations
+Assign every test file to exactly one tier using explicit file lists or non-overlapping patterns. The existing lifecycle file belongs to smoke. Helper unit tests belong to unit. Each feature section below names its E2E files and tiers; mixed-tier PRs use separate files. Core assumes a dedicated test server and may create and delete uniquely owned apps and projects. Volume deletion, host-port changes, and global mutations require destructive mode.
 
-- [ ] Upgrade `caprover-api` from `0.0.20` to `0.0.21`.
-- [ ] Update `package-lock.json`.
-- [ ] Add the execution-tier scripts described above.
-- [ ] Add `CAPROVER_E2E_ENVIRONMENT` to the test configuration.
-- [ ] Set `CAPROVER_E2E_ENVIRONMENT=ephemeral` from the provisioning command.
-- [ ] Add a guard used by every destructive or global-state test.
+PR18 files belong to destructive and are specialized opt-in suites. Exclude them from the default destructive selection and `test:all`; run each through its dedicated workflow with an ephemeral guard and explicit prerequisites. Missing required configuration in an explicitly selected workflow must fail clearly.
+
+## PR1: Upgrade the API package and add minimal safety foundations
+
+Tier: unit for selection/guard/cleanup tests; smoke for the existing lifecycle.
+
+- [ ] Consume a published `caprover-api` version with PATCH support (at least `0.0.21`); preserve any newer version already installed.
+- [ ] Update `package-lock.json` if the dependency changes.
+- [ ] Add the execution-tier scripts and explicit file selection described above.
+- [ ] Add `CAPROVER_E2E_ENVIRONMENT` to test configuration and provisioning's returned test environment.
+- [ ] Add a guard used by every destructive or global-state test before mutation.
+- [ ] Test persistent/ephemeral suite selection, specialized-suite exclusion, and direct destructive invocation rejection.
 - [ ] Add workflow concurrency for the existing-server workflow.
-- [ ] Add `CapRoverClient.patchApp()` using `patchAppDefinition()`.
-- [ ] Keep `CapRoverClient.updateApp()` on the full POST update path.
-- [ ] Add client wrappers for configurable runtime-log encoding.
-- [ ] Add client wrappers for attached and detached source uploads.
-- [ ] Add a typed `expectCaptainError()` helper using `captainStatus` and `captainMessage`.
-- [ ] Add a raw CapRover API helper for response-envelope assertions.
-- [ ] Extend the HTTP helper with custom request headers.
-- [ ] Extend the HTTP helper with manual redirect handling and response headers.
-- [ ] Extend the HTTP helper with binary responses for backup downloads.
-- [ ] Add a lightweight LIFO cleanup registry.
-- [ ] Add unique-name generation for projects, themes, volumes, domains, images, and ports.
-- [ ] Add helpers for saving and restoring global settings.
-- [ ] Extract reusable app, service, replica, image, and HTTP assertions.
-- [ ] Expand diagnostics with Docker service specification and task state.
-- [ ] Expand diagnostics with bounded build-log and runtime-log tails.
-- [ ] Add unit tests for cleanup ordering and cleanup after failure.
-- [ ] Add unit tests proving full update uses POST and partial update uses PATCH.
-- [ ] Update the README with suite tiers and safety requirements.
-- [ ] Measure runtime before changing workflow timeouts.
-- [ ] Confirm the existing lifecycle passes unchanged.
+- [ ] Add a lightweight LIFO cleanup registry and test ordering and cleanup after failure.
+- [ ] Keep the existing full-update lifecycle unchanged and confirm it passes.
+- [ ] Update workflow suite commands and README safety instructions.
+
+Add feature-specific wrappers, HTTP options, naming support, restore logic, assertions, and diagnostics in the consuming PR. Reuse existing helpers where sufficient. Measure runtime before changing workflow timeouts.
 
 ## PR2: Add authentication and API contract tests
 
 Create `tests/authentication.test.ts`.
 
+Tier: core.
+
 - [ ] Test valid login.
-- [ ] Test automatic login when the first authenticated request has no cached token.
-- [ ] Test one automatic reauthentication after a deliberately stale token.
 - [ ] Verify wrong-password errors expose status `1105`.
 - [ ] Verify empty-password validation.
 - [ ] Verify password-length validation.
 - [ ] Avoid enough repeated failures to trigger the global login backoff.
-- [ ] Verify representative SDK errors expose `captainStatus` and `captainMessage`.
+- [ ] Verify one representative SDK error propagates the server's `captainStatus` and `captainMessage`; add a small assertion helper here if reused.
 - [ ] Verify an unauthenticated user endpoint returns the expected authorization status.
-- [ ] Verify a detached successful API response has envelope status `101` through the raw helper.
-- [ ] Add the missing Nginx validation status `1116` to `caprover-api` or track the SDK fix explicitly.
 - [ ] Document root domain, root SSL, global force SSL, and password change as provisioning coverage.
+
+### Companion SDK unit coverage (`caprover-api`)
+
+Tier: unit in the SDK repository; these tests do not require a CapRover server.
+
+- [ ] Add or confirm deterministic tests for automatic login without a cached token and one reauthentication after a stale token.
+- [ ] Verify the retry is bounded and repeated authorization failure is propagated.
+- [ ] Cover generic error-shape behavior with mocked HTTP responses.
+- [ ] Link the SDK test PR or existing coverage here.
 
 ## PR3: Test full-update and PATCH semantics
 
 Create `tests/app-configuration.test.ts`.
+
+Tier: core.
+
+- [ ] Add `CapRoverClient.patchApp()` using `patchAppDefinition()` while keeping `updateApp()` on POST.
+- [ ] Add unit tests proving the two wrappers use their respective HTTP methods.
+- [ ] Add minimal raw API request support for the missing-`appName` response assertion.
 
 ### Full-update behavior
 
@@ -100,8 +104,6 @@ Create `tests/app-configuration.test.ts`.
 - [ ] Verify environment variables through Docker.
 - [ ] Verify explicitly supplied empty arrays clear environment variables.
 - [ ] Verify explicitly supplied empty arrays clear tags.
-- [ ] Verify explicitly supplied empty arrays clear ports.
-- [ ] Verify explicitly supplied empty arrays clear volumes.
 
 ### PATCH preservation
 
@@ -131,6 +133,8 @@ Create `tests/app-configuration.test.ts`.
 
 Create `tests/projects.test.ts`.
 
+Tier: core.
+
 - [ ] Add project API wrappers to the E2E client.
 - [ ] Create a root project.
 - [ ] Create a child project.
@@ -150,7 +154,11 @@ Create `tests/projects.test.ts`.
 
 Create `tests/deployments.test.ts`.
 
+Tier: core.
+
 - [ ] Add a reusable build-completion poller.
+- [ ] Add or reuse raw API response-envelope access for detached status assertions.
+- [ ] Include bounded build-log tails and Docker service/task state in deployment failure diagnostics.
 - [ ] Deploy a pinned image synchronously.
 - [ ] Supply a unique Git hash.
 - [ ] Verify `deployedVersion` increments exactly once.
@@ -171,6 +179,10 @@ Avoid timing-based assertions that merely compare request duration with build du
 ## PR6: Add source-upload and runtime-log tests
 
 Create `tests/source-upload-and-logs.test.ts`.
+
+Tier: core.
+
+- [ ] Add source-upload and configurable log-encoding wrappers as needed by this file.
 
 ### Deterministic source fixture
 
@@ -203,13 +215,15 @@ Create `tests/source-upload-and-logs.test.ts`.
 
 Create `tests/persistent-storage.test.ts`.
 
+Tier: destructive.
+
 - [ ] Resolve the physical volume source from Docker service inspection.
 - [ ] Add Docker helpers for volume existence and marker reads/writes.
 - [ ] Create a persistent app and attach a named volume.
 - [ ] Verify API and Docker mount configuration.
+- [ ] Verify a full POST update with `volumes: []` clears mounts while retaining the named volume, then reattach it before the persistence checks.
 - [ ] Write a unique marker into the volume.
-- [ ] Redeploy another image and verify the marker remains.
-- [ ] Recreate or restart the service and verify persistence.
+- [ ] Redeploy another image, verify Docker replaced the application task with the new image, and verify the marker remains.
 - [ ] Delete the app while retaining the volume.
 - [ ] Attach the retained volume to another app and verify the marker.
 - [ ] Delete the second app and request volume deletion.
@@ -223,6 +237,9 @@ Create `tests/persistent-storage.test.ts`.
 
 Create `tests/app-routing.test.ts`.
 
+Tier: core.
+
+- [ ] Extend the HTTP helper with custom request headers, manual redirects, and response headers as needed here.
 - [ ] Deploy an image listening on a port other than 80.
 - [ ] Set `containerHttpPort` and verify the public route.
 - [ ] Set `notExposeAsWebApp: true`.
@@ -236,21 +253,23 @@ Create `tests/app-routing.test.ts`.
 - [ ] Verify the status and `Location` header without following redirects.
 - [ ] Clear the redirect and verify normal proxying.
 - [ ] Enable `websocketSupport`.
-- [ ] Verify API persistence and generated Nginx upgrade directives.
-- [ ] Track a real WebSocket handshake fixture separately if needed.
+- [ ] Verify API persistence.
+- [ ] Add a tiny WebSocket echo fixture and perform a real upgrade and echo exchange through the public CapRover proxy with bounded timeouts and connection cleanup.
 
 ## PR9: Add custom-domain and app-level Nginx tests
 
 Create `tests/app-nginx.test.ts`.
 
-- [ ] Attach a unique hostname under the ephemeral wildcard domain.
+Tier: core.
+
+- [ ] Attach a unique hostname under the test server's configured wildcard domain.
 - [ ] Verify API state and public routing.
 - [ ] Reject attaching the same domain to another app.
 - [ ] Remove the custom domain and verify routing disappears.
 - [ ] Add a harmless app-level response header.
 - [ ] Verify the header publicly.
 - [ ] Submit invalid app-level Nginx syntax.
-- [ ] Verify status `1116`.
+- [ ] Verify status `1116`; add or confirm the corresponding SDK status constant in a small companion SDK change if needed.
 - [ ] Verify the previous working configuration remains active.
 - [ ] Clear the customization.
 
@@ -260,17 +279,23 @@ Certificate issuance remains in the controlled SSL workflow.
 
 This prerequisite change belongs in `caprover/caprover`.
 
+Tier: unit in the backend repository; PR11 supplies destructive E2E coverage.
+
 - [ ] Preserve `protocol` in `AppsDataStore.updateAppDefinitionInDb()`.
 - [ ] Preserve `publishMode` in `AppsDataStore.updateAppDefinitionInDb()`.
-- [ ] Pass both fields during Docker service creation and update.
+- [ ] Propagate `publishMode` into `EndpointSpec.Ports[].PublishMode` during Docker service updates, for explicit protocol and omitted-protocol mappings.
+- [ ] Keep the existing service-creation handling of both fields and existing update handling of `protocol`.
 - [ ] Preserve legacy TCP-plus-UDP behavior when protocol is omitted.
-- [ ] Add backend unit tests for persistence and Docker request construction.
+- [ ] Add backend unit tests for datastore round trips of both fields and Docker create/update requests constructed from persisted mappings.
+- [ ] Cover explicit TCP/UDP, ingress/host mode, and omitted optional fields.
 - [ ] Link the backend PR here after creation.
 - [ ] Merge the backend fix before PR11.
 
 ## PR11: Add custom-port E2E tests
 
-Create `tests/custom-ports.test.ts` after PR10 lands.
+Create `tests/custom-ports.test.ts` after PR10 lands and the server image used by E2E contains the fix.
+
+Tier: destructive.
 
 - [ ] Add deterministic high-port allocation scoped to the run.
 - [ ] Configure and verify a TCP ingress mapping.
@@ -280,11 +305,14 @@ Create `tests/custom-ports.test.ts` after PR10 lands.
 - [ ] Verify real TCP and UDP connectivity.
 - [ ] Replace and remove mappings.
 - [ ] Verify removed ports close.
+- [ ] Verify a full POST update with `ports: []` clears configured mappings.
 - [ ] Reject invalid or incomplete port definitions.
 
 ## PR12: Add advanced application-setting tests
 
 Create `tests/advanced-app-settings.test.ts`.
+
+Tier: core.
 
 - [ ] Pin an app to the current manager `nodeId`.
 - [ ] Verify the Docker placement constraint.
@@ -304,9 +332,20 @@ Create `tests/advanced-app-settings.test.ts`.
 
 Create `tests/themes.test.ts`.
 
+Tier: destructive.
+
+### SDK prerequisite
+
+- [ ] Verify `caprover-api.saveTheme()` sends `extra` and `headEmbed` along with `oldName`, `name`, and `content`; fix the payload if still missing.
+- [ ] Add or confirm SDK unit coverage for supplied and omitted optional fields.
+- [ ] Link the SDK fix and consume a published version containing it before implementing the field round-trip assertions.
+
+### E2E coverage
+
 - [ ] Save the original current theme.
 - [ ] List built-in themes.
-- [ ] Create a custom theme with content, extra data, and head embed.
+- [ ] Create a custom theme with content, extra data, and head embed through the SDK.
+- [ ] Verify all three fields round-trip through the API.
 - [ ] Verify it becomes current.
 - [ ] Retrieve it through the public unauthenticated endpoint.
 - [ ] Rename or update it.
@@ -318,10 +357,13 @@ Create `tests/themes.test.ts`.
 
 ## PR14: Add backup and system-read tests
 
-Create `tests/backup.test.ts` and `tests/system-info.test.ts`.
+Create `tests/backup.test.ts` (Tier: destructive) and `tests/system-info.test.ts` (Tier: core).
+
+Backup creation/download touches server-wide backup state; keep it ephemeral.
 
 ### Backup
 
+- [ ] Add binary HTTP response support for archive downloads.
 - [ ] Create identifiable test configuration.
 - [ ] Request a backup.
 - [ ] Download it as binary through the one-time endpoint.
@@ -343,7 +385,9 @@ Create `tests/backup.test.ts` and `tests/system-info.test.ts`.
 
 ## PR15: Add destructive disk-cleanup and global Nginx tests
 
-Create `tests/disk-cleanup.test.ts` and `tests/system-nginx.test.ts`. Require ephemeral mode.
+Create `tests/disk-cleanup.test.ts` and `tests/system-nginx.test.ts`.
+
+Tier: destructive for both files. Require ephemeral mode.
 
 ### Disk cleanup
 
@@ -368,7 +412,9 @@ Create `tests/disk-cleanup.test.ts` and `tests/system-nginx.test.ts`. Require ep
 
 ## PR16: Add one-click deployment and repository tests
 
-Create `tests/one-click.test.ts`.
+Create `tests/one-click.test.ts` (Tier: core) and `tests/one-click-repositories.test.ts` (Tier: destructive).
+
+Keep inline deployments in the core file and global repository mutations in the destructive file.
 
 ### Inline deployment
 
@@ -396,7 +442,9 @@ Create `tests/one-click.test.ts`.
 
 ## PR17: Add registry and observability workflows
 
-Require ephemeral mode.
+Create `tests/registries.test.ts`, `tests/goaccess.test.ts`, and `tests/netdata.test.ts`.
+
+Tier: destructive for all three files. Require ephemeral mode.
 
 ### SDK prerequisite
 
@@ -430,7 +478,11 @@ Full self-hosted registry build-and-push coverage belongs in the controlled SSL 
 
 ## PR18: Add specialized external workflows
 
+Tier: destructive, specialized opt-in only. Each workflow provisions its own ephemeral environment and runs only its assigned file. Keep these files under `tests/specialized/` and outside default suite selection.
+
 ### Git webhook workflow
+
+File: `tests/specialized/git-webhooks.test.ts`. Tier: destructive (specialized).
 
 - [ ] Configure a dedicated repository and credentials.
 - [ ] Test HTTPS and SSH repository authentication.
@@ -443,9 +495,12 @@ Full self-hosted registry build-and-push coverage belongs in the controlled SSL 
 
 ### Controlled SSL and self-hosted registry workflow
 
-Run at a controlled cadence to manage real certificate issuance.
+File: `tests/specialized/ssl-and-registry.test.ts`. Tier: destructive (specialized).
 
-- [ ] Enable base-domain SSL and verify the certificate.
+Fresh-server provisioning already requests a real certificate for `captain.<rootDomain>` through `enableRootSsl()`. Certificate-rate management must account for every fresh-server run as well as this workflow's additional app, custom-domain, and registry certificates.
+
+- [ ] Document issuance volume and configure workflow cadence/concurrency with provisioning included in the budget.
+- [ ] Call `enableSslForBaseDomain(appName)` and verify a trusted certificate and HTTPS response for `<app>.<rootDomain>`. Dashboard/root SSL remains provisioning coverage.
 - [ ] Enable app-level force SSL and verify redirect behavior.
 - [ ] Enable custom-domain SSL and verify the certificate.
 - [ ] Enable the self-hosted registry.
@@ -457,6 +512,8 @@ Run at a controlled cadence to manage real certificate issuance.
 
 ### Multi-node workflow
 
+File: `tests/specialized/multi-node.test.ts`. Tier: destructive (specialized).
+
 - [ ] Provision a second droplet.
 - [ ] Ensure a usable default registry exists.
 - [ ] Add the node as a worker.
@@ -466,6 +523,8 @@ Run at a controlled cadence to manage real certificate issuance.
 
 ### Pro and 2FA workflow
 
+File: `tests/specialized/pro-and-2fa.test.ts`. Tier: destructive (specialized).
+
 - [ ] Use a dedicated Pro key.
 - [ ] Verify Pro state and configuration.
 - [ ] Enable 2FA.
@@ -474,6 +533,8 @@ Run at a controlled cadence to manage real certificate issuance.
 - [ ] Disable 2FA in guaranteed cleanup.
 
 ### Upgrade workflow
+
+File: `tests/specialized/upgrade.test.ts`. Tier: destructive (specialized).
 
 - [ ] Provision a pinned older CapRover version.
 - [ ] Create applications, projects, and persistent data.
@@ -487,7 +548,7 @@ This table should be updated whenever `caprover-api` adds or removes a public me
 
 | API area | Methods | Coverage |
 | --- | --- | --- |
-| Authentication | `login`, automatic retry, `changePass` | PR2; password change during provisioning |
+| Authentication | `login`, automatic retry, `changePass` | PR2 server contracts; SDK unit tests for automatic retry; password change during provisioning |
 | Themes | `getAllThemes`, `getCurrentTheme`, `setCurrentTheme`, `saveTheme`, `deleteTheme` | PR13 |
 | Pro | state/configuration/OTP methods | PR14 and PR18 |
 | System setup | captain info, root domain, root SSL, force SSL | Provisioning and PR14 |
@@ -502,7 +563,7 @@ This table should be updated whenever `caprover-api` adds or removes a public me
 | Observability | load balancer, NetData, GoAccess and reports | PR14 and PR17 |
 | Backup and upgrade | backup creation/download, captain update | PR14 and PR18 |
 | Git webhooks | repository configuration and force build | PR18 |
-| Generic API | GET, POST, and PATCH generic commands | SDK unit tests and PR2 |
+| Generic API | GET, POST, and PATCH generic commands | SDK unit tests; representative E2E error propagation in PR2 and raw contract assertions in PR3/PR5 |
 
 ## Completion tracking
 
