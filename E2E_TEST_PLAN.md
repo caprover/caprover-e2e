@@ -2,9 +2,9 @@
 
 This document tracks expansion of the CapRover end-to-end test suite.
 
-The existing suite covers login, application creation, rename, one environment update, image deployment, scaling, redeployment, and deletion. The work below expands coverage across the remaining high-value CapRover API workflows.
+The existing suite covers login, application creation, rename, one environment update, image deployment, scaling, redeployment, and deletion. Provisioning also covers root-domain configuration, root SSL, global force SSL, and password change.
 
-Future agents should check each item as it lands. A PR is complete only when every required checkbox in its section is checked or an explicitly deferred item links to a follow-up issue.
+Future agents should check each implementation item as it lands. A PR is complete when its required checkboxes are checked. Deferred work should link to a follow-up issue.
 
 ## Implementation rules
 
@@ -14,53 +14,90 @@ Future agents should check each item as it lands. A PR is complete only when eve
 - Validate relevant mutations through Docker state over SSH.
 - Validate routing and application behavior through public HTTP where applicable.
 - Run mutating tests serially.
-- Generate unique names for apps, projects, themes, domains, and volumes.
+- Generate unique names for apps, projects, themes, domains, images, ports, and volumes.
 - Register cleanup immediately after creating each resource.
 - Run cleanup in LIFO order and preserve the original test failure.
 - Save and restore global settings modified by tests.
-- Use small, pinned container images.
+- Restrict global or destructive tests to freshly provisioned ephemeral servers.
+- Use small images pinned by digest where practical.
+- Use bounded polling with a concrete terminal condition.
 - Keep each PR independently reviewable and green.
-- Extend workflow timeouts only as actual suite runtime grows.
+- Increase workflow timeouts from measured runtime rather than speculation.
+- Keep credentials, backup contents, and decrypted configuration out of test output.
 
-## PR1: Upgrade the API package and prepare the harness
+## Execution tiers
+
+The suite should expose these commands:
+
+- `npm run test:unit`: local unit tests with no CapRover instance.
+- `npm run test:smoke`: the existing application lifecycle.
+- `npm run test:core`: deterministic tests safe for a dedicated existing test server.
+- `npm run test:destructive`: global configuration and resource-deletion tests.
+- `npm run test:all`: every suite allowed by the current environment.
+
+Provisioned runs should set `CAPROVER_E2E_ENVIRONMENT=ephemeral`. Destructive tests must fail fast unless that exact value is present.
+
+The existing-server workflow should run smoke and core tests. The fresh-server workflow can run smoke, core, and destructive tests.
+
+## PR1: Upgrade the API package and add safety foundations
 
 - [ ] Upgrade `caprover-api` from `0.0.20` to `0.0.21`.
 - [ ] Update `package-lock.json`.
+- [ ] Add the execution-tier scripts described above.
+- [ ] Add `CAPROVER_E2E_ENVIRONMENT` to the test configuration.
+- [ ] Set `CAPROVER_E2E_ENVIRONMENT=ephemeral` from the provisioning command.
+- [ ] Add a guard used by every destructive or global-state test.
+- [ ] Add workflow concurrency for the existing-server workflow.
 - [ ] Add `CapRoverClient.patchApp()` using `patchAppDefinition()`.
-- [ ] Keep `CapRoverClient.updateApp()` on the existing full POST update path.
+- [ ] Keep `CapRoverClient.updateApp()` on the full POST update path.
 - [ ] Add client wrappers for configurable runtime-log encoding.
 - [ ] Add client wrappers for attached and detached source uploads.
+- [ ] Add a typed `expectCaptainError()` helper using `captainStatus` and `captainMessage`.
+- [ ] Add a raw CapRover API helper for response-envelope assertions.
+- [ ] Extend the HTTP helper with custom request headers.
+- [ ] Extend the HTTP helper with manual redirect handling and response headers.
+- [ ] Extend the HTTP helper with binary responses for backup downloads.
 - [ ] Add a lightweight LIFO cleanup registry.
-- [ ] Add unique-name generation for projects, themes, volumes, and domains.
+- [ ] Add unique-name generation for projects, themes, volumes, domains, images, and ports.
 - [ ] Add helpers for saving and restoring global settings.
-- [ ] Extract reusable assertions for app existence, service existence, replicas, image, and HTTP reachability.
-- [ ] Expand failure diagnostics with Docker service specification.
-- [ ] Expand failure diagnostics with Docker task state.
-- [ ] Expand failure diagnostics with build status and a bounded build-log tail.
-- [ ] Expand failure diagnostics with a bounded runtime-log tail.
+- [ ] Extract reusable app, service, replica, image, and HTTP assertions.
+- [ ] Expand diagnostics with Docker service specification and task state.
+- [ ] Expand diagnostics with bounded build-log and runtime-log tails.
 - [ ] Add unit tests for cleanup ordering and cleanup after failure.
 - [ ] Add unit tests proving full update uses POST and partial update uses PATCH.
-- [ ] Update the README with the planned suite organization.
-- [ ] Increase the fresh-server test-step timeout to accommodate the first expansion.
+- [ ] Update the README with suite tiers and safety requirements.
+- [ ] Measure runtime before changing workflow timeouts.
 - [ ] Confirm the existing lifecycle passes unchanged.
 
-## PR2: Test full-update and PATCH semantics
+## PR2: Add authentication and API contract tests
+
+Create `tests/authentication.test.ts`.
+
+- [ ] Test valid login.
+- [ ] Test automatic login when the first authenticated request has no cached token.
+- [ ] Test one automatic reauthentication after a deliberately stale token.
+- [ ] Verify wrong-password errors expose status `1105`.
+- [ ] Verify empty-password validation.
+- [ ] Verify password-length validation.
+- [ ] Avoid enough repeated failures to trigger the global login backoff.
+- [ ] Verify representative SDK errors expose `captainStatus` and `captainMessage`.
+- [ ] Verify an unauthenticated user endpoint returns the expected authorization status.
+- [ ] Verify a detached successful API response has envelope status `101` through the raw helper.
+- [ ] Add the missing Nginx validation status `1116` to `caprover-api` or track the SDK fix explicitly.
+- [ ] Document root domain, root SSL, global force SSL, and password change as provisioning coverage.
+
+## PR3: Test full-update and PATCH semantics
 
 Create `tests/app-configuration.test.ts`.
 
 ### Full-update behavior
 
-- [ ] Create an app with several non-default fields.
+- [ ] Create an app with several non-default metadata fields.
 - [ ] Update description.
 - [ ] Update multiple environment variables.
 - [ ] Update multiple tags.
-- [ ] Update container HTTP port.
-- [ ] Update WebSocket support.
-- [ ] Update `notExposeAsWebApp`.
-- [ ] Update service-update override.
-- [ ] Enable app deploy-token configuration.
 - [ ] Verify every field through the CapRover API.
-- [ ] Verify relevant environment and service settings through Docker.
+- [ ] Verify environment variables through Docker.
 - [ ] Verify explicitly supplied empty arrays clear environment variables.
 - [ ] Verify explicitly supplied empty arrays clear tags.
 - [ ] Verify explicitly supplied empty arrays clear ports.
@@ -68,16 +105,9 @@ Create `tests/app-configuration.test.ts`.
 
 ### PATCH preservation
 
-- [ ] Configure several non-default fields using the full update path.
+- [ ] Configure several non-default fields through the full update path.
 - [ ] PATCH only `instanceCount`.
-- [ ] Verify PATCH preserves environment variables.
-- [ ] Verify PATCH preserves description.
-- [ ] Verify PATCH preserves tags.
-- [ ] Verify PATCH preserves container HTTP port.
-- [ ] Verify PATCH preserves WebSocket support.
-- [ ] Verify PATCH preserves `notExposeAsWebApp`.
-- [ ] Verify PATCH preserves service-update override.
-- [ ] Verify PATCH preserves deploy-token configuration.
+- [ ] Verify PATCH preserves environment variables, description, tags, container port, WebSocket support, web exposure, update override, and deploy-token configuration.
 - [ ] PATCH instance count to zero.
 - [ ] Verify API desired count is zero.
 - [ ] Verify Docker desired and running counts converge to zero.
@@ -87,7 +117,7 @@ Create `tests/app-configuration.test.ts`.
 - [ ] Verify PATCH for a missing app fails.
 - [ ] Verify a raw PATCH without `appName` returns status `1110`.
 
-### Representative app validation
+### Representative validation
 
 - [ ] Reject a duplicate app name.
 - [ ] Reject an uppercase app name.
@@ -97,7 +127,7 @@ Create `tests/app-configuration.test.ts`.
 - [ ] Reject rename of a missing app.
 - [ ] Reject deletion of a missing app.
 
-## PR3: Add project lifecycle tests
+## PR4: Add project lifecycle tests
 
 Create `tests/projects.test.ts`.
 
@@ -107,440 +137,372 @@ Create `tests/projects.test.ts`.
 - [ ] Verify IDs, names, descriptions, and parent relationship.
 - [ ] Update the child project.
 - [ ] Create an app assigned to the child.
-- [ ] Verify the app's `projectId`.
 - [ ] Move the app to the root project.
 - [ ] Remove the app from all projects.
-- [ ] Reject app creation with an unknown project ID.
-- [ ] Reject app update with an unknown project ID.
+- [ ] Reject unknown project IDs during app creation and update.
 - [ ] Reject deletion of a project containing an app.
 - [ ] Reject deletion of a parent containing a child.
-- [ ] Reject self-parenting.
-- [ ] Reject an unknown parent UUID.
-- [ ] Delete the child project.
-- [ ] Delete the root project.
-- [ ] Verify cleanup succeeds after partial test failure.
+- [ ] Reject self-parenting and an unknown parent UUID.
+- [ ] Delete the child and root projects.
+- [ ] Verify cleanup after partial failure.
 
-## PR4: Add deployment modes, source uploads, and logs
+## PR5: Add deployment-state and failure-recovery tests
 
 Create `tests/deployments.test.ts`.
 
-### Helpers
-
 - [ ] Add a reusable build-completion poller.
-- [ ] Add helpers for retrieving build logs.
-- [ ] Add helpers for ASCII, UTF-8, and hexadecimal runtime logs.
-- [ ] Add an in-memory source-tarball builder.
-- [ ] Add attached and detached upload helpers.
-
-### Captain-definition deployment
-
 - [ ] Deploy a pinned image synchronously.
 - [ ] Supply a unique Git hash.
 - [ ] Verify `deployedVersion` increments exactly once.
-- [ ] Verify the version entry contains the Git hash.
-- [ ] Verify the version entry contains the deployed image.
-- [ ] Verify Docker runs the expected image.
-- [ ] Verify the application responds publicly.
-
-### Detached deployment
-
+- [ ] Verify the version entry contains the Git hash and deployed image.
+- [ ] Verify Docker and public HTTP state.
 - [ ] Start a detached deployment.
-- [ ] Verify the request returns before the deployment completes.
-- [ ] Poll build state to completion.
-- [ ] Verify `isAppBuilding` returns to false.
+- [ ] Assert successful envelope status `101`.
+- [ ] Poll the detached deployment to a terminal state.
 - [ ] Verify final API, Docker, and HTTP state.
-
-### Failure and recovery
-
-- [ ] Deploy an intentionally missing image tag.
-- [ ] Verify the build reaches a failed terminal state.
-- [ ] Verify build logs contain a useful error.
+- [ ] Trigger a failed deployment using a deterministic missing tag.
+- [ ] Verify a failed terminal state and useful build logs.
+- [ ] Verify the previously working service remains available with its previous image.
 - [ ] Deploy a valid image afterward.
-- [ ] Verify API, Docker, and HTTP recovery.
+- [ ] Verify full recovery.
 
-### Runtime logs
+Avoid timing-based assertions that merely compare request duration with build duration.
 
-- [ ] Deploy a fixture that prints a unique marker.
-- [ ] Verify ASCII logs contain the marker.
-- [ ] Verify UTF-8 logs preserve a Unicode marker.
-- [ ] Verify hex logs decode to the same content.
-- [ ] Verify missing-app log retrieval fails.
+## PR6: Add source-upload and runtime-log tests
+
+Create `tests/source-upload-and-logs.test.ts`.
+
+### Deterministic source fixture
+
+- [ ] Check in a tiny fixture under `tests/fixtures/source-app`.
+- [ ] Create its tar archive with the runner's `tar` executable.
+- [ ] Load the archive into a real Node `File`.
+- [ ] Generate a unique response and log marker for each run.
+- [ ] Keep fixture images and dependencies small and pinned.
 
 ### Source upload
 
-- [ ] Build a tiny Dockerfile-based source archive.
-- [ ] Test attached source upload.
-- [ ] Test detached source upload.
+- [ ] Test attached upload.
+- [ ] Test detached upload.
 - [ ] Verify the built image executes.
-- [ ] Verify the public response contains a unique marker.
-- [ ] Verify build logs.
+- [ ] Verify public response and build logs.
+- [ ] Test an alternate `captainDefinitionRelativeFilePath`.
 - [ ] Reject deployment with neither tarball nor captain-definition.
 - [ ] Reject deployment with both tarball and captain-definition.
 - [ ] Reject malformed captain-definition content.
 
-## PR5: Add persistent-storage and volume-safety tests
+### Runtime logs
+
+- [ ] Verify ASCII logs contain the unique marker.
+- [ ] Verify `utf8` logs preserve a Unicode marker.
+- [ ] Verify hex logs decode to the same content.
+- [ ] Verify missing-app log retrieval fails.
+- [ ] Keep raw log output bounded in diagnostics.
+
+## PR7: Add persistent-storage and volume-safety tests
 
 Create `tests/persistent-storage.test.ts`.
 
-- [ ] Add Docker helpers for CapRover volume-name resolution.
-- [ ] Add Docker helpers for volume existence.
-- [ ] Add Docker helpers for reading and writing a marker through a temporary container.
-- [ ] Add Docker helpers for inspecting service mounts.
-- [ ] Create a persistent app.
-- [ ] Attach a named volume.
+- [ ] Resolve the physical volume source from Docker service inspection.
+- [ ] Add Docker helpers for volume existence and marker reads/writes.
+- [ ] Create a persistent app and attach a named volume.
 - [ ] Verify API and Docker mount configuration.
 - [ ] Write a unique marker into the volume.
-- [ ] Redeploy another image.
-- [ ] Verify the marker remains.
+- [ ] Redeploy another image and verify the marker remains.
 - [ ] Recreate or restart the service and verify persistence.
 - [ ] Delete the app while retaining the volume.
-- [ ] Verify the volume remains.
-- [ ] Attach the retained volume to another app.
-- [ ] Verify the marker remains readable.
+- [ ] Attach the retained volume to another app and verify the marker.
 - [ ] Delete the second app and request volume deletion.
 - [ ] Verify Docker removes the volume.
 - [ ] Verify a non-persistent app rejects volume configuration.
-- [ ] Reject an invalid volume name.
-- [ ] Reject a volume missing its container path.
+- [ ] Reject invalid volume definitions.
 - [ ] Verify an in-use shared volume appears in `volumesFailedToDelete`.
-- [ ] Verify the shared volume remains present.
+- [ ] Verify the shared volume remains.
 
-## PR6: Add routing and application-level Nginx tests
+## PR8: Add routing and HTTP behavior tests
 
 Create `tests/app-routing.test.ts`.
 
-### Alternate container port
-
 - [ ] Deploy an image listening on a port other than 80.
-- [ ] Set `containerHttpPort`.
-- [ ] Verify API persistence.
-- [ ] Verify the public route reaches the alternate port.
-
-### Web exposure
-
+- [ ] Set `containerHttpPort` and verify the public route.
 - [ ] Set `notExposeAsWebApp: true`.
-- [ ] Verify the Docker service remains healthy.
-- [ ] Verify the public hostname stops routing to the app.
-- [ ] Re-enable exposure.
-- [ ] Verify public routing recovers.
-
-### HTTP authentication
-
-- [ ] Configure a username and password.
-- [ ] Verify an anonymous request is rejected.
-- [ ] Verify incorrect credentials are rejected.
+- [ ] Verify the service stays healthy while public routing disappears.
+- [ ] Re-enable exposure and verify recovery.
+- [ ] Configure HTTP authentication.
+- [ ] Verify anonymous and incorrect credentials are rejected.
 - [ ] Verify correct credentials succeed.
-- [ ] Change the password and verify the change.
-- [ ] Clear HTTP authentication.
-
-### Redirects
-
+- [ ] Change and clear HTTP authentication.
 - [ ] Configure `redirectDomain`.
-- [ ] Verify the response location.
-- [ ] Clear the redirect.
-- [ ] Verify normal proxying returns.
+- [ ] Verify the status and `Location` header without following redirects.
+- [ ] Clear the redirect and verify normal proxying.
+- [ ] Enable `websocketSupport`.
+- [ ] Verify API persistence and generated Nginx upgrade directives.
+- [ ] Track a real WebSocket handshake fixture separately if needed.
 
-### Custom domains
+## PR9: Add custom-domain and app-level Nginx tests
+
+Create `tests/app-nginx.test.ts`.
 
 - [ ] Attach a unique hostname under the ephemeral wildcard domain.
-- [ ] Verify API state.
-- [ ] Verify public routing.
-- [ ] Reject attachment of the same domain to another app.
-- [ ] Remove the custom domain.
-- [ ] Verify routing disappears.
-
-### Custom Nginx configuration
-
-- [ ] Add a harmless response header.
+- [ ] Verify API state and public routing.
+- [ ] Reject attaching the same domain to another app.
+- [ ] Remove the custom domain and verify routing disappears.
+- [ ] Add a harmless app-level response header.
 - [ ] Verify the header publicly.
-- [ ] Submit invalid Nginx syntax.
+- [ ] Submit invalid app-level Nginx syntax.
 - [ ] Verify status `1116`.
 - [ ] Verify the previous working configuration remains active.
-- [ ] Clear the custom configuration.
+- [ ] Clear the customization.
 
-### WebSocket support
+Certificate issuance remains in the controlled SSL workflow.
 
-- [ ] Enable `websocketSupport`.
-- [ ] Verify API persistence.
-- [ ] Verify generated Nginx configuration contains upgrade directives.
-- [ ] Add a real WebSocket handshake fixture when a stable small fixture is available.
+## PR10: Fix backend custom-port persistence
 
-## PR7: Fix backend custom-port persistence
-
-This is a prerequisite change in `caprover/caprover`.
+This prerequisite change belongs in `caprover/caprover`.
 
 - [ ] Preserve `protocol` in `AppsDataStore.updateAppDefinitionInDb()`.
 - [ ] Preserve `publishMode` in `AppsDataStore.updateAppDefinitionInDb()`.
-- [ ] Pass protocol and publish mode during Docker service creation.
-- [ ] Pass protocol and publish mode during Docker service updates.
+- [ ] Pass both fields during Docker service creation and update.
 - [ ] Preserve legacy TCP-plus-UDP behavior when protocol is omitted.
-- [ ] Add backend unit tests for persistence.
-- [ ] Add backend unit tests for Docker service creation.
-- [ ] Add backend unit tests for Docker service updates.
-- [ ] Merge the backend fix before PR8.
+- [ ] Add backend unit tests for persistence and Docker request construction.
+- [ ] Link the backend PR here after creation.
+- [ ] Merge the backend fix before PR11.
 
-## PR8: Add custom-port E2E tests
+## PR11: Add custom-port E2E tests
 
-Create `tests/custom-ports.test.ts` after PR7 lands.
+Create `tests/custom-ports.test.ts` after PR10 lands.
 
-- [ ] Configure a TCP ingress mapping.
-- [ ] Verify API persistence.
-- [ ] Verify Docker `EndpointSpec`.
-- [ ] Verify real TCP connectivity.
-- [ ] Configure a UDP ingress mapping.
-- [ ] Verify API persistence.
-- [ ] Verify Docker `EndpointSpec`.
-- [ ] Verify real UDP connectivity.
-- [ ] Configure a TCP host-mode mapping.
-- [ ] Verify Docker `PublishMode`.
-- [ ] Replace an existing mapping.
-- [ ] Remove all mappings.
+- [ ] Add deterministic high-port allocation scoped to the run.
+- [ ] Configure and verify a TCP ingress mapping.
+- [ ] Configure and verify a UDP ingress mapping using Node's `dgram` client.
+- [ ] Configure and verify a TCP host-mode mapping.
+- [ ] Verify API persistence and Docker `EndpointSpec`.
+- [ ] Verify real TCP and UDP connectivity.
+- [ ] Replace and remove mappings.
 - [ ] Verify removed ports close.
-- [ ] Reject port zero.
-- [ ] Reject a negative port.
-- [ ] Reject a port greater than 65534.
-- [ ] Reject an entry missing the host port.
-- [ ] Reject an entry missing the container port.
+- [ ] Reject invalid or incomplete port definitions.
 
-## PR9: Add themes, backup, and system-read tests
+## PR12: Add advanced application-setting tests
 
-Create `tests/themes.test.ts`, `tests/backup.test.ts`, and `tests/system-info.test.ts`.
+Create `tests/advanced-app-settings.test.ts`.
 
-### Themes
+- [ ] Pin an app to the current manager `nodeId`.
+- [ ] Verify the Docker placement constraint.
+- [ ] Apply a deterministic `serviceUpdateOverride`.
+- [ ] Verify the resulting Docker `UpdateConfig`.
+- [ ] Apply a minimal deterministic `preDeployFunction`.
+- [ ] Verify its actual effect on the Docker update object.
+- [ ] Enable app deploy-token configuration.
+- [ ] Use the generated token to deploy.
+- [ ] Reject an invalid token.
+- [ ] Disable the token and verify the old token fails.
+- [ ] Create two apps and delete them through the bulk `appNames` API.
+- [ ] Verify both API definitions and services disappear.
+- [ ] Verify sending both `appName` and `appNames` fails.
 
+## PR13: Add theme tests
+
+Create `tests/themes.test.ts`.
+
+- [ ] Save the original current theme.
 - [ ] List built-in themes.
 - [ ] Create a custom theme with content, extra data, and head embed.
-- [ ] Verify the custom theme becomes current.
+- [ ] Verify it becomes current.
 - [ ] Retrieve it through the public unauthenticated endpoint.
-- [ ] Rename or update the theme.
+- [ ] Rename or update it.
 - [ ] Select another theme.
-- [ ] Delete the custom theme.
-- [ ] Reject editing a built-in theme.
-- [ ] Reject deleting a built-in theme.
+- [ ] Verify deleting the active custom theme clears the current theme.
+- [ ] Reject editing or deleting a built-in theme.
 - [ ] Reject selecting a missing theme.
+- [ ] Restore the original theme, including an originally empty selection.
+
+## PR14: Add backup and system-read tests
+
+Create `tests/backup.test.ts` and `tests/system-info.test.ts`.
 
 ### Backup
 
-- [ ] Create identifiable app, project, and theme configuration.
+- [ ] Create identifiable test configuration.
 - [ ] Request a backup.
-- [ ] Download it through the one-time download endpoint.
-- [ ] Validate that the result is a tar archive.
-- [ ] Verify expected configuration markers inside the archive.
+- [ ] Download it as binary through the one-time endpoint.
+- [ ] Validate the tar archive and expected file structure.
+- [ ] Inspect selected fields without logging the archive or secrets.
 - [ ] Verify an invalid token fails.
-- [ ] Verify a consumed token cannot download the file again.
+- [ ] Verify a second download with the same token fails after the backup file is removed.
 
 ### System reads
 
-- [ ] Test `getCaptainInfo()`.
-- [ ] Test `getVersionInfo()`.
-- [ ] Test `getLoadBalancerInfo()`.
-- [ ] Test `getAllNodes()`.
-- [ ] Verify root domain and captain subdomain.
-- [ ] Verify root SSL and force-SSL match provisioning.
-- [ ] Verify version fields are populated.
-- [ ] Verify load-balancer counters are non-negative.
+- [ ] Test captain info, version info, load-balancer info, and node listing.
+- [ ] Verify root-domain and SSL state matches provisioning.
+- [ ] Verify version fields and non-negative load-balancer counters.
 - [ ] Generate traffic and verify counters increase.
-- [ ] Verify the environment contains one leader manager.
-- [ ] Verify the reported node ID matches Docker over SSH.
+- [ ] Verify the single-node environment contains one leader manager.
+- [ ] Verify the node ID matches Docker over SSH.
+- [ ] Verify the default free Pro feature state.
+- [ ] Verify default Pro configuration can be read without changing it.
 
-## PR10: Add disk-cleanup and global Nginx tests
+## PR15: Add destructive disk-cleanup and global Nginx tests
 
-Create `tests/disk-cleanup.test.ts` and `tests/system-nginx.test.ts`.
+Create `tests/disk-cleanup.test.ts` and `tests/system-nginx.test.ts`. Require ephemeral mode.
 
 ### Disk cleanup
 
-- [ ] Read and preserve the original settings.
-- [ ] Set a valid limit, cron expression, and timezone.
-- [ ] Read the normalized values back.
-- [ ] Disable scheduling and verify normalization.
-- [ ] Reject an invalid cron expression.
-- [ ] Reject a negative recent-image limit.
-- [ ] Pull a disposable unused image over SSH.
+- [ ] Preserve the original cleanup settings.
+- [ ] Test valid settings, normalization, invalid cron, and negative limits.
+- [ ] Build a uniquely tagged test image over SSH.
+- [ ] Verify no service references its image ID.
 - [ ] Verify `getUnusedImages()` returns it.
-- [ ] Verify the active application image is excluded.
-- [ ] Delete only the resolved disposable image ID.
-- [ ] Verify Docker removed it.
+- [ ] Verify deployed images are excluded.
+- [ ] Delete only the uniquely owned image ID.
+- [ ] Verify only that image disappears.
 - [ ] Restore the original settings.
 
 ### Global Nginx
 
-- [ ] Read and preserve base and captain Nginx overrides.
-- [ ] Apply a harmless valid customization.
-- [ ] Verify API state and observable behavior.
+- [ ] Preserve base and captain overrides.
+- [ ] Apply a reviewed harmless customization.
+- [ ] Verify API and observable behavior.
 - [ ] Submit invalid syntax.
 - [ ] Verify the last valid configuration remains active.
-- [ ] Restore the original values in guaranteed cleanup.
+- [ ] Restore original values in guaranteed cleanup.
 
-## PR11: Add inline one-click deployment tests
+## PR16: Add one-click deployment and repository tests
 
 Create `tests/one-click.test.ts`.
 
-- [ ] Start deployment with a self-contained template and pinned image.
-- [ ] Verify a nonempty job ID.
-- [ ] Poll deployment progress.
-- [ ] Verify progress never moves backward.
-- [ ] Verify the final state reports success.
-- [ ] Verify generated app configuration.
-- [ ] Verify Docker service state.
-- [ ] Verify the public endpoint.
-- [ ] Exercise template variables.
-- [ ] Exercise environment values.
-- [ ] Exercise a two-service dependency template.
-- [ ] Reject a missing template.
-- [ ] Reject a missing job ID.
-- [ ] Reject an unknown job ID.
-- [ ] Clean up every generated app.
+### Inline deployment
 
-## PR12: Add custom one-click repository tests
+- [ ] Always supply a values array, including `[]` when empty.
+- [ ] Start a self-contained deployment and obtain a job ID.
+- [ ] Poll progress to success or error.
+- [ ] Verify observed progress is monotonic.
+- [ ] Verify app configuration, Docker state, and public HTTP behavior.
+- [ ] Exercise variables, environment values, and a two-service dependency.
+- [ ] Reject missing templates and missing or unknown job IDs.
+- [ ] Delete every generated app.
+- [ ] Delete the project generated by multi-service deployment.
 
-Use the source-upload fixture from PR4 to serve a test-owned repository.
+### Custom repository
 
-- [ ] Serve `/v4/list`.
-- [ ] Serve `/v4/apps/<template>`.
-- [ ] Serve any required logo path.
-- [ ] Add the repository.
-- [ ] Verify it appears in `getAllOneClickAppRepos()`.
-- [ ] Verify its app appears in `getAllOneClickApps()`.
-- [ ] Fetch its template through `getOneClickAppByName()`.
+- [ ] Serve a test-owned `/v4/list` and template endpoint using the source fixture.
+- [ ] Add and list the repository.
+- [ ] List and fetch its template.
 - [ ] Deploy the returned template.
 - [ ] Reject duplicate insertion.
-- [ ] Delete the repository.
-- [ ] Reject deleting it again.
+- [ ] Delete the repository and reject a second deletion.
 - [ ] Clean up the repository-serving app.
 
-## PR13: Add registry coverage
+- [ ] File a backend or SDK issue for optional `values` if `undefined` still causes `valuesArray.forEach()` to throw.
+
+## PR17: Add registry and observability workflows
+
+Require ephemeral mode.
 
 ### SDK prerequisite
 
-The backend returns `defaultPushRegistryId`, while the SDK currently declares `defaultRegistryId`.
+- [ ] Correct `defaultRegistryId` versus backend `defaultPushRegistryId` in `caprover-api`.
+- [ ] Publish and consume the corrected package.
 
-- [ ] Correct the response type in `caprover-api`.
-- [ ] Publish the corrected package.
-- [ ] Upgrade this repository to the corrected package.
+### Lightweight registry contracts
 
-### Self-hosted registry
-
-Create `tests/registry.test.ts`.
-
-- [ ] Enable the local registry.
-- [ ] Verify the Docker service.
-- [ ] Verify the TLS endpoint.
-- [ ] Verify the API registry entry.
-- [ ] Reject enabling it twice.
-- [ ] Set it as the default push registry.
-- [ ] Build an app.
-- [ ] Verify the resulting image is pushed to the local registry.
-- [ ] Reject direct deletion of the local registry.
-- [ ] Change default-registry state as required.
-- [ ] Disable the local registry.
-- [ ] Verify service and API cleanup.
-
-### Remote registry
-
-Requires dedicated disposable credentials.
-
-- [ ] Add a valid remote registry.
-- [ ] Verify first-registry default behavior.
-- [ ] Update credentials or image prefix.
-- [ ] Switch the default registry.
-- [ ] Reject invalid credentials.
-- [ ] Reject deletion while default.
-- [ ] Delete after changing the default.
-- [ ] Verify the intended sensitive-field response contract.
-
-## PR14: Add GoAccess and NetData tests
-
-Create `tests/observability.test.ts`. Run it only against fresh ephemeral servers.
+- [ ] Read the initial registry list.
+- [ ] Reject an unknown default registry ID.
+- [ ] Reject invalid remote credentials.
+- [ ] Verify expected registry error statuses.
 
 ### GoAccess
 
-- [ ] Preserve original settings.
-- [ ] Enable GoAccess.
-- [ ] Generate traffic for base and custom domains.
-- [ ] Retrieve the report list.
-- [ ] Fetch a live report.
-- [ ] Verify the report contains the expected hostname.
-- [ ] Verify missing-app behavior.
-- [ ] Verify missing-report behavior.
-- [ ] Restore the original settings.
+- [ ] Preserve settings.
+- [ ] Enable GoAccess and generate traffic.
+- [ ] Retrieve report listings and a live report.
+- [ ] Verify missing-app and missing-report behavior.
+- [ ] Restore settings.
 
 ### NetData
 
-- [ ] Preserve original settings.
+- [ ] Preserve settings.
 - [ ] Enable NetData with notifications disabled.
-- [ ] Verify the Docker service.
-- [ ] Verify the proxied endpoint.
-- [ ] Read back configuration.
-- [ ] Disable NetData.
-- [ ] Verify service removal.
-- [ ] Restore the original settings.
+- [ ] Verify service and proxied endpoint.
+- [ ] Disable NetData and verify removal.
+- [ ] Restore settings.
 
-## PR15: Add specialized workflows
+Full self-hosted registry build-and-push coverage belongs in the controlled SSL workflow because enabling it requests a real certificate.
 
-These scenarios require dedicated infrastructure, credentials, or execution cadence.
+## PR18: Add specialized external workflows
 
 ### Git webhook workflow
 
-- [ ] Configure a dedicated Git repository and credentials.
-- [ ] Test HTTPS repository credentials.
-- [ ] Test SSH repository credentials.
-- [ ] Verify the intended encrypted or masked response contract.
-- [ ] Trigger a build through the generated webhook.
-- [ ] Verify a matching branch deploys.
-- [ ] Verify a nonmatching branch is acknowledged without deployment.
-- [ ] Verify an invalid webhook token fails.
+- [ ] Configure a dedicated repository and credentials.
+- [ ] Test HTTPS and SSH repository authentication.
+- [ ] Verify the intended sensitive-field response contract.
+- [ ] Trigger a matching-branch build.
+- [ ] Verify a nonmatching branch causes no deployment.
+- [ ] Verify invalid token behavior.
 - [ ] Verify rename rotates the webhook token.
 - [ ] Verify clearing repository settings disables the webhook.
 
-### SSL workflow
+### Controlled SSL and self-hosted registry workflow
 
-Run at a controlled cadence to manage certificate issuance.
+Run at a controlled cadence to manage real certificate issuance.
 
-- [ ] Enable base-domain SSL.
-- [ ] Verify certificate hostname and HTTPS routing.
-- [ ] Enable app-level force SSL.
-- [ ] Verify HTTP redirects to HTTPS.
-- [ ] Enable custom-domain SSL.
-- [ ] Verify certificate hostname and HTTPS routing.
-- [ ] Remove the custom domain.
-- [ ] Verify routing and certificate cleanup behavior.
+- [ ] Enable base-domain SSL and verify the certificate.
+- [ ] Enable app-level force SSL and verify redirect behavior.
+- [ ] Enable custom-domain SSL and verify the certificate.
+- [ ] Enable the self-hosted registry.
+- [ ] Verify its service, TLS endpoint, and API entry.
+- [ ] Set it as default, build an app, and verify the image is pushed.
+- [ ] Verify local-registry deletion protections.
+- [ ] Disable the registry and verify cleanup.
+- [ ] Remove the custom domain and verify cleanup behavior.
 
 ### Multi-node workflow
 
 - [ ] Provision a second droplet.
 - [ ] Ensure a usable default registry exists.
-- [ ] Add the second node as a worker.
-- [ ] Verify both nodes through the API.
-- [ ] Pin a stateless app to the worker.
-- [ ] Verify Docker task placement.
-- [ ] Pin a persistent app.
-- [ ] Verify Docker task placement and persistence.
-- [ ] Clean up the remote node and infrastructure.
+- [ ] Add the node as a worker.
+- [ ] Verify node listing and task placement.
+- [ ] Verify stateless and persistent app pinning.
+- [ ] Clean up the node and infrastructure.
 
 ### Pro and 2FA workflow
 
-Requires a dedicated Pro key.
-
-- [ ] Verify Pro state.
-- [ ] Set the Pro API key.
-- [ ] Read and update Pro alert configuration.
+- [ ] Use a dedicated Pro key.
+- [ ] Verify Pro state and configuration.
 - [ ] Enable 2FA.
-- [ ] Verify login without OTP returns status `1114`.
-- [ ] Generate a valid TOTP.
-- [ ] Verify login with TOTP succeeds.
+- [ ] Verify login without OTP returns `1114`.
+- [ ] Verify login with generated TOTP succeeds.
 - [ ] Disable 2FA in guaranteed cleanup.
 
 ### Upgrade workflow
 
-- [ ] Provision a pinned older CapRover image.
-- [ ] Create apps, projects, and persistent data.
-- [ ] Upgrade to a pinned newer version through `performUpdate()`.
-- [ ] Wait for the captain service to recover.
-- [ ] Verify login.
-- [ ] Verify applications and projects.
-- [ ] Verify routing.
-- [ ] Verify persistent data.
-- [ ] Verify global settings survive the upgrade.
+- [ ] Provision a pinned older CapRover version.
+- [ ] Create applications, projects, and persistent data.
+- [ ] Upgrade to a pinned newer version.
+- [ ] Wait for captain recovery.
+- [ ] Verify authentication, configuration, routing, and persistent data.
+
+## API coverage map
+
+This table should be updated whenever `caprover-api` adds or removes a public method.
+
+| API area | Methods | Coverage |
+| --- | --- | --- |
+| Authentication | `login`, automatic retry, `changePass` | PR2; password change during provisioning |
+| Themes | `getAllThemes`, `getCurrentTheme`, `setCurrentTheme`, `saveTheme`, `deleteTheme` | PR13 |
+| Pro | state/configuration/OTP methods | PR14 and PR18 |
+| System setup | captain info, root domain, root SSL, force SSL | Provisioning and PR14 |
+| Applications | list, register, full update, PATCH, rename, delete, bulk delete | Existing suite, PR3, PR12 |
+| Deployments | captain-definition, source upload, build status, runtime logs, deploy token | PR5, PR6, PR12 |
+| Projects | list, register, update, delete | PR4 |
+| Domains and Nginx | base/custom domains, app/global Nginx, redirects, HTTP auth | PR8, PR9, PR15, PR18 |
+| Images and cleanup | unused images, image deletion, cleanup configuration | PR15 |
+| Registries | list, local/remote registry operations, default push registry | PR17 and PR18 |
+| One-click | lists, repositories, template fetch, deployment, progress | PR16 |
+| Nodes | list and add node | PR14 and PR18 |
+| Observability | load balancer, NetData, GoAccess and reports | PR14 and PR17 |
+| Backup and upgrade | backup creation/download, captain update | PR14 and PR18 |
+| Git webhooks | repository configuration and force build | PR18 |
+| Generic API | GET, POST, and PATCH generic commands | SDK unit tests and PR2 |
 
 ## Completion tracking
 
@@ -550,12 +512,15 @@ Requires a dedicated Pro key.
 - [ ] PR4 merged
 - [ ] PR5 merged
 - [ ] PR6 merged
-- [ ] PR7 merged in `caprover/caprover`
+- [ ] PR7 merged
 - [ ] PR8 merged
 - [ ] PR9 merged
-- [ ] PR10 merged
+- [ ] PR10 merged in `caprover/caprover`
 - [ ] PR11 merged
 - [ ] PR12 merged
 - [ ] PR13 merged
 - [ ] PR14 merged
-- [ ] PR15 specialized workflows implemented or tracked individually
+- [ ] PR15 merged
+- [ ] PR16 merged
+- [ ] PR17 merged
+- [ ] PR18 specialized workflows implemented or tracked individually
