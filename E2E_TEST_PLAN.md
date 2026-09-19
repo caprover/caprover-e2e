@@ -6,6 +6,15 @@ The existing suite covers login, application creation, rename, one environment u
 
 Future agents should check each implementation item as it lands. A PR is complete when its required checkboxes are checked. Deferred work should link to a follow-up issue.
 
+## Implementation sequence and prerequisites
+
+Proposed first batch: PR1 through PR6. Confirm that batch before implementation, then use its measured runtime and reliability to guide the remaining work.
+
+- Confirm the existing DigitalOcean, Cloudflare, and SSH provisioning secrets are present and valid in GitHub Actions. Update missing or expired values in GitHub; keep credentials out of this document and PR discussions.
+- Keep the backend custom-port fix (PR10) and SDK prerequisites (PR13 and PR17) as separate repository changes. Link their PRs and the consumed package versions or server images before enabling dependent assertions.
+- Defer specialized prerequisites until their corresponding PR18 follow-up: a dedicated Git test repository and HTTPS/SSH credentials, a dedicated Pro key, approval for an additional droplet, and the pinned upgrade-version pair.
+- Implement PR18 as five independently reviewable follow-up PRs, tracked below as PR18a through PR18e.
+
 ## Implementation rules
 
 - Keep the existing full-update lifecycle using `updateConfigAndSave()`.
@@ -15,11 +24,12 @@ Future agents should check each implementation item as it lands. A PR is complet
 - Validate routing and application behavior through public HTTP where applicable.
 - Run mutating tests serially.
 - Generate unique names for apps, projects, themes, domains, images, ports, and volumes.
-- Register cleanup immediately after creating each resource.
-- Run cleanup in LIFO order and preserve the original test failure.
+- For resources with predetermined unique names, register ownership-scoped cleanup before the create request so a lost or timed-out response cannot bypass cleanup. For server-assigned IDs, register cleanup as soon as the ID is known and reconcile ambiguous creation outcomes using the unique run identity.
+- Run every cleanup action in LIFO order even if another cleanup fails. Preserve and report the original test failure alongside cleanup errors; fail an otherwise successful test if cleanup fails. Treat an already-absent owned resource as successfully cleaned up.
 - Save and restore global settings modified by tests.
 - Restrict global or destructive tests to freshly provisioned ephemeral servers.
 - Use small images pinned by digest where practical.
+- Record the requested CapRover server image and its resolved running digest for each run. Use a known image containing prerequisite backend fixes when validating dependent PRs; retain that image reference with the results.
 - Use bounded polling with a concrete terminal condition.
 - Keep each PR independently reviewable and green.
 - Increase workflow timeouts from measured runtime rather than speculation.
@@ -29,6 +39,7 @@ Future agents should check each implementation item as it lands. A PR is complet
 
 The suite should expose these commands:
 
+- `npm test`: run type checking, then the same safe suite selection as `test:all`. The local ephemeral runner must use this entry point or an equivalent path that preserves both checks.
 - `npm run test:unit`: local unit tests with no CapRover instance.
 - `npm run test:smoke`: the existing application lifecycle.
 - `npm run test:core`: deterministic tests safe for a dedicated existing test server.
@@ -49,12 +60,14 @@ Tier: unit for selection/guard/cleanup tests; smoke for the existing lifecycle.
 
 - [ ] Consume a published `caprover-api` version with PATCH support (at least `0.0.21`); preserve any newer version already installed.
 - [ ] Update `package-lock.json` if the dependency changes.
-- [ ] Add the execution-tier scripts and explicit file selection described above.
+- [ ] Add the execution-tier scripts and explicit file selection described above, including safe selection for `npm test` while retaining type checking.
+- [ ] Confirm the local ephemeral runner and both workflows use the intended suite selection.
+- [ ] Record the requested server image and resolved running digest in run diagnostics without exposing credentials.
 - [ ] Add `CAPROVER_E2E_ENVIRONMENT` to test configuration and provisioning's returned test environment.
 - [ ] Add a guard used by every destructive or global-state test before mutation.
-- [ ] Test persistent/ephemeral suite selection, specialized-suite exclusion, and direct destructive invocation rejection.
+- [ ] Test persistent/ephemeral suite selection through the default entry point, specialized-suite exclusion, and direct destructive invocation rejection.
 - [ ] Add workflow concurrency for the existing-server workflow.
-- [ ] Add a lightweight LIFO cleanup registry and test ordering and cleanup after failure.
+- [ ] Add a lightweight LIFO cleanup registry and test ordering, cleanup after an ambiguous create failure, continuation after a cleanup error, and failure reporting when cleanup is the only failure.
 - [ ] Keep the existing full-update lifecycle unchanged and confirm it passes.
 - [ ] Update workflow suite commands and README safety instructions.
 
@@ -156,7 +169,8 @@ Create `tests/deployments.test.ts`.
 
 Tier: core.
 
-- [ ] Add a reusable build-completion poller.
+- [ ] Add a reusable build-completion poller that correlates completion with the requested deployment using the expected version, unique Git hash, or fixture marker alongside app-level build state. An idle state alone is insufficient, and observing an intermediate building state must not be required for fast deployments.
+- [ ] Correlate failed builds with fresh logs containing the current attempt's unique marker so stale failure state cannot satisfy the poller.
 - [ ] Add or reuse raw API response-envelope access for detached status assertions.
 - [ ] Include bounded build-log tails and Docker service/task state in deployment failure diagnostics.
 - [ ] Deploy a pinned image synchronously.
@@ -168,7 +182,8 @@ Tier: core.
 - [ ] Assert successful envelope status `101`.
 - [ ] Poll the detached deployment to a terminal state.
 - [ ] Verify final API, Docker, and HTTP state.
-- [ ] Trigger a failed deployment using a deterministic missing tag.
+- [ ] Trigger a controlled build failure using a tiny captain-definition with a pinned base image and a build step that emits a unique marker and deliberately exits nonzero.
+- [ ] Separately test missing-image handling with a unique nonexistent tag on a specified reachable registry. Require evidence of the missing image; DNS failures, authentication failures, and timeouts fail the test.
 - [ ] Verify a failed terminal state and useful build logs.
 - [ ] Verify the previously working service remains available with its previous image.
 - [ ] Deploy a valid image afterward.
@@ -304,7 +319,8 @@ Tier: destructive.
 - [ ] Verify API persistence and Docker `EndpointSpec`.
 - [ ] Verify real TCP and UDP connectivity.
 - [ ] Replace and remove mappings.
-- [ ] Verify removed ports close.
+- [ ] Verify removed TCP mappings disappear from Docker and new TCP connections fail within a bounded timeout.
+- [ ] Verify removed UDP mappings disappear from Docker and repeated bounded echo probes stop receiving replies after connectivity was established. Use both checks because lack of a UDP reply alone does not prove port closure.
 - [ ] Verify a full POST update with `ports: []` clears configured mappings.
 - [ ] Reject invalid or incomplete port definitions.
 
@@ -357,7 +373,7 @@ Tier: destructive.
 
 ## PR14: Add backup and system-read tests
 
-Create `tests/backup.test.ts` (Tier: destructive) and `tests/system-info.test.ts` (Tier: core).
+Create `tests/backup.test.ts` (Tier: destructive), `tests/system-info.test.ts` (Tier: core), and `tests/system-defaults.test.ts` (Tier: destructive, ephemeral-only).
 
 Backup creation/download touches server-wide backup state; keep it ephemeral.
 
@@ -372,16 +388,21 @@ Backup creation/download touches server-wide backup state; keep it ephemeral.
 - [ ] Verify an invalid token fails.
 - [ ] Verify a second download with the same token fails after the backup file is removed.
 
-### System reads
+### System reads (core)
 
 - [ ] Test captain info, version info, load-balancer info, and node listing.
-- [ ] Verify root-domain and SSL state matches provisioning.
+- [ ] Verify root-domain and SSL fields are internally consistent with the server under test; existing servers may have different valid settings.
 - [ ] Verify version fields and non-negative load-balancer counters.
-- [ ] Generate traffic and verify counters increase.
-- [ ] Verify the single-node environment contains one leader manager.
-- [ ] Verify the node ID matches Docker over SSH.
-- [ ] Verify the default free Pro feature state.
-- [ ] Verify default Pro configuration can be read without changing it.
+- [ ] Generate traffic and verify cumulative request counters increase.
+- [ ] Verify API node identity and manager/leader information against Docker over SSH without assuming a single-node cluster.
+- [ ] Verify the current Pro feature state and configuration can be read without changing them or assuming a free installation.
+
+### Fresh-install defaults (ephemeral-only)
+
+- [ ] Require the ephemeral guard and run before any global-setting tests that could change the expected defaults.
+- [ ] Verify root-domain and SSL state matches the provisioning result.
+- [ ] Verify the freshly provisioned single-node environment contains one leader manager.
+- [ ] Verify the default free Pro feature state and default Pro configuration.
 
 ## PR15: Add destructive disk-cleanup and global Nginx tests
 
@@ -455,8 +476,8 @@ Tier: destructive for all three files. Require ephemeral mode.
 
 - [ ] Read the initial registry list.
 - [ ] Reject an unknown default registry ID.
-- [ ] Reject invalid remote credentials.
-- [ ] Verify expected registry error statuses.
+- [ ] Specify a reachable registry endpoint and deliberately invalid credentials; verify the expected authentication rejection and registry error status.
+- [ ] Treat DNS failures, connection failures, and timeouts as test failures. They must not satisfy the invalid-credentials assertion.
 
 ### GoAccess
 
@@ -478,9 +499,11 @@ Full self-hosted registry build-and-push coverage belongs in the controlled SSL 
 
 ## PR18: Add specialized external workflows
 
+Implement the following five workflows in separate follow-up PRs (PR18a through PR18e). Each has its own prerequisites and completion entry.
+
 Tier: destructive, specialized opt-in only. Each workflow provisions its own ephemeral environment and runs only its assigned file. Keep these files under `tests/specialized/` and outside default suite selection.
 
-### Git webhook workflow
+### PR18a: Git webhook workflow
 
 File: `tests/specialized/git-webhooks.test.ts`. Tier: destructive (specialized).
 
@@ -493,7 +516,7 @@ File: `tests/specialized/git-webhooks.test.ts`. Tier: destructive (specialized).
 - [ ] Verify rename rotates the webhook token.
 - [ ] Verify clearing repository settings disables the webhook.
 
-### Controlled SSL and self-hosted registry workflow
+### PR18b: Controlled SSL and self-hosted registry workflow
 
 File: `tests/specialized/ssl-and-registry.test.ts`. Tier: destructive (specialized).
 
@@ -510,7 +533,7 @@ Fresh-server provisioning already requests a real certificate for `captain.<root
 - [ ] Disable the registry and verify cleanup.
 - [ ] Remove the custom domain and verify cleanup behavior.
 
-### Multi-node workflow
+### PR18c: Multi-node workflow
 
 File: `tests/specialized/multi-node.test.ts`. Tier: destructive (specialized).
 
@@ -521,7 +544,7 @@ File: `tests/specialized/multi-node.test.ts`. Tier: destructive (specialized).
 - [ ] Verify stateless and persistent app pinning.
 - [ ] Clean up the node and infrastructure.
 
-### Pro and 2FA workflow
+### PR18d: Pro and 2FA workflow
 
 File: `tests/specialized/pro-and-2fa.test.ts`. Tier: destructive (specialized).
 
@@ -532,7 +555,7 @@ File: `tests/specialized/pro-and-2fa.test.ts`. Tier: destructive (specialized).
 - [ ] Verify login with generated TOTP succeeds.
 - [ ] Disable 2FA in guaranteed cleanup.
 
-### Upgrade workflow
+### PR18e: Upgrade workflow
 
 File: `tests/specialized/upgrade.test.ts`. Tier: destructive (specialized).
 
@@ -584,4 +607,8 @@ This table should be updated whenever `caprover-api` adds or removes a public me
 - [ ] PR15 merged
 - [ ] PR16 merged
 - [ ] PR17 merged
-- [ ] PR18 specialized workflows implemented or tracked individually
+- [ ] PR18a Git webhook workflow implemented or linked to a follow-up issue
+- [ ] PR18b SSL and self-hosted registry workflow implemented or linked to a follow-up issue
+- [ ] PR18c multi-node workflow implemented or linked to a follow-up issue
+- [ ] PR18d Pro and 2FA workflow implemented or linked to a follow-up issue
+- [ ] PR18e upgrade workflow implemented or linked to a follow-up issue
