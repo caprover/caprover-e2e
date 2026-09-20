@@ -138,6 +138,31 @@ export class CapRoverClient {
         )
     }
 
+    getBuildLogs(name: string) {
+        return this.request(
+            this.api.fetchBuildLogs(name),
+            `reading build state for ${name}`
+        )
+    }
+
+    deployDefinition(
+        name: string,
+        definition: CapRoverModels.ICaptainDefinition,
+        gitHash: string,
+        detached = false
+    ): Promise<void> {
+        return this.request(
+            this.api.uploadCaptainDefinitionContent(
+                name,
+                definition,
+                gitHash,
+                detached
+            ),
+            `deploying ${name}`,
+            DEPLOYMENT_TIMEOUT_MS
+        )
+    }
+
     deployImage(name: string, image: string): Promise<void> {
         return this.request(
             this.api.uploadCaptainDefinitionContent(
