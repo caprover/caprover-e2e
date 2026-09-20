@@ -23,7 +23,7 @@ let rootDomain = ''
 test('full application lifecycle', async () => {
     context = createTestContext(config)
 
-    await step('environment validation', async () => {
+    await lifecycleStep('environment validation', [], async () => {
         await context!.caprover.login()
         const [serverInfo, apps] = await Promise.all([
             context!.caprover.getServerInfo(),
