@@ -372,7 +372,11 @@ function formatExecError(error: unknown): string {
 function isExecError(
     error: unknown
 ): error is Error & { stdout?: string; stderr?: string } {
-    return error instanceof Error
+    return (
+        error instanceof Error &&
+        (('stdout' in error && typeof error.stdout === 'string') ||
+            ('stderr' in error && typeof error.stderr === 'string'))
+    )
 }
 
 function formatError(error: unknown): string {
