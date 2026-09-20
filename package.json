@@ -23,7 +23,7 @@
         "test:all": "vitest run --mode all"
     },
     "dependencies": {
-        "caprover-api": "0.0.21",
+        "caprover-api": "0.0.22",
         "ssh2": "1.17.0"
     },
     "devDependencies": {
