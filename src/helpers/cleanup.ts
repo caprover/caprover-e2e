@@ -20,13 +20,16 @@ export class CleanupRegistry {
 }
 
 export async function withCleanup<T>(
-    operation: (cleanup: CleanupRegistry) => Promise<T>
+    operation: (cleanup: CleanupRegistry) => Promise<T>,
+    onFailureBeforeCleanup?: (error: unknown) => Promise<void>
 ): Promise<T> {
     const cleanup = new CleanupRegistry()
     let result: T
+
     try {
         result = await operation(cleanup)
     } catch (error) {
+        await reportFailure(onFailureBeforeCleanup, error)
         try {
             await cleanup.run()
         } catch (cleanupError) {
@@ -38,6 +41,31 @@ export async function withCleanup<T>(
         }
         throw error
     }
-    await cleanup.run()
+
+    try {
+        await cleanup.run()
+    } catch (error) {
+        await reportFailure(onFailureBeforeCleanup, error)
+        throw error
+    }
+
     return result
+}
+
+async function reportFailure(
+    observer: ((error: unknown) => Promise<void>) | undefined,
+    error: unknown
+): Promise<void> {
+    if (!observer) return
+
+    try {
+        await observer(error)
+    } catch (observerError) {
+        console.error(
+            'Failure diagnostics also failed:',
+            observerError instanceof Error
+                ? observerError.message
+                : String(observerError)
+        )
+    }
 }
