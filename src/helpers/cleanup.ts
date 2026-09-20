@@ -21,7 +21,7 @@ export class CleanupRegistry {
 
 export async function withCleanup<T>(
     operation: (cleanup: CleanupRegistry) => Promise<T>,
-    onFailureBeforeCleanup?: (error: unknown) => Promise<void>
+    onFailure?: (error: unknown) => Promise<void>
 ): Promise<T> {
     const cleanup = new CleanupRegistry()
     let result: T
@@ -29,7 +29,7 @@ export async function withCleanup<T>(
     try {
         result = await operation(cleanup)
     } catch (error) {
-        await reportFailure(onFailureBeforeCleanup, error)
+        await reportFailure(onFailure, error)
         try {
             await cleanup.run()
         } catch (cleanupError) {
@@ -45,7 +45,7 @@ export async function withCleanup<T>(
     try {
         await cleanup.run()
     } catch (error) {
-        await reportFailure(onFailureBeforeCleanup, error)
+        await reportFailure(onFailure, error)
         throw error
     }
 
