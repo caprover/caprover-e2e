@@ -148,6 +148,7 @@ function buildFullDiagnosticSections(
                 "docker service ls --format 'table {{.ID}}\\t{{.Name}}\\t{{.Mode}}\\t{{.Replicas}}\\t{{.Image}}'",
                 "docker ps -a --no-trunc --format 'table {{.ID}}\\t{{.Names}}\\t{{.Image}}\\t{{.Status}}\\t{{.RunningFor}}\\t{{.Ports}}'",
                 'docker network ls',
+                "docker stats --no-stream --format 'table {{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}\\t{{.MemPerc}}\\t{{.NetIO}}'",
             ].join('\n'),
         },
         {
@@ -161,9 +162,11 @@ done`,
             title: 'Core container state',
             command: `for service in captain-captain captain-nginx; do
     echo "### $service"
-    container=$(docker ps -aq --filter "label=com.docker.swarm.service.name=$service" | head -n 1)
-    if [ -n "$container" ]; then
-        docker inspect --format 'Name={{.Name}} Image={{.Config.Image}} RestartCount={{.RestartCount}} State={{json .State}}' "$container"
+    containers=$(docker ps -aq --filter "label=com.docker.swarm.service.name=$service")
+    if [ -n "$containers" ]; then
+        for container in $containers; do
+            docker inspect --format 'Name={{.Name}} Image={{.Config.Image}} RestartCount={{.RestartCount}} State={{json .State}}' "$container"
+        done
     else
         echo "No container found"
     fi
@@ -178,6 +181,11 @@ done`,
             title: 'Nginx logs',
             command:
                 'docker service logs captain-nginx --timestamps --since 15m --tail 500 2>&1',
+        },
+        {
+            title: 'Recent shared nginx access logs',
+            command:
+                "if [ -d /captain/data/shared-logs ]; then find /captain/data/shared-logs -maxdepth 1 -type f -mmin -20 -print -exec tail -n 100 {} \\;; else echo 'No shared nginx log directory'; fi",
         },
         {
             title: 'Docker events',
@@ -336,7 +344,7 @@ function servicePsCommand(serviceName: string): string {
 function dockerEventsCommand(since: string): string {
     return `since=$(date -u -d ${shellQuote(since)} +%Y-%m-%dT%H:%M:%SZ)
 until=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-docker events --since "$since" --until "$until" --filter type=container --filter type=service --filter type=node`
+docker events --since "$since" --until "$until" --filter type=container --filter type=service --filter type=node --filter type=network --filter type=daemon`
 }
 
 function startGroup(title: string): void {
