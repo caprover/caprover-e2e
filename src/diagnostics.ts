@@ -5,8 +5,8 @@ import { SshClient, SshCommandResult } from './clients/ssh'
 import { TestConfig } from './config'
 
 const execFileAsync = promisify(execFile)
-const IMMEDIATE_TIMEOUT_MS = 8_000
-const FULL_TIMEOUT_MS = 10_000
+const IMMEDIATE_TIMEOUT_MS = 5_000
+const FULL_TIMEOUT_MS = 7_000
 const MAX_SECTION_OUTPUT = 50_000
 
 interface SshExecutor {
@@ -51,7 +51,7 @@ export async function collectFailureDiagnostics(
         port: config.sshPort,
         username: config.sshUser,
         privateKey: config.sshPrivateKey,
-        connectTimeoutMs: 10_000,
+        connectTimeoutMs: 8_000,
         commandTimeoutMs: FULL_TIMEOUT_MS,
     })
 
