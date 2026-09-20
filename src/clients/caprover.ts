@@ -3,6 +3,10 @@ import CapRoverAPI, {
     SimpleAuthenticationProvider,
 } from 'caprover-api'
 import { withTimeout } from '../helpers/retry'
+import {
+    CAPROVER_API_MIN_INTERVAL_MS,
+    ENABLE_CAPROVER_API_STABILITY_MITIGATION,
+} from '../test-settings'
 
 type AppDefinition = CapRoverModels.IAppDef & {
     isLegacyAppName?: boolean
@@ -22,6 +26,8 @@ const DEPLOYMENT_TIMEOUT_MS = 90_000
 
 export class CapRoverClient {
     private readonly api: CapRoverAPI
+    private requestQueue: Promise<void> = Promise.resolve()
+    private lastRequestCompletedAt = 0
 
     constructor(
         baseUrl: string,
@@ -35,14 +41,14 @@ export class CapRoverClient {
 
     login(): Promise<void> {
         return this.request(
-            this.api.login(this.password),
+            () => this.api.login(this.password),
             'CapRover authentication'
         )
     }
 
     getServerInfo(): Promise<ServerInfo> {
         return this.request(
-            this.api.getCaptainInfo(),
+            () => this.api.getCaptainInfo(),
             'retrieving CapRover server information'
         )
     }
@@ -52,7 +58,7 @@ export class CapRoverClient {
         rootDomain: string
     }> {
         return this.request(
-            this.api.getAllApps(),
+            () => this.api.getAllApps(),
             'retrieving CapRover applications'
         )
     }
@@ -75,9 +81,9 @@ export class CapRoverClient {
         return response.appDefinitions.some((app) => app.appName === name)
     }
 
-    createApp(name: string): Promise<void> {
+    createApp(name: string, projectId = ''): Promise<void> {
         return this.request(
-            this.api.registerNewApp(name, '', false, false),
+            () => this.api.registerNewApp(name, projectId, false, false),
             `creating CapRover application ${name}`,
             DEPLOYMENT_TIMEOUT_MS
         )
@@ -85,7 +91,7 @@ export class CapRoverClient {
 
     renameApp(oldName: string, newName: string): Promise<void> {
         return this.request(
-            this.api.renameApp(oldName, newName),
+            () => this.api.renameApp(oldName, newName),
             `renaming CapRover application ${oldName} to ${newName}`
         )
     }
@@ -99,22 +105,105 @@ export class CapRoverClient {
         }
 
         await this.request(
-            this.api.updateConfigAndSave(name, updated),
+            () => this.api.updateConfigAndSave(name, updated),
             `updating CapRover application ${name}`
+        )
+    }
+
+    getProjects() {
+        return this.request(() => this.api.getAllProjects(), 'listing projects')
+    }
+
+    createProject(name: string, description: string, parentProjectId = '') {
+        return this.request(
+            () =>
+                this.api.registerProject({
+                    id: '',
+                    name,
+                    description,
+                    parentProjectId,
+                }),
+            'creating project'
+        )
+    }
+
+    updateProject(project: CapRoverModels.ProjectDefinition): Promise<void> {
+        return this.request(
+            () => this.api.updateProject(project),
+            'updating project'
+        )
+    }
+
+    deleteProject(id: string): Promise<void> {
+        return this.request(
+            () => this.api.deleteProjects([id]),
+            'deleting project'
+        )
+    }
+
+    patchApp(
+        name: string,
+        changes: CapRoverModels.IAppDefinitionPatch
+    ): Promise<void> {
+        return this.request(
+            () => this.api.patchAppDefinition(name, changes),
+            `patching CapRover application ${name}`
+        )
+    }
+
+    uploadSource(name: string, file: File, detached: boolean): Promise<void> {
+        return this.request(
+            () => this.api.uploadAppData(name, file, detached),
+            `uploading source for ${name}`,
+            DEPLOYMENT_TIMEOUT_MS
+        )
+    }
+
+    getRuntimeLogs(name: string, encoding: 'ascii' | 'utf8' | 'hex') {
+        return this.request(
+            () => this.api.fetchAppLogs(name, encoding),
+            `reading runtime logs for ${name}`
+        )
+    }
+
+    getBuildLogs(name: string) {
+        return this.request(
+            () => this.api.fetchBuildLogs(name),
+            `reading build state for ${name}`
+        )
+    }
+
+    deployDefinition(
+        name: string,
+        definition: CapRoverModels.ICaptainDefinition,
+        gitHash: string,
+        detached = false
+    ): Promise<void> {
+        return this.request(
+            () =>
+                this.api.uploadCaptainDefinitionContent(
+                    name,
+                    definition,
+                    gitHash,
+                    detached
+                ),
+            `deploying ${name}`,
+            DEPLOYMENT_TIMEOUT_MS
         )
     }
 
     deployImage(name: string, image: string): Promise<void> {
         return this.request(
-            this.api.uploadCaptainDefinitionContent(
-                name,
-                {
-                    schemaVersion: 2,
-                    imageName: image,
-                },
-                '',
-                false
-            ),
+            () =>
+                this.api.uploadCaptainDefinitionContent(
+                    name,
+                    {
+                        schemaVersion: 2,
+                        imageName: image,
+                    },
+                    '',
+                    false
+                ),
             `deploying ${image} to ${name}`,
             DEPLOYMENT_TIMEOUT_MS
         )
@@ -122,7 +211,7 @@ export class CapRoverClient {
 
     async deleteApp(name: string): Promise<void> {
         await this.request(
-            this.api.deleteApp(name, [], undefined),
+            () => this.api.deleteApp(name, [], undefined),
             `deleting CapRover application ${name}`
         )
     }
@@ -131,12 +220,38 @@ export class CapRoverClient {
         this.api.destroy()
     }
 
-    private request<T>(
-        operation: Promise<T>,
+    private async request<T>(
+        operation: () => Promise<T>,
         description: string,
         timeoutMs = API_TIMEOUT_MS
     ): Promise<T> {
-        return withTimeout(operation, timeoutMs, description)
+        if (!ENABLE_CAPROVER_API_STABILITY_MITIGATION) {
+            return withTimeout(operation(), timeoutMs, description)
+        }
+
+        let releaseQueue!: () => void
+        const previousRequest = this.requestQueue
+
+        this.requestQueue = new Promise<void>((resolve) => {
+            releaseQueue = resolve
+        })
+
+        await previousRequest
+
+        try {
+            const waitMs =
+                CAPROVER_API_MIN_INTERVAL_MS -
+                (Date.now() - this.lastRequestCompletedAt)
+
+            if (waitMs > 0) {
+                await new Promise((resolve) => setTimeout(resolve, waitMs))
+            }
+
+            return await withTimeout(operation(), timeoutMs, description)
+        } finally {
+            this.lastRequestCompletedAt = Date.now()
+            releaseQueue()
+        }
     }
 }
 

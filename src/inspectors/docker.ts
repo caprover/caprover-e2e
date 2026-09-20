@@ -85,11 +85,15 @@ export class DockerInspector {
             )
         }
 
-        if (!(await this.serviceExistsByName('captain-captain'))) {
+        const captain = await this.inspectServiceByName('captain-captain')
+        if (!captain) {
             throw new Error(
                 'The captain-captain service was not found on SSH_HOST'
             )
         }
+        console.log(
+            `Running CapRover image: ${captain.Spec?.TaskTemplate?.ContainerSpec?.Image ?? 'unknown'}`
+        )
     }
 
     async serviceExists(appName: string): Promise<boolean> {
@@ -114,6 +118,10 @@ export class DockerInspector {
             throw new Error(`Docker service ${appName} has no configured image`)
         }
         return image
+    }
+
+    async getServiceUpdateState(appName: string): Promise<string | undefined> {
+        return (await this.getService(appName)).UpdateStatus?.State
     }
 
     async getDesiredReplicas(appName: string): Promise<number> {

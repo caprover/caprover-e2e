@@ -11,6 +11,7 @@ const validEnvironment = {
 describe('loadConfig', () => {
     test('loads and normalizes valid configuration', () => {
         expect(loadConfig(validEnvironment)).toEqual({
+            environment: 'persistent',
             caproverUrl: 'https://captain.example.com',
             caproverPassword: 'password',
             sshHost: 'captain.example.com',

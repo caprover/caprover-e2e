@@ -62,6 +62,7 @@ export async function provisionEnvironment(
         await saveState(state)
 
         const testEnvironment: NodeJS.ProcessEnv = {
+            CAPROVER_E2E_ENVIRONMENT: 'ephemeral',
             CAPROVER_URL: state.caproverUrl,
             CAPROVER_PASSWORD: password,
             SSH_HOST: state.ipAddress,

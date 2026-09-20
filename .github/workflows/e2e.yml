@@ -20,6 +20,10 @@ on:
 permissions:
     contents: read
 
+concurrency:
+    group: caprover-e2e-existing-server
+    cancel-in-progress: false
+
 jobs:
     e2e:
         runs-on: ubuntu-latest

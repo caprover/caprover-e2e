@@ -127,7 +127,7 @@ TypeScript suite.
 ### Fresh server
 
 The **CapRover E2E - Fresh Server** workflow provisions a new environment, runs
-exactly the same E2E suite, and destroys the temporary DNS record and droplet
+the smoke, core, and ordinary destructive suites, and destroys the temporary DNS record and droplet
 even when the test step fails.
 
 Configure these repository secrets:
@@ -155,3 +155,50 @@ npm run format
 The test creates unique application names and performs best-effort cleanup for
 both the original and renamed names. Cleanup warnings preserve the original test
 failure.
+
+## Test tiers and safety
+
+| Command                    | Selection                                                               |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `npm test`                 | Type checking, then `test:all`                                          |
+| `npm run test:unit`        | Local unit tests, no server required                                    |
+| `npm run test:smoke`       | Existing application lifecycle                                          |
+| `npm run test:core`        | Explicitly listed app-scoped tests on a dedicated test server           |
+| `npm run test:destructive` | Explicitly listed global and destructive tests; requires ephemeral mode |
+| `npm run test:all`         | Unit, smoke, core; adds ordinary destructive tests in ephemeral mode    |
+
+Provisioning sets `CAPROVER_E2E_ENVIRONMENT=ephemeral` for the test process.
+Leave this unset for existing servers. This flag declares a disposable environment;
+set it only for a freshly provisioned server owned by the run. Never point the suite
+at a production server. Each future destructive file must call `requireEphemeral()`
+before creating a context or mutating resources. Direct file filters cannot expand
+the selected tier. Specialized workflows under `tests/specialized/` are excluded
+from all default selections and will have their own explicit configuration.
+
+Core and destructive commands fail with no tests until their files are implemented.
+Existing-server workflow runs are serialized without cancelling an active run.
+Coordinate local runs separately to avoid concurrent mutations of the same server.
+
+New resource tests use `withCleanup()`: register cleanup before a named resource's
+create request, scope it to that run's exact resource, and tolerate an already-absent
+resource. Cleanup runs in reverse order and attempts all actions. A cleanup failure
+fails the run, and an original test failure is retained alongside cleanup failures.
+The existing smoke lifecycle keeps its original best-effort cleanup behavior.
+
+Provisioning logs the requested CapRover image, and environment validation logs
+the running service image reference including its digest when Docker resolves one.
+For reproducible prerequisite validation, set `CAPROVER_IMAGE` to a known digest
+containing the required backend fix and retain the run's image output.
+
+Authentication coverage exercises valid login, empty/oversized password validation,
+one wrong-password attempt, SDK error propagation, and an unauthenticated request.
+Rapid repeated runs can encounter the server's global failed-login backoff; wait
+for that window to expire before retrying. Root-domain setup, root SSL, global
+force SSL, and password change are covered by fresh-server provisioning.
+
+## Source uploads
+
+Source uploads require `caprover-api@0.0.22` or newer, which includes the merged
+[native FormData fix](https://github.com/caprover/caprover-api/pull/9).
+The fixture uses the runner's `tar` executable and a digest-pinned Nginx image;
+it creates unique HTTP and Unicode startup-log markers without extra dependencies.

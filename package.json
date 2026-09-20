@@ -8,8 +8,8 @@
         "node": ">=22.12.0"
     },
     "scripts": {
-        "test": "npm run typecheck && vitest run",
-        "test:unit": "vitest run tests/unit",
+        "test": "npm run typecheck && npm run test:all",
+        "test:unit": "vitest run --mode unit",
         "test:ephemeral": "npm run build:provisioning && node .provisioning-dist/provisioning/commands/test-ephemeral.js",
         "provision": "npm run build:provisioning && node .provisioning-dist/provisioning/commands/provision.js",
         "diagnose": "npm run build:provisioning && node .provisioning-dist/provisioning/commands/diagnose.js",
@@ -17,10 +17,15 @@
         "build:provisioning": "tsc -p tsconfig.provisioning.json",
         "typecheck": "tsc --noEmit",
         "format": "prettier --check .",
-        "format:write": "prettier --write ."
+        "format:write": "prettier --write .",
+        "test:smoke": "vitest run --mode smoke",
+        "test:core": "vitest run --mode core",
+        "test:nginx-reload-race": "CAPROVER_E2E_DISABLE_API_STABILITY_MITIGATION=true vitest run --mode nginx-reload-race",
+        "test:destructive": "vitest run --mode destructive",
+        "test:all": "vitest run --mode all"
     },
     "dependencies": {
-        "caprover-api": "0.0.20",
+        "caprover-api": "0.0.22",
         "ssh2": "1.17.0"
     },
     "devDependencies": {

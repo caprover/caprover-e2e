@@ -8,12 +8,34 @@ Future agents should check each implementation item as it lands. A PR is complet
 
 ## Implementation sequence and prerequisites
 
-Proposed first batch: PR1 through PR6. Confirm that batch before implementation, then use its measured runtime and reliability to guide the remaining work.
+Confirmed first batch: PR1 through PR6. Use its measured runtime and reliability to guide the remaining work.
 
 - Confirm the existing DigitalOcean, Cloudflare, and SSH provisioning secrets are present and valid in GitHub Actions. Update missing or expired values in GitHub; keep credentials out of this document and PR discussions.
 - Keep the backend custom-port fix (PR10) and SDK prerequisites (PR13 and PR17) as separate repository changes. Link their PRs and the consumed package versions or server images before enabling dependent assertions.
 - Defer specialized prerequisites until their corresponding PR18 follow-up: a dedicated Git test repository and HTTPS/SSH credentials, a dedicated Pro key, approval for an additional droplet, and the pinned upgrade-version pair.
 - Implement PR18 as five independently reviewable follow-up PRs, tracked below as PR18a through PR18e.
+
+## First-batch implementation status
+
+The six implementation PRs are stacked in plan order so each diff stays focused. Retarget each successor to `main` after its prerequisite merges. Completion checkboxes remain open until the corresponding implementation is validated and merged.
+
+| Plan item | Pull request | Validation status |
+| --- | --- | --- |
+| PR1 | [Safety foundations](https://github.com/caprover/caprover-e2e/pull/11) | Type checking, provisioning build, and local unit tests passed; live smoke pending |
+| PR2 | [Authentication contracts](https://github.com/caprover/caprover-e2e/pull/12) | Type checking passed; live validation pending |
+| PR3 | [App configuration](https://github.com/caprover/caprover-e2e/pull/13) | Type checking and local unit tests passed; live validation pending |
+| PR4 | [Project lifecycle](https://github.com/caprover/caprover-e2e/pull/14) | Type checking and local unit tests passed; live validation pending |
+| PR5 | [Deployment recovery](https://github.com/caprover/caprover-e2e/pull/15) | Type checking passed; live validation and runtime measurement pending |
+| PR6 | [Source upload and logs](https://github.com/caprover/caprover-e2e/pull/16) | Type checking and fixture unit tests passed; SDK dependency updated to 0.0.22; live validation pending |
+
+Merged companion SDK changes (included in version `0.0.22`):
+
+- [Authentication retry/error tests](https://github.com/caprover/caprover-api/pull/8): 14 SDK tests passed on that branch.
+- [Native FormData transport fix](https://github.com/caprover/caprover-api/pull/9): published `caprover-api@0.0.21` sends Node's native FormData as `[object FormData]` with `text/plain` content type. The fix pairs native FormData with native fetch; a local HTTP-server regression verifies multipart headers and binary file bytes. All 11 SDK tests passed on that branch.
+
+SDK version `0.0.22` contains the merged FormData fix and authentication test changes. The [release workflow](https://github.com/caprover/caprover-api/actions/runs/35488986770) successfully submitted the package to npm. All six E2E branches now pin `caprover-api@0.0.22` with a regenerated lockfile; the dependency update originates in PR1 and is propagated through the stack. Live validation remains required before marking the E2E PRs ready.
+
+This implementation session had no live CapRover/provisioning credentials or workflow-dispatch capability. Run the Fresh Server workflow on each relevant branch before marking it ready; measure runtime before adjusting timeouts. The existing workflow secrets can be used without sharing their values.
 
 ## Implementation rules
 
