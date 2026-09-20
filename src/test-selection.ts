@@ -1,6 +1,7 @@
 export const smokeFiles = ['tests/app-lifecycle.test.ts']
 export const coreFiles = [
     'tests/authentication.test.ts',
+    'tests/nginx-reload-keepalive.test.ts',
     'tests/app-configuration.test.ts',
     'tests/projects.test.ts',
     'tests/deployments.test.ts',
