@@ -6,5 +6,10 @@
         "rootDir": ".",
         "types": ["node"]
     },
-    "include": ["provisioning", "src/clients/ssh.ts"]
+    "include": [
+        "provisioning",
+        "src/clients/ssh.ts",
+        "src/config.ts",
+        "src/diagnostics.ts"
+    ]
 }
