@@ -38,6 +38,34 @@ export async function captureImmediateDiagnostics(
     }
 }
 
+export async function withImmediateFailureDiagnostics<T>(
+    ssh: SshExecutor,
+    config: TestConfig,
+    operation: () => Promise<T>
+): Promise<T> {
+    try {
+        return await operation()
+    } catch (error) {
+        try {
+            await printRunnerConnectivity(config)
+        } catch (diagnosticError) {
+            console.error(
+                `Runner connectivity diagnostics failed: ${formatError(diagnosticError)}`
+            )
+        }
+
+        try {
+            await captureImmediateDiagnostics(ssh, config.caproverUrl, error)
+        } catch (diagnosticError) {
+            console.error(
+                `Infrastructure diagnostics also failed: ${formatError(diagnosticError)}`
+            )
+        }
+
+        throw error
+    }
+}
+
 export async function collectFailureDiagnostics(
     config: TestConfig
 ): Promise<void> {
@@ -83,6 +111,14 @@ export function buildImmediateDiagnosticSections(
         {
             title: 'Immediate connectivity',
             command: buildLocalConnectivityCommand(caproverUrl, hostname),
+        },
+        {
+            title: 'Conntrack pressure',
+            command: [
+                "if [ -r /proc/sys/net/netfilter/nf_conntrack_count ]; then printf 'nf_conntrack_count='; cat /proc/sys/net/netfilter/nf_conntrack_count; else echo 'nf_conntrack_count unavailable'; fi",
+                "if [ -r /proc/sys/net/netfilter/nf_conntrack_max ]; then printf 'nf_conntrack_max='; cat /proc/sys/net/netfilter/nf_conntrack_max; else echo 'nf_conntrack_max unavailable'; fi",
+                "journalctl -k --since '3 minutes ago' --no-pager | grep -Ei 'conntrack|nf_conntrack|table full' | tail -n 100 || true",
+            ].join('\n'),
         },
         {
             title: 'Core service state',
@@ -132,6 +168,8 @@ function buildFullDiagnosticSections(
                 'df -h',
                 'df -ih',
                 'ss -s',
+                "if [ -r /proc/sys/net/netfilter/nf_conntrack_count ]; then printf 'nf_conntrack_count='; cat /proc/sys/net/netfilter/nf_conntrack_count; fi",
+                "if [ -r /proc/sys/net/netfilter/nf_conntrack_max ]; then printf 'nf_conntrack_max='; cat /proc/sys/net/netfilter/nf_conntrack_max; fi",
                 "ss -ltnp | grep -E ':(80|443|3000)\\b' || true",
                 'ip -brief addr',
                 'ip route',
@@ -199,7 +237,7 @@ done`,
         {
             title: 'Kernel errors and OOM evidence',
             command:
-                "journalctl -k --since '15 minutes ago' --no-pager | grep -Ei 'oom|out of memory|killed process|segfault|panic|overlay|vxlan' | tail -n 200 || true",
+                "journalctl -k --since '15 minutes ago' --no-pager | grep -Ei 'oom|out of memory|killed process|segfault|panic|overlay|vxlan|conntrack|nf_conntrack|table full' | tail -n 200 || true",
         },
         {
             title: 'Captain overlay network',
@@ -240,17 +278,18 @@ async function printRunnerConnectivity(config: TestConfig): Promise<void> {
         })
     }
 
-    probes.push(
-        await curlProbe('Public HTTPS', [`${config.caproverUrl}/`]),
-        await curlProbe('HTTPS bypassing DNS', [
+    const connectivityProbes = await Promise.all([
+        curlProbe('Public HTTPS', [`${config.caproverUrl}/`]),
+        curlProbe('HTTPS bypassing DNS', [
             '--resolve',
             `${hostname}:443:${config.sshHost}`,
             `${config.caproverUrl}/`,
         ]),
-        await curlProbe('Captain port 3000', [
+        curlProbe('Captain port 3000', [
             `http://${urlHost(config.sshHost)}:3000/`,
-        ])
-    )
+        ]),
+    ])
+    probes.push(...connectivityProbes)
 
     startGroup('Runner connectivity')
     for (const probe of probes) {
