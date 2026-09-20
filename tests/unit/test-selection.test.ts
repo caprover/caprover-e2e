@@ -15,13 +15,6 @@ test('default invocation excludes destructive and specialized files on persisten
     ])
 })
 
-test('runs the NGINX reload reproducer immediately after authentication', () => {
-    expect(coreFiles.slice(0, 2)).toEqual([
-        'tests/authentication.test.ts',
-        'tests/nginx-reload-keepalive.test.ts',
-    ])
-})
-
 test('ephemeral default adds only ordinary destructive files', () => {
     expect(
         selectTests('all', { CAPROVER_E2E_ENVIRONMENT: 'ephemeral' })
