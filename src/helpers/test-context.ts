@@ -1,5 +1,6 @@
 import { loadConfig } from '../config'
 import { createTestContext, TestContext } from '../context'
+import { withImmediateFailureDiagnostics } from '../diagnostics'
 import { CleanupRegistry, withCleanup } from './cleanup'
 import { eventually } from './retry'
 
@@ -10,13 +11,18 @@ export async function withTestContext(
         rootDomain: string
     ) => Promise<void>
 ): Promise<void> {
-    const context = createTestContext(loadConfig())
+    const config = loadConfig()
+    const context = createTestContext(config)
     try {
         await context.caprover.login()
         await context.ssh.connect()
         await context.docker.validateEnvironment()
         const { rootDomain } = await context.caprover.getApps()
-        await withCleanup((cleanup) => operation(context, cleanup, rootDomain))
+        await withCleanup((cleanup) =>
+            withImmediateFailureDiagnostics(context.ssh, config, () =>
+                operation(context, cleanup, rootDomain)
+            )
+        )
     } finally {
         context.caprover.destroy()
         context.ssh.close()
