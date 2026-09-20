@@ -15,6 +15,27 @@ test('immediate diagnostics capture volatile CapRover failure evidence', () => {
     expect(commands).toContain('captain-nginx')
     expect(commands).toContain('docker service logs')
     expect(commands).toContain('docker events')
+
+    const captainLogs = sections.find(
+        (section) => section.title === 'Captain recent logs'
+    )!
+    const nginxLogs = sections.find(
+        (section) => section.title === 'Nginx recent logs'
+    )!
+    const dockerEvents = sections.find(
+        (section) => section.title === 'Recent Docker events'
+    )!
+
+    expect(captainLogs.command).toContain('--tail 200')
+    expect(captainLogs.command).not.toContain('--since')
+    expect(captainLogs.preserveNewestOnClip).toBe(true)
+
+    expect(nginxLogs.command).toContain('--tail 115')
+    expect(nginxLogs.command).not.toContain('--since')
+    expect(nginxLogs.preserveNewestOnClip).toBe(true)
+
+    expect(dockerEvents.command).toContain('| tail -n 75')
+    expect(dockerEvents.preserveNewestOnClip).toBe(true)
     expect(commands).toContain('nf_conntrack_count')
     expect(commands).toContain('nf_conntrack_max')
     expect(commands).toContain('table full')
