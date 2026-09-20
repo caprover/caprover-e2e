@@ -26,14 +26,14 @@ The six implementation PRs are stacked in plan order so each diff stays focused.
 | PR3 | [App configuration](https://github.com/caprover/caprover-e2e/pull/13) | Type checking and local unit tests passed; live validation pending |
 | PR4 | [Project lifecycle](https://github.com/caprover/caprover-e2e/pull/14) | Type checking and local unit tests passed; live validation pending |
 | PR5 | [Deployment recovery](https://github.com/caprover/caprover-e2e/pull/15) | Type checking passed; live validation and runtime measurement pending |
-| PR6 | Source upload and logs (`e2e/source-upload-logs`) | Type checking and fixture unit tests passed; SDK release and live validation pending |
+| PR6 | [Source upload and logs](https://github.com/caprover/caprover-e2e/pull/16) | Type checking and fixture unit tests passed; SDK dependency updated to 0.0.22; live validation pending |
 
-Companion SDK changes:
+Merged companion SDK changes (included in version `0.0.22`):
 
 - [Authentication retry/error tests](https://github.com/caprover/caprover-api/pull/8): 14 SDK tests passed on that branch.
 - [Native FormData transport fix](https://github.com/caprover/caprover-api/pull/9): published `caprover-api@0.0.21` sends Node's native FormData as `[object FormData]` with `text/plain` content type. The fix pairs native FormData with native fetch; a local HTTP-server regression verifies multipart headers and binary file bytes. All 11 SDK tests passed on that branch.
 
-Before running or merging PR6, publish an SDK version containing the FormData fix, then update `package.json` and `package-lock.json` to that version. Keep PR6 in draft until that prerequisite and live validation are complete. The current dependency remains `0.0.21`; source-upload E2E is expected to fail with that published version.
+SDK version `0.0.22` contains the merged FormData fix and authentication test changes. The [release workflow](https://github.com/caprover/caprover-api/actions/runs/35488986770) successfully submitted the package to npm. All six E2E branches now pin `caprover-api@0.0.22` with a regenerated lockfile; the dependency update originates in PR1 and is propagated through the stack. Live validation remains required before marking the E2E PRs ready.
 
 This implementation session had no live CapRover/provisioning credentials or workflow-dispatch capability. Run the Fresh Server workflow on each relevant branch before marking it ready; measure runtime before adjusting timeouts. The existing workflow secrets can be used without sharing their values.
 
