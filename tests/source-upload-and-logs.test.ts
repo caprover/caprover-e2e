@@ -84,11 +84,24 @@ test('source upload, alternate definition, input validation, and runtime log enc
             await api.updateApp(name, {
                 captainDefinitionRelativeFilePath: 'captain-definition',
             })
-            const malformed = await raw.request('POST', path, {
-                captainDefinitionContent: '{not-json',
-            })
-            expect(malformed.status).toBeGreaterThanOrEqual(1000)
-            expect(malformed.description).not.toBe('')
+            const workingVersion = (await api.getApp(name)).deployedVersion
+            // Unhandled JSON syntax errors use HTTP 500 in CapRover's error catcher.
+            await expect(
+                raw.request('POST', path, {
+                    captainDefinitionContent: '{not-json',
+                })
+            ).rejects.toMatchObject({ httpStatus: 500 })
+            const failedBuild = await api.getBuildLogs(name)
+            expect(failedBuild.isAppBuilding).toBe(false)
+            expect(failedBuild.isBuildFailed).toBe(true)
+            const failureLogs = failedBuild.logs.lines.join('\n')
+            expect(failureLogs).toContain(`Build started for ${name}`)
+            expect(failureLogs).toMatch(
+                /SyntaxError:.*captain-definition.*JSON/
+            )
+            expect((await api.getApp(name)).deployedVersion).toBe(
+                workingVersion
+            )
             await context.http.waitUntilReachable(url, lastMarker)
         })
     })

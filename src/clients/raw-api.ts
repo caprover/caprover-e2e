@@ -42,7 +42,10 @@ export class RawApiClient {
             redirect: 'error',
         })
         if (!response.ok)
-            throw new Error(`Raw API request failed: HTTP ${response.status}`)
+            throw Object.assign(
+                new Error(`Raw API request failed: HTTP ${response.status}`),
+                { httpStatus: response.status }
+            )
         return response.json() as Promise<ApiEnvelope<T>>
     }
 }

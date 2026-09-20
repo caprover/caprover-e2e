@@ -122,9 +122,13 @@ test('attached and detached deployment, controlled failure, missing image, and r
                     expect(build.isBuildFailed).toBe(true)
                     const logs = build.logs.lines.join('\n')
                     expect(logs).toContain(missing)
-                    expect(logs).toMatch(
-                        /manifest unknown|manifest.*not found/i
-                    )
+                    const missingManifest =
+                        /manifest unknown|manifest.*not found/i.test(logs)
+                    const missingReference =
+                        logs.includes('(HTTP code 404)') &&
+                        logs.includes('failed to resolve reference') &&
+                        logs.includes(`${missing}: not found`)
+                    expect(missingManifest || missingReference).toBe(true)
                 },
                 { timeoutMs: 90_000, description: 'missing-image rejection' }
             )
