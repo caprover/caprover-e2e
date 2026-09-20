@@ -138,6 +138,21 @@ export class CapRoverClient {
         )
     }
 
+    uploadSource(name: string, file: File, detached: boolean): Promise<void> {
+        return this.request(
+            this.api.uploadAppData(name, file, detached),
+            `uploading source for ${name}`,
+            DEPLOYMENT_TIMEOUT_MS
+        )
+    }
+
+    getRuntimeLogs(name: string, encoding: 'ascii' | 'utf8' | 'hex') {
+        return this.request(
+            this.api.fetchAppLogs(name, encoding),
+            `reading runtime logs for ${name}`
+        )
+    }
+
     getBuildLogs(name: string) {
         return this.request(
             this.api.fetchBuildLogs(name),

@@ -195,3 +195,12 @@ one wrong-password attempt, SDK error propagation, and an unauthenticated reques
 Rapid repeated runs can encounter the server's global failed-login backoff; wait
 for that window to expire before retrying. Root-domain setup, root SSL, global
 force SSL, and password change are covered by fresh-server provisioning.
+
+## Source-upload prerequisite
+
+The draft source-upload suite requires an SDK release containing
+[caprover-api #9](https://github.com/caprover/caprover-api/pull/9).
+Version 0.0.21 sends native Node FormData incorrectly. Publish the fix and update
+this repository's dependency and lockfile before running the source-upload suite.
+The fixture uses the runner's `tar` executable and a digest-pinned Nginx image;
+it creates unique HTTP and Unicode startup-log markers without extra dependencies.

@@ -15,6 +15,28 @@ Confirmed first batch: PR1 through PR6. Use its measured runtime and reliability
 - Defer specialized prerequisites until their corresponding PR18 follow-up: a dedicated Git test repository and HTTPS/SSH credentials, a dedicated Pro key, approval for an additional droplet, and the pinned upgrade-version pair.
 - Implement PR18 as five independently reviewable follow-up PRs, tracked below as PR18a through PR18e.
 
+## First-batch implementation status
+
+The six implementation PRs are stacked in plan order so each diff stays focused. Retarget each successor to `main` after its prerequisite merges. Completion checkboxes remain open until the corresponding implementation is validated and merged.
+
+| Plan item | Pull request | Validation status |
+| --- | --- | --- |
+| PR1 | [Safety foundations](https://github.com/caprover/caprover-e2e/pull/11) | Type checking, provisioning build, and local unit tests passed; live smoke pending |
+| PR2 | [Authentication contracts](https://github.com/caprover/caprover-e2e/pull/12) | Type checking passed; live validation pending |
+| PR3 | [App configuration](https://github.com/caprover/caprover-e2e/pull/13) | Type checking and local unit tests passed; live validation pending |
+| PR4 | [Project lifecycle](https://github.com/caprover/caprover-e2e/pull/14) | Type checking and local unit tests passed; live validation pending |
+| PR5 | [Deployment recovery](https://github.com/caprover/caprover-e2e/pull/15) | Type checking passed; live validation and runtime measurement pending |
+| PR6 | Source upload and logs (`e2e/source-upload-logs`) | Type checking and fixture unit tests passed; SDK release and live validation pending |
+
+Companion SDK changes:
+
+- [Authentication retry/error tests](https://github.com/caprover/caprover-api/pull/8): 14 SDK tests passed on that branch.
+- [Native FormData transport fix](https://github.com/caprover/caprover-api/pull/9): published `caprover-api@0.0.21` sends Node's native FormData as `[object FormData]` with `text/plain` content type. The fix pairs native FormData with native fetch; a local HTTP-server regression verifies multipart headers and binary file bytes. All 11 SDK tests passed on that branch.
+
+Before running or merging PR6, publish an SDK version containing the FormData fix, then update `package.json` and `package-lock.json` to that version. Keep PR6 in draft until that prerequisite and live validation are complete. The current dependency remains `0.0.21`; source-upload E2E is expected to fail with that published version.
+
+This implementation session had no live CapRover/provisioning credentials or workflow-dispatch capability. Run the Fresh Server workflow on each relevant branch before marking it ready; measure runtime before adjusting timeouts. The existing workflow secrets can be used without sharing their values.
+
 ## Implementation rules
 
 - Keep the existing full-update lifecycle using `updateConfigAndSave()`.
