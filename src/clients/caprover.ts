@@ -75,9 +75,9 @@ export class CapRoverClient {
         return response.appDefinitions.some((app) => app.appName === name)
     }
 
-    createApp(name: string): Promise<void> {
+    createApp(name: string, projectId = ''): Promise<void> {
         return this.request(
-            this.api.registerNewApp(name, '', false, false),
+            this.api.registerNewApp(name, projectId, false, false),
             `creating CapRover application ${name}`,
             DEPLOYMENT_TIMEOUT_MS
         )
@@ -102,6 +102,30 @@ export class CapRoverClient {
             this.api.updateConfigAndSave(name, updated),
             `updating CapRover application ${name}`
         )
+    }
+
+    getProjects() {
+        return this.request(this.api.getAllProjects(), 'listing projects')
+    }
+
+    createProject(name: string, description: string, parentProjectId = '') {
+        return this.request(
+            this.api.registerProject({
+                id: '',
+                name,
+                description,
+                parentProjectId,
+            }),
+            'creating project'
+        )
+    }
+
+    updateProject(project: CapRoverModels.ProjectDefinition): Promise<void> {
+        return this.request(this.api.updateProject(project), 'updating project')
+    }
+
+    deleteProject(id: string): Promise<void> {
+        return this.request(this.api.deleteProjects([id]), 'deleting project')
     }
 
     patchApp(
