@@ -9,6 +9,7 @@ if (!process.env.CI && existsSync('.env')) {
 export default defineConfig(({ mode }: { mode: string }) => ({
     test: {
         fileParallelism: false,
+        maxConcurrency: 1,
         include: selectTests(mode),
         hookTimeout: 120_000,
         testTimeout: 240_000,
