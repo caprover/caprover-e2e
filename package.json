@@ -20,7 +20,7 @@
         "format:write": "prettier --write .",
         "test:smoke": "vitest run --mode smoke",
         "test:core": "vitest run --mode core",
-        "test:nginx-reload-race": "vitest run --mode nginx-reload-race",
+        "test:nginx-reload-race": "CAPROVER_E2E_DISABLE_API_STABILITY_MITIGATION=true vitest run --mode nginx-reload-race",
         "test:destructive": "vitest run --mode destructive",
         "test:all": "vitest run --mode all"
     },
