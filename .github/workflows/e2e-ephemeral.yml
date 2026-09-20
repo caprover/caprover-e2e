@@ -36,8 +36,15 @@ jobs:
               run: npm run provision
 
             - name: Run E2E suite
+              id: e2e
               timeout-minutes: 8
               run: npm test
+
+            - name: Collect failure diagnostics
+              if: steps.e2e.outcome == 'failure'
+              continue-on-error: true
+              timeout-minutes: 3
+              run: npm run diagnose
 
             - name: Destroy temporary infrastructure
               if: always()
