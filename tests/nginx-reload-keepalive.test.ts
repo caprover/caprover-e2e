@@ -37,9 +37,8 @@ test('API keep-alive connection survives repeated NGINX reloads', async () => {
                 `NGINX reload keep-alive reproduction: ${iteration + 1}/${RELOAD_ITERATIONS}`
             )
 
-            // updateApp() regenerates/reloads NGINX. The immediate getApp()
-            // intentionally has no retry or delay so it can reuse the connection
-            // that was active when NGINX gracefully reloaded.
+            // updateApp() regenerates/reloads NGINX. There is intentionally no
+            // retry here; the shared API spacing mitigation may delay getApp().
             await api.updateApp(name, { websocketSupport })
             const app = await api.getApp(name)
 
