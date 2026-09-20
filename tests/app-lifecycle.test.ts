@@ -2,6 +2,7 @@ import { afterAll, expect, test } from 'vitest'
 import { AppDefinition } from '../src/clients/caprover'
 import { loadConfig } from '../src/config'
 import { createTestContext, TestContext } from '../src/context'
+import { withImmediateFailureDiagnostics } from '../src/diagnostics'
 import { createTestNames } from '../src/helpers/names'
 import { eventually } from '../src/helpers/retry'
 import { step } from '../src/helpers/step'
@@ -22,7 +23,7 @@ let rootDomain = ''
 test('full application lifecycle', async () => {
     context = createTestContext(config)
 
-    await step('environment validation', async () => {
+    await lifecycleStep('environment validation', [], async () => {
         await context!.caprover.login()
         const [serverInfo, apps] = await Promise.all([
             context!.caprover.getServerInfo(),
@@ -211,7 +212,9 @@ async function lifecycleStep(
     operation: () => Promise<void>
 ): Promise<void> {
     try {
-        await step(name, operation)
+        await withImmediateFailureDiagnostics(context!.ssh, config, () =>
+            step(name, operation)
+        )
     } catch (error) {
         await printDiagnostics(diagnosticAppNames)
         throw error
