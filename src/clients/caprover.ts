@@ -220,7 +220,7 @@ export class CapRoverClient {
         this.api.destroy()
     }
 
-    private request<T>(
+    private async request<T>(
         operation: () => Promise<T>,
         description: string,
         timeoutMs = API_TIMEOUT_MS
@@ -229,18 +229,6 @@ export class CapRoverClient {
             return withTimeout(operation(), timeoutMs, description)
         }
 
-        return this.requestWithStabilityMitigation(
-            operation,
-            description,
-            timeoutMs
-        )
-    }
-
-    private async requestWithStabilityMitigation<T>(
-        operation: () => Promise<T>,
-        description: string,
-        timeoutMs: number
-    ): Promise<T> {
         let releaseQueue!: () => void
         const previousRequest = this.requestQueue
 
