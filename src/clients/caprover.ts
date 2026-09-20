@@ -104,6 +104,16 @@ export class CapRoverClient {
         )
     }
 
+    patchApp(
+        name: string,
+        changes: CapRoverModels.IAppDefinitionPatch
+    ): Promise<void> {
+        return this.request(
+            this.api.patchAppDefinition(name, changes),
+            `patching CapRover application ${name}`
+        )
+    }
+
     deployImage(name: string, image: string): Promise<void> {
         return this.request(
             this.api.uploadCaptainDefinitionContent(
