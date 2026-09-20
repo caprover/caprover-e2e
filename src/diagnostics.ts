@@ -8,6 +8,9 @@ const execFileAsync = promisify(execFile)
 const IMMEDIATE_TIMEOUT_MS = 5_000
 const FULL_TIMEOUT_MS = 7_000
 const MAX_SECTION_OUTPUT = 50_000
+const CAPTAIN_LOG_TAIL_LINES = 200
+const NGINX_LOG_TAIL_LINES = 115
+const DOCKER_EVENT_TAIL_LINES = 75
 
 interface SshExecutor {
     exec(command: string, timeoutMs?: number): Promise<SshCommandResult>
@@ -17,6 +20,7 @@ interface DiagnosticSection {
     title: string
     command: string
     timeoutMs?: number
+    preserveNewestOnClip?: boolean
 }
 
 interface ProbeResult {
@@ -135,17 +139,18 @@ export function buildImmediateDiagnosticSections(
         },
         {
             title: 'Captain recent logs',
-            command:
-                'docker service logs captain-captain --timestamps --since 3m --tail 300 2>&1',
+            command: `docker service logs captain-captain --timestamps --tail ${CAPTAIN_LOG_TAIL_LINES} 2>&1`,
+            preserveNewestOnClip: true,
         },
         {
             title: 'Nginx recent logs',
-            command:
-                'docker service logs captain-nginx --timestamps --since 3m --tail 300 2>&1',
+            command: `docker service logs captain-nginx --timestamps --tail ${NGINX_LOG_TAIL_LINES} 2>&1`,
+            preserveNewestOnClip: true,
         },
         {
             title: 'Recent Docker events',
             command: dockerEventsCommand('3 minutes ago'),
+            preserveNewestOnClip: true,
         },
     ]
 }
@@ -212,13 +217,13 @@ done`,
         },
         {
             title: 'Captain logs',
-            command:
-                'docker service logs captain-captain --timestamps --since 15m --tail 500 2>&1',
+            command: `docker service logs captain-captain --timestamps --tail ${CAPTAIN_LOG_TAIL_LINES} 2>&1`,
+            preserveNewestOnClip: true,
         },
         {
             title: 'Nginx logs',
-            command:
-                'docker service logs captain-nginx --timestamps --since 15m --tail 500 2>&1',
+            command: `docker service logs captain-nginx --timestamps --tail ${NGINX_LOG_TAIL_LINES} 2>&1`,
+            preserveNewestOnClip: true,
         },
         {
             title: 'Recent shared nginx access logs',
@@ -228,6 +233,7 @@ done`,
         {
             title: 'Docker events',
             command: dockerEventsCommand('15 minutes ago'),
+            preserveNewestOnClip: true,
         },
         {
             title: 'Docker and containerd journal',
@@ -350,7 +356,9 @@ async function runRemoteSection(
         const output = [result.stdout.trim(), result.stderr.trim()]
             .filter(Boolean)
             .join('\n')
-        console.log(clip(output || '(no output)'))
+        console.log(
+            clip(output || '(no output)', section.preserveNewestOnClip)
+        )
         if (result.exitCode !== 0)
             console.log(`[exit code: ${result.exitCode}]`)
     } catch (error) {
@@ -383,7 +391,7 @@ function servicePsCommand(serviceName: string): string {
 function dockerEventsCommand(since: string): string {
     return `since=$(date -u -d ${shellQuote(since)} +%Y-%m-%dT%H:%M:%SZ)
 until=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-docker events --since "$since" --until "$until" --filter type=container --filter type=service --filter type=node --filter type=network --filter type=daemon`
+docker events --since "$since" --until "$until" --filter type=container --filter type=service --filter type=node --filter type=network --filter type=daemon | tail -n ${DOCKER_EVENT_TAIL_LINES}`
 }
 
 function startGroup(title: string): void {
@@ -422,9 +430,12 @@ function formatError(error: unknown): string {
     return error instanceof Error ? error.message : String(error)
 }
 
-function clip(value: string): string {
+function clip(value: string, preserveNewest = false): string {
     if (value.length <= MAX_SECTION_OUTPUT) return value
-    return `${value.slice(0, MAX_SECTION_OUTPUT)}\n[output truncated]`
+    const clipped = preserveNewest
+        ? value.slice(-MAX_SECTION_OUTPUT)
+        : value.slice(0, MAX_SECTION_OUTPUT)
+    return `${preserveNewest ? '[output truncated]\n' : ''}${clipped}${preserveNewest ? '' : '\n[output truncated]'}`
 }
 
 function shellQuote(value: string): string {

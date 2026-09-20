@@ -12,6 +12,7 @@
         "test:unit": "vitest run --mode unit",
         "test:ephemeral": "npm run build:provisioning && node .provisioning-dist/provisioning/commands/test-ephemeral.js",
         "provision": "npm run build:provisioning && node .provisioning-dist/provisioning/commands/provision.js",
+        "diagnose": "npm run build:provisioning && node .provisioning-dist/provisioning/commands/diagnose.js",
         "destroy": "npm run build:provisioning && node .provisioning-dist/provisioning/commands/destroy.js",
         "build:provisioning": "tsc -p tsconfig.provisioning.json",
         "typecheck": "tsc --noEmit",
