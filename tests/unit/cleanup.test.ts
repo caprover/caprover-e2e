@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import { withCleanup } from '../../src/helpers/cleanup'
 
 test('cleans up in reverse order after an ambiguous create failure', async () => {
@@ -96,8 +96,9 @@ test('captures cleanup-only failures before they escape', async () => {
 
 test('diagnostic observer failures do not replace the original failure', async () => {
     const failure = new Error('test failed')
-    const originalConsoleError = console.error
-    console.error = () => undefined
+    const consoleError = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined)
 
     try {
         await expect(
@@ -111,6 +112,6 @@ test('diagnostic observer failures do not replace the original failure', async (
             )
         ).rejects.toBe(failure)
     } finally {
-        console.error = originalConsoleError
+        consoleError.mockRestore()
     }
 })
