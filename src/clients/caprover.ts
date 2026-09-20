@@ -3,7 +3,10 @@ import CapRoverAPI, {
     SimpleAuthenticationProvider,
 } from 'caprover-api'
 import { withTimeout } from '../helpers/retry'
-import { CAPROVER_API_MIN_INTERVAL_MS } from '../test-settings'
+import {
+    CAPROVER_API_MIN_INTERVAL_MS,
+    ENABLE_CAPROVER_API_STABILITY_MITIGATION,
+} from '../test-settings'
 
 type AppDefinition = CapRoverModels.IAppDef & {
     isLegacyAppName?: boolean
@@ -217,10 +220,26 @@ export class CapRoverClient {
         this.api.destroy()
     }
 
-    private async request<T>(
+    private request<T>(
         operation: () => Promise<T>,
         description: string,
         timeoutMs = API_TIMEOUT_MS
+    ): Promise<T> {
+        if (!ENABLE_CAPROVER_API_STABILITY_MITIGATION) {
+            return withTimeout(operation(), timeoutMs, description)
+        }
+
+        return this.requestWithStabilityMitigation(
+            operation,
+            description,
+            timeoutMs
+        )
+    }
+
+    private async requestWithStabilityMitigation<T>(
+        operation: () => Promise<T>,
+        description: string,
+        timeoutMs: number
     ): Promise<T> {
         let releaseQueue!: () => void
         const previousRequest = this.requestQueue
