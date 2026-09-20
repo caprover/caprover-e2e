@@ -189,3 +189,9 @@ Provisioning logs the requested CapRover image, and environment validation logs
 the running service image reference including its digest when Docker resolves one.
 For reproducible prerequisite validation, set `CAPROVER_IMAGE` to a known digest
 containing the required backend fix and retain the run's image output.
+
+Authentication coverage exercises valid login, empty/oversized password validation,
+one wrong-password attempt, SDK error propagation, and an unauthenticated request.
+Rapid repeated runs can encounter the server's global failed-login backoff; wait
+for that window to expire before retrying. Root-domain setup, root SSL, global
+force SSL, and password change are covered by fresh-server provisioning.
