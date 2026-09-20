@@ -2,6 +2,7 @@ import { afterAll, expect, test } from 'vitest'
 import { AppDefinition } from '../src/clients/caprover'
 import { loadConfig } from '../src/config'
 import { createTestContext, TestContext } from '../src/context'
+import { captureImmediateDiagnostics } from '../src/diagnostics'
 import { createTestNames } from '../src/helpers/names'
 import { eventually } from '../src/helpers/retry'
 import { step } from '../src/helpers/step'
@@ -213,6 +214,17 @@ async function lifecycleStep(
     try {
         await step(name, operation)
     } catch (error) {
+        try {
+            await captureImmediateDiagnostics(
+                context!.ssh,
+                config.caproverUrl,
+                error
+            )
+        } catch (diagnosticError) {
+            console.error(
+                `Infrastructure diagnostics also failed: ${formatError(diagnosticError)}`
+            )
+        }
         await printDiagnostics(diagnosticAppNames)
         throw error
     }
