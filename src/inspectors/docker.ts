@@ -120,6 +120,10 @@ export class DockerInspector {
         return image
     }
 
+    async getServiceUpdateState(appName: string): Promise<string | undefined> {
+        return (await this.getService(appName)).UpdateStatus?.State
+    }
+
     async getDesiredReplicas(appName: string): Promise<number> {
         const service = await this.getService(appName)
         const replicated = service.Spec?.Mode?.Replicated

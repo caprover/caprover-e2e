@@ -5,6 +5,7 @@ import {
     nextVersion,
     waitForDeployment,
     waitForImage,
+    waitForServiceStable,
     withDeploymentDiagnostics,
 } from '../src/helpers/deployment'
 import { createTestNames } from '../src/helpers/names'
@@ -18,6 +19,7 @@ test('source upload, alternate definition, input validation, and runtime log enc
         const api = context.caprover
         cleanUpApp(context, cleanup, name)
         await api.createApp(name)
+        await waitForServiceStable(context, name)
         await withDeploymentDiagnostics(context, name, async () => {
             const url = `http://${name}.${rootDomain}`
             let lastMarker = ''
@@ -33,6 +35,7 @@ test('source upload, alternate definition, input validation, and runtime log enc
                         ? 'alternate-definition'
                         : 'captain-definition',
                 })
+                await waitForServiceStable(context, name)
                 const version = nextVersion(await api.getApp(name))
                 await api.uploadSource(name, archive, detached)
                 const app = await waitForDeployment(context, name, version)
@@ -84,6 +87,7 @@ test('source upload, alternate definition, input validation, and runtime log enc
             await api.updateApp(name, {
                 captainDefinitionRelativeFilePath: 'captain-definition',
             })
+            await waitForServiceStable(context, name)
             const workingVersion = (await api.getApp(name)).deployedVersion
             // Unhandled JSON syntax errors use HTTP 500 in CapRover's error catcher.
             await expect(

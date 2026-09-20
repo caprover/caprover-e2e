@@ -1,7 +1,7 @@
 export const smokeFiles = ['tests/app-lifecycle.test.ts']
+export const nginxReloadRaceFiles = ['tests/nginx-reload-keepalive.test.ts']
 export const coreFiles = [
     'tests/authentication.test.ts',
-    'tests/nginx-reload-keepalive.test.ts',
     'tests/app-configuration.test.ts',
     'tests/projects.test.ts',
     'tests/deployments.test.ts',
@@ -42,6 +42,8 @@ export function selectTests(mode: string, environment = process.env): string[] {
             return smokeFiles
         case 'core':
             return coreFiles
+        case 'nginx-reload-race':
+            return nginxReloadRaceFiles
         case 'destructive':
             requireEphemeral(environment)
             return destructiveFiles

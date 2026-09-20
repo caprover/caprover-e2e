@@ -6,6 +6,7 @@ import {
     nextVersion,
     waitForDeployment,
     waitForImage,
+    waitForServiceStable,
     withDeploymentDiagnostics,
 } from '../src/helpers/deployment'
 import { createTestNames } from '../src/helpers/names'
@@ -23,6 +24,7 @@ test('attached and detached deployment, controlled failure, missing image, and r
         const api = context.caprover
         cleanUpApp(context, cleanup, name)
         await api.createApp(name)
+        await waitForServiceStable(context, name)
         await withDeploymentDiagnostics(context, name, async () => {
             const url = `http://${name}.${rootDomain}`
             const before = await api.getApp(name)

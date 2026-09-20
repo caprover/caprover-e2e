@@ -37,6 +37,26 @@ export async function waitForDeployment(
     )
 }
 
+export async function waitForServiceStable(
+    context: TestContext,
+    name: string
+): Promise<void> {
+    await eventually(
+        async () => {
+            const desiredReplicas =
+                await context.docker.getDesiredReplicas(name)
+            expect(await context.docker.getRunningReplicas(name)).toBe(
+                desiredReplicas
+            )
+            const updateState = await context.docker.getServiceUpdateState(name)
+            expect(
+                updateState === undefined || updateState === 'completed'
+            ).toBe(true)
+        },
+        { timeoutMs: 45_000, description: `${name} service update to settle` }
+    )
+}
+
 export async function waitForImage(
     context: TestContext,
     name: string,
@@ -58,6 +78,10 @@ export async function waitForImage(
                 images.every((actual) =>
                     context.docker.imageMatches(actual, image)
                 )
+            ).toBe(true)
+            const updateState = await context.docker.getServiceUpdateState(name)
+            expect(
+                updateState === undefined || updateState === 'completed'
             ).toBe(true)
         },
         { timeoutMs: 45_000, description: `${name} running expected image` }

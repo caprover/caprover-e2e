@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { createTestNames } from '../src/helpers/names'
-import { eventually } from '../src/helpers/retry'
+import { waitForServiceStable } from '../src/helpers/deployment'
 import { cleanUpApp, withTestContext } from '../src/helpers/test-context'
 
 const RELOAD_ITERATIONS = 30
@@ -14,16 +14,8 @@ test('API keep-alive connection survives repeated NGINX reloads', async () => {
         cleanUpApp(context, cleanup, name)
         await api.createApp(name)
 
-        await eventually(
-            async () => {
-                expect(await api.appExists(name)).toBe(true)
-                expect(await context.docker.serviceExists(name)).toBe(true)
-            },
-            {
-                timeoutMs: 45_000,
-                description: 'reload-race fixture app to be ready',
-            }
-        )
+        expect(await api.appExists(name)).toBe(true)
+        await waitForServiceStable(context, name)
 
         // Let the create-app reload settle, then establish a reusable API
         // connection before deliberately racing subsequent reloads.
