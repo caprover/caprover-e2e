@@ -93,8 +93,8 @@ test('persistent volume data survives app replacement and owned deletion is safe
             expect(
                 await context.docker.getServiceVolumeSources(secondApp)
             ).toEqual([volumeName])
+            expect(await context.docker.getRunningReplicas(secondApp)).toBe(1)
         })
-        await waitForServiceStable(context, secondApp)
         expect(await context.docker.readVolumeMarker(volumeName)).toBe(marker)
 
         await context.caprover.deleteApp(secondApp, [volumeName])
@@ -120,8 +120,8 @@ test('persistent volume data survives app replacement and owned deletion is safe
             expect(
                 await context.docker.getServiceVolumeSources(firstApp)
             ).toEqual([volumeName])
+            expect(await context.docker.getRunningReplicas(firstApp)).toBe(1)
         })
-        await waitForServiceStable(context, firstApp)
 
         cleanUpApp(context, cleanup, sharedApp)
         await context.caprover.createPersistentApp(sharedApp)
@@ -130,8 +130,8 @@ test('persistent volume data survives app replacement and owned deletion is safe
             expect(
                 await context.docker.getServiceVolumeSources(sharedApp)
             ).toEqual([volumeName])
+            expect(await context.docker.getRunningReplicas(sharedApp)).toBe(1)
         })
-        await waitForServiceStable(context, sharedApp)
         const partialDelete = await context.caprover.deleteApp(firstApp, [
             volumeName,
         ])

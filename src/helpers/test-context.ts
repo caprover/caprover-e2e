@@ -57,9 +57,9 @@ export function cleanUpVolume(
     volumeName: string
 ): void {
     cleanup.add(async () => {
-        await context.docker.removeVolume(volumeName)
         await eventually(
             async () => {
+                await context.docker.removeVolume(volumeName)
                 if (await context.docker.volumeExists(volumeName)) {
                     throw new Error(
                         `Owned Docker volume ${volumeName} remains after deletion`

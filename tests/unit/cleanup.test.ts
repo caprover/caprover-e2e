@@ -1,5 +1,7 @@
-import { expect, test } from 'vitest'
-import { withCleanup } from '../../src/helpers/cleanup'
+import { expect, test, vi } from 'vitest'
+import type { TestContext } from '../../src/context'
+import { CleanupRegistry, withCleanup } from '../../src/helpers/cleanup'
+import { cleanUpVolume } from '../../src/helpers/test-context'
 
 test('cleans up in reverse order after an ambiguous create failure', async () => {
     const events: string[] = []
@@ -50,4 +52,30 @@ test('cleanup failure fails an otherwise passing operation', async () => {
             })
         })
     ).rejects.toThrow('Resource cleanup failed')
+})
+
+test('retries owned volume removal while a Swarm task still holds it', async () => {
+    vi.useFakeTimers()
+    try {
+        const removeVolume = vi
+            .fn()
+            .mockRejectedValueOnce(new Error('volume is in use'))
+            .mockResolvedValueOnce(undefined)
+        const context = {
+            docker: {
+                removeVolume,
+                volumeExists: vi.fn().mockResolvedValue(false),
+            },
+        } as unknown as TestContext
+        const cleanup = new CleanupRegistry()
+
+        cleanUpVolume(context, cleanup, 'e2e-owned-volume')
+        const result = cleanup.run()
+        await vi.advanceTimersByTimeAsync(1_000)
+
+        await expect(result).resolves.toBeUndefined()
+        expect(removeVolume).toHaveBeenCalledTimes(2)
+    } finally {
+        vi.useRealTimers()
+    }
 })
