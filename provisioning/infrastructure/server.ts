@@ -59,7 +59,20 @@ docker run --rm \\
         )
         if (imageResult.exitCode !== 0)
             throw new Error('Unable to resolve running CapRover image')
-        console.log(`Running CapRover image: ${imageResult.stdout.trim()}`)
+        const runningImage = imageResult.stdout.trim()
+        console.log(`Running CapRover image: ${runningImage}`)
+        const digestResult = await ssh.exec(
+            `docker image inspect ${shellQuote(runningImage)} --format '{{.Id}}'`
+        )
+        if (
+            digestResult.exitCode !== 0 ||
+            !/^sha256:[a-f0-9]{64}$/.test(digestResult.stdout.trim())
+        ) {
+            throw new Error('Unable to resolve running CapRover image digest')
+        }
+        console.log(
+            `Resolved running CapRover image digest: ${digestResult.stdout.trim()}`
+        )
     } finally {
         ssh.close()
     }
