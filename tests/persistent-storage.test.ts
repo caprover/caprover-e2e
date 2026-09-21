@@ -164,11 +164,7 @@ test('persistent volume data survives app replacement and owned deletion is safe
         await context.caprover.createPersistentApp(firstApp)
         for (const invalid of [
             { volumeName, containerPath: '' },
-            {
-                volumeName,
-                hostPath: '/tmp/e2e-invalid',
-                containerPath: CONTAINER_PATH,
-            },
+            { volumeName: '', containerPath: CONTAINER_PATH },
             { volumeName: '-invalid', containerPath: CONTAINER_PATH },
         ]) {
             await expect(
