@@ -612,12 +612,12 @@ This table should be updated whenever `caprover-api` adds or removes a public me
 
 ## Completion tracking
 
-- [ ] PR1 merged
-- [ ] PR2 merged
-- [ ] PR3 merged
-- [ ] PR4 merged
-- [ ] PR5 merged
-- [ ] PR6 merged
+- [x] PR1 merged ([caprover-e2e PR #23](https://github.com/caprover/caprover-e2e/pull/23))
+- [x] PR2 merged ([caprover-e2e PR #23](https://github.com/caprover/caprover-e2e/pull/23))
+- [x] PR3 merged ([caprover-e2e PR #23](https://github.com/caprover/caprover-e2e/pull/23))
+- [x] PR4 merged ([caprover-e2e PR #23](https://github.com/caprover/caprover-e2e/pull/23))
+- [x] PR5 merged ([caprover-e2e PR #23](https://github.com/caprover/caprover-e2e/pull/23))
+- [x] PR6 merged ([caprover-e2e PR #23](https://github.com/caprover/caprover-e2e/pull/23))
 - [x] PR7 merged ([caprover-e2e PR #25](https://github.com/caprover/caprover-e2e/pull/25))
 - [x] PR8 merged ([caprover-e2e PR #26](https://github.com/caprover/caprover-e2e/pull/26))
 - [x] PR9 merged ([caprover-e2e PR #27](https://github.com/caprover/caprover-e2e/pull/27))
