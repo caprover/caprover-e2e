@@ -10,7 +10,7 @@ Future agents should check each implementation item as it lands. A PR is complet
 
 PR1 through PR6 were merged and validated through [PR #23](https://github.com/caprover/caprover-e2e/pull/23). The CapRover NGINX keep-alive fix landed in [CapRover PR #2491](https://github.com/caprover/caprover/pull/2491), and [PR #24](https://github.com/caprover/caprover-e2e/pull/24) removed the temporary API serialization and spacing mitigation after the full unmitigated suite passed.
 
-Confirmed second batch: PR7 through PR9. Implement each as an independent PR from the latest `main`.
+Confirmed second batch: PR7 through PR9 are merged as [PR #25](https://github.com/caprover/caprover-e2e/pull/25), [PR #26](https://github.com/caprover/caprover-e2e/pull/26), and [PR #27](https://github.com/caprover/caprover-e2e/pull/27). The delayed NGINX reload and connection-reuse regression was added in [PR #28](https://github.com/caprover/caprover-e2e/pull/28), with backend support in [CapRover PR #2494](https://github.com/caprover/caprover/pull/2494).
 
 - Confirm the existing DigitalOcean, Cloudflare, and SSH provisioning secrets are present and valid in GitHub Actions. Update missing or expired values in GitHub; keep credentials out of this document and PR discussions.
 - Keep the backend custom-port fix (PR10) and SDK prerequisites (PR13 and PR17) as separate repository changes. Link their PRs and the consumed package versions or server images before enabling dependent assertions.
@@ -254,21 +254,21 @@ Create `tests/persistent-storage.test.ts`.
 
 Tier: destructive.
 
-- [ ] Resolve the physical volume source from Docker service inspection.
-- [ ] Add Docker helpers for volume existence and marker reads/writes.
-- [ ] Create a persistent app and attach a named volume.
-- [ ] Verify API and Docker mount configuration.
-- [ ] Verify a full POST update with `volumes: []` clears mounts while retaining the named volume, then reattach it before the persistence checks.
-- [ ] Write a unique marker into the volume.
-- [ ] Redeploy another image, verify Docker replaced the application task with the new image, and verify the marker remains.
-- [ ] Delete the app while retaining the volume.
-- [ ] Attach the retained volume to another app and verify the marker.
-- [ ] Delete the second app and request volume deletion.
-- [ ] Verify Docker removes the volume.
-- [ ] Verify a non-persistent app rejects volume configuration.
-- [ ] Reject invalid volume definitions.
-- [ ] Verify an in-use shared volume appears in `volumesFailedToDelete`.
-- [ ] Verify the shared volume remains.
+- [x] Resolve the physical volume source from Docker service inspection.
+- [x] Add Docker helpers for volume existence and marker reads/writes.
+- [x] Create a persistent app and attach a named volume.
+- [x] Verify API and Docker mount configuration.
+- [x] Verify a full POST update with `volumes: []` clears mounts while retaining the named volume, then reattach it before the persistence checks.
+- [x] Write a unique marker into the volume.
+- [x] Redeploy another image, verify Docker replaced the application task with the new image, and verify the marker remains.
+- [x] Delete the app while retaining the volume.
+- [x] Attach the retained volume to another app and verify the marker.
+- [x] Delete the second app and request volume deletion.
+- [x] Verify Docker removes the volume.
+- [x] Verify a non-persistent app rejects volume configuration.
+- [x] Reject invalid volume definitions.
+- [x] Verify an in-use shared volume appears in `volumesFailedToDelete`.
+- [x] Verify the shared volume remains.
 
 ## PR8: Add routing and HTTP behavior tests
 
@@ -276,22 +276,22 @@ Create `tests/app-routing.test.ts`.
 
 Tier: core.
 
-- [ ] Extend the HTTP helper with custom request headers, manual redirects, and response headers as needed here.
-- [ ] Deploy an image listening on a port other than 80.
-- [ ] Set `containerHttpPort` and verify the public route.
-- [ ] Set `notExposeAsWebApp: true`.
-- [ ] Verify the service stays healthy while public routing disappears.
-- [ ] Re-enable exposure and verify recovery.
-- [ ] Configure HTTP authentication.
-- [ ] Verify anonymous and incorrect credentials are rejected.
-- [ ] Verify correct credentials succeed.
-- [ ] Change and clear HTTP authentication.
-- [ ] Configure `redirectDomain`.
-- [ ] Verify the status and `Location` header without following redirects.
-- [ ] Clear the redirect and verify normal proxying.
-- [ ] Enable `websocketSupport`.
-- [ ] Verify API persistence.
-- [ ] Add a tiny WebSocket echo fixture and perform a real upgrade and echo exchange through the public CapRover proxy with bounded timeouts and connection cleanup.
+- [x] Extend the HTTP helper with custom request headers, manual redirects, and response headers as needed here.
+- [x] Deploy an image listening on a port other than 80.
+- [x] Set `containerHttpPort` and verify the public route.
+- [x] Set `notExposeAsWebApp: true`.
+- [x] Verify the service stays healthy while public routing disappears.
+- [x] Re-enable exposure and verify recovery.
+- [x] Configure HTTP authentication.
+- [x] Verify anonymous and incorrect credentials are rejected.
+- [x] Verify correct credentials succeed.
+- [x] Change and clear HTTP authentication.
+- [x] Configure `redirectDomain`.
+- [x] Verify the status and `Location` header without following redirects.
+- [x] Clear the redirect and verify normal proxying.
+- [x] Enable `websocketSupport`.
+- [x] Verify API persistence.
+- [x] Add a tiny WebSocket echo fixture and perform a real upgrade and echo exchange through the public CapRover proxy with bounded timeouts and connection cleanup.
 
 ## PR9: Add custom-domain and app-level Nginx tests
 
@@ -299,16 +299,16 @@ Create `tests/app-nginx.test.ts`.
 
 Tier: core.
 
-- [ ] Attach a unique hostname under the test server's configured wildcard domain.
-- [ ] Verify API state and public routing.
-- [ ] Reject attaching the same domain to another app.
-- [ ] Remove the custom domain and verify routing disappears.
-- [ ] Add a harmless app-level response header.
-- [ ] Verify the header publicly.
-- [ ] Submit invalid app-level Nginx syntax.
-- [ ] Verify status `1116`; add or confirm the corresponding SDK status constant in a small companion SDK change if needed.
-- [ ] Verify the previous working configuration remains active.
-- [ ] Clear the customization.
+- [x] Attach a unique hostname under the test server's configured wildcard domain.
+- [x] Verify API state and public routing.
+- [x] Reject attaching the same domain to another app.
+- [x] Remove the custom domain and verify routing disappears.
+- [x] Add a harmless app-level response header.
+- [x] Verify the header publicly.
+- [x] Submit invalid app-level Nginx syntax.
+- [x] Verify status `1116`; add or confirm the corresponding SDK status constant in a small companion SDK change if needed.
+- [x] Verify the previous working configuration remains active.
+- [x] Clear the customization.
 
 Certificate issuance remains in the controlled SSL workflow.
 
@@ -318,15 +318,15 @@ This prerequisite change belongs in `caprover/caprover`.
 
 Tier: unit in the backend repository; PR11 supplies destructive E2E coverage.
 
-- [ ] Preserve `protocol` in `AppsDataStore.updateAppDefinitionInDb()`.
-- [ ] Preserve `publishMode` in `AppsDataStore.updateAppDefinitionInDb()`.
-- [ ] Propagate `publishMode` into `EndpointSpec.Ports[].PublishMode` during Docker service updates, for explicit protocol and omitted-protocol mappings.
-- [ ] Keep the existing service-creation handling of both fields and existing update handling of `protocol`.
-- [ ] Preserve legacy TCP-plus-UDP behavior when protocol is omitted.
-- [ ] Add backend unit tests for datastore round trips of both fields and Docker create/update requests constructed from persisted mappings.
-- [ ] Cover explicit TCP/UDP, ingress/host mode, and omitted optional fields.
-- [ ] Link the backend PR here after creation.
-- [ ] Merge the backend fix before PR11.
+- [x] Preserve `protocol` in `AppsDataStore.updateAppDefinitionInDb()`.
+- [x] Preserve `publishMode` in `AppsDataStore.updateAppDefinitionInDb()`.
+- [x] Propagate `publishMode` into `EndpointSpec.Ports[].PublishMode` during Docker service updates, for explicit protocol and omitted-protocol mappings.
+- [x] Keep the existing service-creation handling of both fields and existing update handling of `protocol`.
+- [x] Preserve legacy TCP-plus-UDP behavior when protocol is omitted.
+- [x] Add backend unit tests for datastore round trips of both fields and Docker create/update requests constructed from persisted mappings.
+- [x] Cover explicit TCP/UDP, ingress/host mode, and omitted optional fields.
+- [x] Link the merged [CapRover PR #2492](https://github.com/caprover/caprover/pull/2492).
+- [x] Merge the backend fix before PR11; it landed in CapRover PR #2492.
 
 ## PR11: Add custom-port E2E tests
 
@@ -612,16 +612,16 @@ This table should be updated whenever `caprover-api` adds or removes a public me
 
 ## Completion tracking
 
-- [ ] PR1 merged
-- [ ] PR2 merged
-- [ ] PR3 merged
-- [ ] PR4 merged
-- [ ] PR5 merged
-- [ ] PR6 merged
-- [ ] PR7 merged
-- [ ] PR8 merged
-- [ ] PR9 merged
-- [ ] PR10 merged in `caprover/caprover`
+- [x] PR1 merged ([caprover-e2e PR #23](https://github.com/caprover/caprover-e2e/pull/23))
+- [x] PR2 merged ([caprover-e2e PR #23](https://github.com/caprover/caprover-e2e/pull/23))
+- [x] PR3 merged ([caprover-e2e PR #23](https://github.com/caprover/caprover-e2e/pull/23))
+- [x] PR4 merged ([caprover-e2e PR #23](https://github.com/caprover/caprover-e2e/pull/23))
+- [x] PR5 merged ([caprover-e2e PR #23](https://github.com/caprover/caprover-e2e/pull/23))
+- [x] PR6 merged ([caprover-e2e PR #23](https://github.com/caprover/caprover-e2e/pull/23))
+- [x] PR7 merged ([caprover-e2e PR #25](https://github.com/caprover/caprover-e2e/pull/25))
+- [x] PR8 merged ([caprover-e2e PR #26](https://github.com/caprover/caprover-e2e/pull/26))
+- [x] PR9 merged ([caprover-e2e PR #27](https://github.com/caprover/caprover-e2e/pull/27))
+- [x] PR10 merged in `caprover/caprover` ([PR #2492](https://github.com/caprover/caprover/pull/2492))
 - [ ] PR11 merged
 - [ ] PR12 merged
 - [ ] PR13 merged
