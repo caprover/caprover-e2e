@@ -4,6 +4,7 @@ export interface HttpResult {
     status: number
     body: string
     finalUrl: string
+    headers: Headers
 }
 
 export class HttpClient {
@@ -19,6 +20,7 @@ export class HttpClient {
             status: response.status,
             body: await response.text(),
             finalUrl: response.url,
+            headers: response.headers,
         }
     }
 

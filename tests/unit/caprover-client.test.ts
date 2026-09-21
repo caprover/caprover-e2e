@@ -68,3 +68,29 @@ test('persistent creation and owned-volume deletion use the SDK parameters', asy
         vi.restoreAllMocks()
     }
 })
+
+test('custom-domain operations use the SDK parameters', async () => {
+    const attach = vi
+        .spyOn(CapRoverAPI.prototype, 'attachNewCustomDomainToApp')
+        .mockResolvedValue(undefined)
+    const remove = vi
+        .spyOn(CapRoverAPI.prototype, 'removeCustomDomain')
+        .mockResolvedValue(undefined)
+    const client = new CapRoverClient('https://example.test', 'password')
+    try {
+        await client.attachCustomDomain('test-app', 'custom.example.test')
+        await client.removeCustomDomain('test-app', 'custom.example.test')
+
+        expect(attach).toHaveBeenCalledExactlyOnceWith(
+            'test-app',
+            'custom.example.test'
+        )
+        expect(remove).toHaveBeenCalledExactlyOnceWith(
+            'test-app',
+            'custom.example.test'
+        )
+    } finally {
+        client.destroy()
+        vi.restoreAllMocks()
+    }
+})
