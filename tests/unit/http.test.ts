@@ -1,17 +1,34 @@
-import { afterEach, expect, test, vi } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 import { HttpClient } from '../../src/clients/http'
 
-afterEach(() => vi.restoreAllMocks())
+describe('HttpClient', () => {
+    afterEach(() => vi.unstubAllGlobals())
 
-test('exposes response headers', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-        new Response('body', {
-            status: 200,
-            headers: { 'x-caprover-e2e': 'marker' },
+    test('forwards headers and redirect mode and exposes response headers', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(
+            new Response('redirected', {
+                status: 302,
+                headers: { location: 'http://target.example/path' },
+            })
+        )
+        vi.stubGlobal('fetch', fetchMock)
+
+        const result = await new HttpClient().get('http://app.example/path', {
+            headers: { authorization: 'Basic credential' },
+            redirect: 'manual',
         })
-    )
 
-    const result = await new HttpClient().get('https://example.test')
-
-    expect(result.headers.get('x-caprover-e2e')).toBe('marker')
+        expect(fetchMock).toHaveBeenCalledWith(
+            'http://app.example/path',
+            expect.objectContaining({
+                headers: { authorization: 'Basic credential' },
+                redirect: 'manual',
+                signal: expect.any(AbortSignal),
+            })
+        )
+        expect(result.status).toBe(302)
+        expect(result.headers.get('location')).toBe(
+            'http://target.example/path'
+        )
+    })
 })
