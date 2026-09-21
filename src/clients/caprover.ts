@@ -52,6 +52,7 @@ export class CapRoverClient {
     async getApps(): Promise<{
         appDefinitions: AppDefinition[]
         rootDomain: string
+        defaultNginxConfig: string
     }> {
         return this.request(
             () => this.api.getAllApps(),
@@ -97,6 +98,20 @@ export class CapRoverClient {
         return this.request(
             () => this.api.renameApp(oldName, newName),
             `renaming CapRover application ${oldName} to ${newName}`
+        )
+    }
+
+    attachCustomDomain(name: string, domain: string): Promise<void> {
+        return this.request(
+            () => this.api.attachNewCustomDomainToApp(name, domain),
+            `attaching custom domain ${domain} to ${name}`
+        )
+    }
+
+    removeCustomDomain(name: string, domain: string): Promise<void> {
+        return this.request(
+            () => this.api.removeCustomDomain(name, domain),
+            `removing custom domain ${domain} from ${name}`
         )
     }
 
