@@ -62,25 +62,33 @@ describe('DockerInspector volume operations', () => {
         ).resolves.toEqual(['owned-volume'])
     })
 
-    test('treats an already absent exact volume as removed', async () => {
-        const exec = vi.fn().mockResolvedValue({
-            stdout: '',
-            stderr: 'Error: No such volume: owned-volume',
-            exitCode: 1,
-        })
-        const inspector = new DockerInspector({ exec } as unknown as SshClient)
+    test.each([
+        'Error: No such volume: owned-volume',
+        'Error response from daemon: volume owned-volume not found',
+    ])(
+        'treats an already absent exact volume as removed: %s',
+        async (error) => {
+            const exec = vi.fn().mockResolvedValue({
+                stdout: '',
+                stderr: error,
+                exitCode: 1,
+            })
+            const inspector = new DockerInspector({
+                exec,
+            } as unknown as SshClient)
 
-        await expect(inspector.volumeExists('owned-volume')).resolves.toBe(
-            false
-        )
-        await expect(inspector.removeVolume('owned-volume')).resolves.toBe(
-            undefined
-        )
-        expect(exec).toHaveBeenNthCalledWith(
-            2,
-            "docker volume rm 'owned-volume'"
-        )
-    })
+            await expect(inspector.volumeExists('owned-volume')).resolves.toBe(
+                false
+            )
+            await expect(inspector.removeVolume('owned-volume')).resolves.toBe(
+                undefined
+            )
+            expect(exec).toHaveBeenNthCalledWith(
+                2,
+                "docker volume rm 'owned-volume'"
+            )
+        }
+    )
 
     test('rejects unsafe volume names before running Docker commands', async () => {
         const exec = vi.fn()

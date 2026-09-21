@@ -411,7 +411,9 @@ function isMissingService(result: SshCommandResult): boolean {
 
 function isMissingVolume(result: SshCommandResult): boolean {
     const output = `${result.stdout}\n${result.stderr}`.toLowerCase()
-    return output.includes('no such volume')
+    return (
+        output.includes('no such volume') || /volume .+ not found/.test(output)
+    )
 }
 
 function volumeContainerCommand(
