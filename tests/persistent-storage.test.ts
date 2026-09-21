@@ -17,7 +17,7 @@ const CONTAINER_PATH = '/e2e-data'
 
 test('persistent volume data survives app replacement and owned deletion is safe', async () => {
     requireEphemeral()
-    await withTestContext(async (context, cleanup) => {
+    await withTestContext(async (context, cleanup, rootDomain) => {
         const { runId } = createTestNames()
         const firstApp = `e2e-${runId}-storage-a`
         const secondApp = `e2e-${runId}-storage-b`
@@ -74,6 +74,10 @@ test('persistent volume data survives app replacement and owned deletion is safe
         expect(secondTaskIds).toHaveLength(1)
         expect(secondTaskIds[0]).not.toBe(firstTaskIds[0])
         expect(await context.docker.readVolumeMarker(volumeName)).toBe(marker)
+        await context.http.waitUntilReachable(
+            `http://${firstApp}.${rootDomain}`,
+            'Welcome to nginx!'
+        )
 
         await context.caprover.deleteApp(firstApp)
         await eventually(async () => {
