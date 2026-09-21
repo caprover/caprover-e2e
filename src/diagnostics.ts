@@ -97,9 +97,7 @@ export async function collectFailureDiagnostics(
     }
 
     try {
-        for (const section of buildFullDiagnosticSections(
-            config.caproverUrl
-        )) {
+        for (const section of buildFullDiagnosticSections(config.caproverUrl)) {
             await runRemoteSection(ssh, section, FULL_TIMEOUT_MS)
         }
     } finally {
@@ -155,9 +153,7 @@ export function buildImmediateDiagnosticSections(
     ]
 }
 
-function buildFullDiagnosticSections(
-    caproverUrl: string
-): DiagnosticSection[] {
+function buildFullDiagnosticSections(caproverUrl: string): DiagnosticSection[] {
     const hostname = new URL(caproverUrl).hostname
     return [
         {
@@ -178,13 +174,13 @@ function buildFullDiagnosticSections(
                 "ss -ltnp | grep -E ':(80|443|3000)\\b' || true",
                 'ip -brief addr',
                 'ip route',
-                "if command -v ufw >/dev/null 2>&1; then ufw status verbose; fi",
+                'if command -v ufw >/dev/null 2>&1; then ufw status verbose; fi',
             ].join('\n'),
         },
         {
             title: 'Docker daemon and Swarm',
             command: [
-                "systemctl show docker --no-pager --property=ActiveState,SubState,NRestarts,ExecMainStartTimestamp,ActiveEnterTimestamp",
+                'systemctl show docker --no-pager --property=ActiveState,SubState,NRestarts,ExecMainStartTimestamp,ActiveEnterTimestamp',
                 'docker version',
                 'docker info',
                 'docker node ls',
@@ -356,9 +352,7 @@ async function runRemoteSection(
         const output = [result.stdout.trim(), result.stderr.trim()]
             .filter(Boolean)
             .join('\n')
-        console.log(
-            clip(output || '(no output)', section.preserveNewestOnClip)
-        )
+        console.log(clip(output || '(no output)', section.preserveNewestOnClip))
         if (result.exitCode !== 0)
             console.log(`[exit code: ${result.exitCode}]`)
     } catch (error) {
@@ -406,11 +400,7 @@ function endGroup(): void {
 function formatExecError(error: unknown): string {
     if (!isExecError(error)) return formatError(error)
     return clip(
-        [
-            error.message,
-            error.stdout?.trim(),
-            error.stderr?.trim(),
-        ]
+        [error.message, error.stdout?.trim(), error.stderr?.trim()]
             .filter(Boolean)
             .join(' ')
     )

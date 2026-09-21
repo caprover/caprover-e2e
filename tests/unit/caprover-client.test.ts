@@ -37,3 +37,34 @@ test('full updates retain existing fields via POST; PATCH sends only supplied ch
         vi.restoreAllMocks()
     }
 })
+
+test('persistent creation and owned-volume deletion use the SDK parameters', async () => {
+    const register = vi
+        .spyOn(CapRoverAPI.prototype, 'registerNewApp')
+        .mockResolvedValue(undefined)
+    const deleteApp = vi
+        .spyOn(CapRoverAPI.prototype, 'deleteApp')
+        .mockResolvedValue({ volumesFailedToDelete: ['owned-volume'] })
+    const client = new CapRoverClient('https://example.test', 'password')
+    try {
+        await client.createPersistentApp('owned-app')
+        expect(register).toHaveBeenCalledExactlyOnceWith(
+            'owned-app',
+            '',
+            true,
+            false
+        )
+
+        await expect(
+            client.deleteApp('owned-app', ['owned-volume'])
+        ).resolves.toEqual({ volumesFailedToDelete: ['owned-volume'] })
+        expect(deleteApp).toHaveBeenCalledExactlyOnceWith(
+            'owned-app',
+            ['owned-volume'],
+            undefined
+        )
+    } finally {
+        client.destroy()
+        vi.restoreAllMocks()
+    }
+})

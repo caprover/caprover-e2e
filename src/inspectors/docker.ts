@@ -13,6 +13,7 @@ interface DockerService {
             ContainerSpec?: {
                 Image?: string
                 Env?: string[]
+                Mounts?: DockerMount[]
             }
         }
     }
@@ -20,6 +21,12 @@ interface DockerService {
         State?: string
         Message?: string
     }
+}
+
+interface DockerMount {
+    Type?: string
+    Source?: string
+    Target?: string
 }
 
 interface DockerTask {
@@ -65,6 +72,10 @@ export interface DockerDiagnostics {
 }
 
 const APP_NAME_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,47}[a-z0-9])?$/
+const VOLUME_NAME_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,253}[A-Za-z0-9])?$/
+const VOLUME_HELPER_IMAGE =
+    'nginx:1.28.3-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236'
+const VOLUME_MARKER_PATH = '/e2e-volume/marker'
 
 export class DockerInspector {
     constructor(private readonly ssh: SshClient) {}
@@ -159,6 +170,72 @@ export class DockerInspector {
     async getServiceEnvironment(appName: string): Promise<string[]> {
         const service = await this.getService(appName)
         return service.Spec?.TaskTemplate?.ContainerSpec?.Env ?? []
+    }
+
+    async getServiceVolumeSources(appName: string): Promise<string[]> {
+        const service = await this.getService(appName)
+        return (
+            service.Spec?.TaskTemplate?.ContainerSpec?.Mounts?.filter(
+                (mount) => mount.Type === 'volume'
+            )
+                .map((mount) => mount.Source)
+                .filter((source): source is string => !!source) ?? []
+        )
+    }
+
+    async getRunningTaskIds(appName: string): Promise<string[]> {
+        const tasks = await this.getDesiredTasks(appName)
+        return tasks
+            .filter(
+                (task) =>
+                    task.DesiredState === 'running' &&
+                    task.Status?.State === 'running'
+            )
+            .map((task) => task.ID)
+            .filter((id): id is string => !!id)
+    }
+
+    async volumeExists(volumeName: string): Promise<boolean> {
+        validateVolumeName(volumeName)
+        const result = await this.ssh.exec(
+            `docker volume inspect ${shellQuote(volumeName)}`
+        )
+        if (result.exitCode === 0) return true
+        if (isMissingVolume(result)) return false
+        throw new Error(
+            `docker volume inspect failed for ${volumeName}: ${result.stderr.trim()}`
+        )
+    }
+
+    async writeVolumeMarker(volumeName: string, marker: string): Promise<void> {
+        validateVolumeName(volumeName)
+        const encodedMarker = Buffer.from(marker).toString('base64')
+        await this.exec(
+            volumeContainerCommand(
+                volumeName,
+                'printf %s "$1" | base64 -d > ' + VOLUME_MARKER_PATH,
+                encodedMarker
+            )
+        )
+    }
+
+    async readVolumeMarker(volumeName: string): Promise<string> {
+        validateVolumeName(volumeName)
+        const result = await this.exec(
+            volumeContainerCommand(volumeName, `cat ${VOLUME_MARKER_PATH}`)
+        )
+        return result.stdout
+    }
+
+    async removeVolume(volumeName: string): Promise<void> {
+        validateVolumeName(volumeName)
+        const result = await this.ssh.exec(
+            `docker volume rm ${shellQuote(volumeName)}`
+        )
+        if (result.exitCode === 0 || isMissingVolume(result)) return
+        throw new Error(
+            `docker volume rm failed for ${volumeName}: ${result.stderr.trim()}`
+        )
     }
 
     imageMatches(actualImage: string, expectedImage: string): boolean {
@@ -310,6 +387,16 @@ function validateAppName(appName: string): void {
     }
 }
 
+function validateVolumeName(volumeName: string): void {
+    if (
+        !VOLUME_NAME_PATTERN.test(volumeName) ||
+        volumeName.includes('..') ||
+        volumeName.includes('--')
+    ) {
+        throw new Error(`Unsafe or invalid Docker volume name: ${volumeName}`)
+    }
+}
+
 function shellQuote(value: string): string {
     return `'${value.replaceAll("'", `'"'"'`)}'`
 }
@@ -320,6 +407,28 @@ function isMissingService(result: SshCommandResult): boolean {
         output.includes('no such service') ||
         output.includes('service not found')
     )
+}
+
+function isMissingVolume(result: SshCommandResult): boolean {
+    const output = `${result.stdout}\n${result.stderr}`.toLowerCase()
+    return output.includes('no such volume')
+}
+
+function volumeContainerCommand(
+    volumeName: string,
+    script: string,
+    argument?: string
+): string {
+    const mount = `type=volume,source=${volumeName},target=/e2e-volume`
+    return [
+        'docker run --rm --mount',
+        shellQuote(mount),
+        shellQuote(VOLUME_HELPER_IMAGE),
+        'sh -c',
+        shellQuote(script),
+        'sh',
+        ...(argument === undefined ? [] : [shellQuote(argument)]),
+    ].join(' ')
 }
 
 function parseJson<T>(value: string, description: string): T {

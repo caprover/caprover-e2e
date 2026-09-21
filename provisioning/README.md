@@ -275,7 +275,7 @@ Required credentials and identifiers are documented in the repository
 | --------------------- | ------------------------ |
 | `DIGITALOCEAN_REGION` | `nyc3`                   |
 | `DIGITALOCEAN_SIZE`   | `s-1vcpu-2gb`            |
-| `DIGITALOCEAN_IMAGE`  | `docker-20-04`            |
+| `DIGITALOCEAN_IMAGE`  | `docker-20-04`           |
 | `CAPROVER_IMAGE`      | `caprover/caprover-edge` |
 
 Local execution loads a gitignored `.env` file. CI supplies environment variables

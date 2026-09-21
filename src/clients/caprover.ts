@@ -4,6 +4,8 @@ import CapRoverAPI, {
 } from 'caprover-api'
 import { withTimeout } from '../helpers/retry'
 
+type AppDeleteResponse = Awaited<ReturnType<CapRoverAPI['deleteApp']>>
+
 type AppDefinition = CapRoverModels.IAppDef & {
     isLegacyAppName?: boolean
 }
@@ -79,6 +81,14 @@ export class CapRoverClient {
         return this.request(
             () => this.api.registerNewApp(name, projectId, false, false),
             `creating CapRover application ${name}`,
+            DEPLOYMENT_TIMEOUT_MS
+        )
+    }
+
+    createPersistentApp(name: string): Promise<void> {
+        return this.request(
+            () => this.api.registerNewApp(name, '', true, false),
+            `creating persistent CapRover application ${name}`,
             DEPLOYMENT_TIMEOUT_MS
         )
     }
@@ -203,9 +213,12 @@ export class CapRoverClient {
         )
     }
 
-    async deleteApp(name: string): Promise<void> {
-        await this.request(
-            () => this.api.deleteApp(name, [], undefined),
+    deleteApp(
+        name: string,
+        volumes: string[] = []
+    ): Promise<AppDeleteResponse> {
+        return this.request(
+            () => this.api.deleteApp(name, volumes, undefined),
             `deleting CapRover application ${name}`
         )
     }

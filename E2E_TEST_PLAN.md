@@ -8,7 +8,9 @@ Future agents should check each implementation item as it lands. A PR is complet
 
 ## Implementation sequence and prerequisites
 
-Confirmed first batch: PR1 through PR6. Use its measured runtime and reliability to guide the remaining work.
+PR1 through PR6 were merged and validated through [PR #23](https://github.com/caprover/caprover-e2e/pull/23). The CapRover NGINX keep-alive fix landed in [CapRover PR #2491](https://github.com/caprover/caprover/pull/2491), and [PR #24](https://github.com/caprover/caprover-e2e/pull/24) removed the temporary API serialization and spacing mitigation after the full unmitigated suite passed.
+
+Confirmed second batch: PR7 through PR9. Implement each as an independent PR from the latest `main`.
 
 - Confirm the existing DigitalOcean, Cloudflare, and SSH provisioning secrets are present and valid in GitHub Actions. Update missing or expired values in GitHub; keep credentials out of this document and PR discussions.
 - Keep the backend custom-port fix (PR10) and SDK prerequisites (PR13 and PR17) as separate repository changes. Link their PRs and the consumed package versions or server images before enabling dependent assertions.
@@ -17,25 +19,23 @@ Confirmed first batch: PR1 through PR6. Use its measured runtime and reliability
 
 ## First-batch implementation status
 
-The six implementation PRs are stacked in plan order so each diff stays focused. Retarget each successor to `main` after its prerequisite merges. Completion checkboxes remain open until the corresponding implementation is validated and merged.
+The first six implementation items were merged together through PR #23 after a successful fresh-server run of 16 files and 49 tests.
 
-| Plan item | Pull request | Validation status |
-| --- | --- | --- |
-| PR1 | [Safety foundations](https://github.com/caprover/caprover-e2e/pull/11) | Type checking, provisioning build, and local unit tests passed; live smoke pending |
-| PR2 | [Authentication contracts](https://github.com/caprover/caprover-e2e/pull/12) | Type checking passed; live validation pending |
-| PR3 | [App configuration](https://github.com/caprover/caprover-e2e/pull/13) | Type checking and local unit tests passed; live validation pending |
-| PR4 | [Project lifecycle](https://github.com/caprover/caprover-e2e/pull/14) | Type checking and local unit tests passed; live validation pending |
-| PR5 | [Deployment recovery](https://github.com/caprover/caprover-e2e/pull/15) | Type checking passed; live validation and runtime measurement pending |
-| PR6 | [Source upload and logs](https://github.com/caprover/caprover-e2e/pull/16) | Type checking and fixture unit tests passed; SDK dependency updated to 0.0.22; live validation pending |
+| Plan item | Pull request                                                                 | Validation status       |
+| --------- | ---------------------------------------------------------------------------- | ----------------------- |
+| PR1       | [Safety foundations](https://github.com/caprover/caprover-e2e/pull/11)       | Complete through PR #23 |
+| PR2       | [Authentication contracts](https://github.com/caprover/caprover-e2e/pull/12) | Complete through PR #23 |
+| PR3       | [App configuration](https://github.com/caprover/caprover-e2e/pull/13)        | Complete through PR #23 |
+| PR4       | [Project lifecycle](https://github.com/caprover/caprover-e2e/pull/14)        | Complete through PR #23 |
+| PR5       | [Deployment recovery](https://github.com/caprover/caprover-e2e/pull/15)      | Complete through PR #23 |
+| PR6       | [Source upload and logs](https://github.com/caprover/caprover-e2e/pull/16)   | Complete through PR #23 |
 
 Merged companion SDK changes (included in version `0.0.22`):
 
 - [Authentication retry/error tests](https://github.com/caprover/caprover-api/pull/8): 14 SDK tests passed on that branch.
 - [Native FormData transport fix](https://github.com/caprover/caprover-api/pull/9): published `caprover-api@0.0.21` sends Node's native FormData as `[object FormData]` with `text/plain` content type. The fix pairs native FormData with native fetch; a local HTTP-server regression verifies multipart headers and binary file bytes. All 11 SDK tests passed on that branch.
 
-SDK version `0.0.22` contains the merged FormData fix and authentication test changes. The [release workflow](https://github.com/caprover/caprover-api/actions/runs/35488986770) successfully submitted the package to npm. All six E2E branches now pin `caprover-api@0.0.22` with a regenerated lockfile; the dependency update originates in PR1 and is propagated through the stack. Live validation remains required before marking the E2E PRs ready.
-
-This implementation session had no live CapRover/provisioning credentials or workflow-dispatch capability. Run the Fresh Server workflow on each relevant branch before marking it ready; measure runtime before adjusting timeouts. The existing workflow secrets can be used without sharing their values.
+SDK version `0.0.22` contains the merged FormData fix and authentication test changes. The [release workflow](https://github.com/caprover/caprover-api/actions/runs/35488986770) successfully submitted the package to npm. The merged E2E suite pins `caprover-api@0.0.22` with a regenerated lockfile.
 
 ## Implementation rules
 
@@ -80,18 +80,18 @@ PR18 files belong to destructive and are specialized opt-in suites. Exclude them
 
 Tier: unit for selection/guard/cleanup tests; smoke for the existing lifecycle.
 
-- [ ] Consume a published `caprover-api` version with PATCH support (at least `0.0.21`); preserve any newer version already installed.
-- [ ] Update `package-lock.json` if the dependency changes.
-- [ ] Add the execution-tier scripts and explicit file selection described above, including safe selection for `npm test` while retaining type checking.
-- [ ] Confirm the local ephemeral runner and both workflows use the intended suite selection.
-- [ ] Record the requested server image and resolved running digest in run diagnostics without exposing credentials.
-- [ ] Add `CAPROVER_E2E_ENVIRONMENT` to test configuration and provisioning's returned test environment.
-- [ ] Add a guard used by every destructive or global-state test before mutation.
-- [ ] Test persistent/ephemeral suite selection through the default entry point, specialized-suite exclusion, and direct destructive invocation rejection.
-- [ ] Add workflow concurrency for the existing-server workflow.
-- [ ] Add a lightweight LIFO cleanup registry and test ordering, cleanup after an ambiguous create failure, continuation after a cleanup error, and failure reporting when cleanup is the only failure.
-- [ ] Keep the existing full-update lifecycle unchanged and confirm it passes.
-- [ ] Update workflow suite commands and README safety instructions.
+- [x] Consume a published `caprover-api` version with PATCH support (at least `0.0.21`); preserve any newer version already installed.
+- [x] Update `package-lock.json` if the dependency changes.
+- [x] Add the execution-tier scripts and explicit file selection described above, including safe selection for `npm test` while retaining type checking.
+- [x] Confirm the local ephemeral runner and both workflows use the intended suite selection.
+- [x] Record the requested server image and resolved running digest in run diagnostics without exposing credentials.
+- [x] Add `CAPROVER_E2E_ENVIRONMENT` to test configuration and provisioning's returned test environment.
+- [x] Add a guard used by every destructive or global-state test before mutation.
+- [x] Test persistent/ephemeral suite selection through the default entry point, specialized-suite exclusion, and direct destructive invocation rejection.
+- [x] Add workflow concurrency for the existing-server workflow.
+- [x] Add a lightweight LIFO cleanup registry and test ordering, cleanup after an ambiguous create failure, continuation after a cleanup error, and failure reporting when cleanup is the only failure.
+- [x] Keep the existing full-update lifecycle unchanged and confirm it passes.
+- [x] Update workflow suite commands and README safety instructions.
 
 Add feature-specific wrappers, HTTP options, naming support, restore logic, assertions, and diagnostics in the consuming PR. Reuse existing helpers where sufficient. Measure runtime before changing workflow timeouts.
 
@@ -101,23 +101,23 @@ Create `tests/authentication.test.ts`.
 
 Tier: core.
 
-- [ ] Test valid login.
-- [ ] Verify wrong-password errors expose status `1105`.
-- [ ] Verify empty-password validation.
-- [ ] Verify password-length validation.
-- [ ] Avoid enough repeated failures to trigger the global login backoff.
-- [ ] Verify one representative SDK error propagates the server's `captainStatus` and `captainMessage`; add a small assertion helper here if reused.
-- [ ] Verify an unauthenticated user endpoint returns the expected authorization status.
-- [ ] Document root domain, root SSL, global force SSL, and password change as provisioning coverage.
+- [x] Test valid login.
+- [x] Verify wrong-password errors expose status `1105`.
+- [x] Verify empty-password validation.
+- [x] Verify password-length validation.
+- [x] Avoid enough repeated failures to trigger the global login backoff.
+- [x] Verify one representative SDK error propagates the server's `captainStatus` and `captainMessage`; add a small assertion helper here if reused.
+- [x] Verify an unauthenticated user endpoint returns the expected authorization status.
+- [x] Document root domain, root SSL, global force SSL, and password change as provisioning coverage.
 
 ### Companion SDK unit coverage (`caprover-api`)
 
 Tier: unit in the SDK repository; these tests do not require a CapRover server.
 
-- [ ] Add or confirm deterministic tests for automatic login without a cached token and one reauthentication after a stale token.
-- [ ] Verify the retry is bounded and repeated authorization failure is propagated.
-- [ ] Cover generic error-shape behavior with mocked HTTP responses.
-- [ ] Link the SDK test PR or existing coverage here.
+- [x] Add or confirm deterministic tests for automatic login without a cached token and one reauthentication after a stale token.
+- [x] Verify the retry is bounded and repeated authorization failure is propagated.
+- [x] Cover generic error-shape behavior with mocked HTTP responses.
+- [x] Link the SDK test PR or existing coverage here.
 
 ## PR3: Test full-update and PATCH semantics
 
@@ -125,44 +125,44 @@ Create `tests/app-configuration.test.ts`.
 
 Tier: core.
 
-- [ ] Add `CapRoverClient.patchApp()` using `patchAppDefinition()` while keeping `updateApp()` on POST.
-- [ ] Add unit tests proving the two wrappers use their respective HTTP methods.
-- [ ] Add minimal raw API request support for the missing-`appName` response assertion.
+- [x] Add `CapRoverClient.patchApp()` using `patchAppDefinition()` while keeping `updateApp()` on POST.
+- [x] Add unit tests proving the two wrappers use their respective HTTP methods.
+- [x] Add minimal raw API request support for the missing-`appName` response assertion.
 
 ### Full-update behavior
 
-- [ ] Create an app with several non-default metadata fields.
-- [ ] Update description.
-- [ ] Update multiple environment variables.
-- [ ] Update multiple tags.
-- [ ] Verify every field through the CapRover API.
-- [ ] Verify environment variables through Docker.
-- [ ] Verify explicitly supplied empty arrays clear environment variables.
-- [ ] Verify explicitly supplied empty arrays clear tags.
+- [x] Create an app with several non-default metadata fields.
+- [x] Update description.
+- [x] Update multiple environment variables.
+- [x] Update multiple tags.
+- [x] Verify every field through the CapRover API.
+- [x] Verify environment variables through Docker.
+- [x] Verify explicitly supplied empty arrays clear environment variables.
+- [x] Verify explicitly supplied empty arrays clear tags.
 
 ### PATCH preservation
 
-- [ ] Configure several non-default fields through the full update path.
-- [ ] PATCH only `instanceCount`.
-- [ ] Verify PATCH preserves environment variables, description, tags, container port, WebSocket support, web exposure, update override, and deploy-token configuration.
-- [ ] PATCH instance count to zero.
-- [ ] Verify API desired count is zero.
-- [ ] Verify Docker desired and running counts converge to zero.
-- [ ] PATCH back to one and verify recovery.
-- [ ] PATCH `envVars: []` and verify explicit clearing.
-- [ ] PATCH multiple fields in one request.
-- [ ] Verify PATCH for a missing app fails.
-- [ ] Verify a raw PATCH without `appName` returns status `1110`.
+- [x] Configure several non-default fields through the full update path.
+- [x] PATCH only `instanceCount`.
+- [x] Verify PATCH preserves environment variables, description, tags, container port, WebSocket support, web exposure, update override, and deploy-token configuration.
+- [x] PATCH instance count to zero.
+- [x] Verify API desired count is zero.
+- [x] Verify Docker desired and running counts converge to zero.
+- [x] PATCH back to one and verify recovery.
+- [x] PATCH `envVars: []` and verify explicit clearing.
+- [x] PATCH multiple fields in one request.
+- [x] Verify PATCH for a missing app fails.
+- [x] Verify a raw PATCH without `appName` returns status `1110`.
 
 ### Representative validation
 
-- [ ] Reject a duplicate app name.
-- [ ] Reject an uppercase app name.
-- [ ] Reject a reserved `captain-*` name.
-- [ ] Reject a double-hyphen name.
-- [ ] Reject rename to an existing app.
-- [ ] Reject rename of a missing app.
-- [ ] Reject deletion of a missing app.
+- [x] Reject a duplicate app name.
+- [x] Reject an uppercase app name.
+- [x] Reject a reserved `captain-*` name.
+- [x] Reject a double-hyphen name.
+- [x] Reject rename to an existing app.
+- [x] Reject rename of a missing app.
+- [x] Reject deletion of a missing app.
 
 ## PR4: Add project lifecycle tests
 
@@ -170,20 +170,20 @@ Create `tests/projects.test.ts`.
 
 Tier: core.
 
-- [ ] Add project API wrappers to the E2E client.
-- [ ] Create a root project.
-- [ ] Create a child project.
-- [ ] Verify IDs, names, descriptions, and parent relationship.
-- [ ] Update the child project.
-- [ ] Create an app assigned to the child.
-- [ ] Move the app to the root project.
-- [ ] Remove the app from all projects.
-- [ ] Reject unknown project IDs during app creation and update.
-- [ ] Reject deletion of a project containing an app.
-- [ ] Reject deletion of a parent containing a child.
-- [ ] Reject self-parenting and an unknown parent UUID.
-- [ ] Delete the child and root projects.
-- [ ] Verify cleanup after partial failure.
+- [x] Add project API wrappers to the E2E client.
+- [x] Create a root project.
+- [x] Create a child project.
+- [x] Verify IDs, names, descriptions, and parent relationship.
+- [x] Update the child project.
+- [x] Create an app assigned to the child.
+- [x] Move the app to the root project.
+- [x] Remove the app from all projects.
+- [x] Reject unknown project IDs during app creation and update.
+- [x] Reject deletion of a project containing an app.
+- [x] Reject deletion of a parent containing a child.
+- [x] Reject self-parenting and an unknown parent UUID.
+- [x] Delete the child and root projects.
+- [x] Verify cleanup after partial failure.
 
 ## PR5: Add deployment-state and failure-recovery tests
 
@@ -191,25 +191,25 @@ Create `tests/deployments.test.ts`.
 
 Tier: core.
 
-- [ ] Add a reusable build-completion poller that correlates completion with the requested deployment using the expected version, unique Git hash, or fixture marker alongside app-level build state. An idle state alone is insufficient, and observing an intermediate building state must not be required for fast deployments.
-- [ ] Correlate failed builds with fresh logs containing the current attempt's unique marker so stale failure state cannot satisfy the poller.
-- [ ] Add or reuse raw API response-envelope access for detached status assertions.
-- [ ] Include bounded build-log tails and Docker service/task state in deployment failure diagnostics.
-- [ ] Deploy a pinned image synchronously.
-- [ ] Supply a unique Git hash.
-- [ ] Verify `deployedVersion` increments exactly once.
-- [ ] Verify the version entry contains the Git hash and deployed image.
-- [ ] Verify Docker and public HTTP state.
-- [ ] Start a detached deployment.
-- [ ] Assert successful envelope status `101`.
-- [ ] Poll the detached deployment to a terminal state.
-- [ ] Verify final API, Docker, and HTTP state.
-- [ ] Trigger a controlled build failure using a tiny captain-definition with a pinned base image and a build step that emits a unique marker and deliberately exits nonzero.
-- [ ] Separately test missing-image handling with a unique nonexistent tag on a specified reachable registry. Require evidence of the missing image; DNS failures, authentication failures, and timeouts fail the test.
-- [ ] Verify a failed terminal state and useful build logs.
-- [ ] Verify the previously working service remains available with its previous image.
-- [ ] Deploy a valid image afterward.
-- [ ] Verify full recovery.
+- [x] Add a reusable build-completion poller that correlates completion with the requested deployment using the expected version, unique Git hash, or fixture marker alongside app-level build state. An idle state alone is insufficient, and observing an intermediate building state must not be required for fast deployments.
+- [x] Correlate failed builds with fresh logs containing the current attempt's unique marker so stale failure state cannot satisfy the poller.
+- [x] Add or reuse raw API response-envelope access for detached status assertions.
+- [x] Include bounded build-log tails and Docker service/task state in deployment failure diagnostics.
+- [x] Deploy a pinned image synchronously.
+- [x] Supply a unique Git hash.
+- [x] Verify `deployedVersion` increments exactly once.
+- [x] Verify the version entry contains the Git hash and deployed image.
+- [x] Verify Docker and public HTTP state.
+- [x] Start a detached deployment.
+- [x] Assert successful envelope status `101`.
+- [x] Poll the detached deployment to a terminal state.
+- [x] Verify final API, Docker, and HTTP state.
+- [x] Trigger a controlled build failure using a tiny captain-definition with a pinned base image and a build step that emits a unique marker and deliberately exits nonzero.
+- [x] Separately test missing-image handling with a unique nonexistent tag on a specified reachable registry. Require evidence of the missing image; DNS failures, authentication failures, and timeouts fail the test.
+- [x] Verify a failed terminal state and useful build logs.
+- [x] Verify the previously working service remains available with its previous image.
+- [x] Deploy a valid image afterward.
+- [x] Verify full recovery.
 
 Avoid timing-based assertions that merely compare request duration with build duration.
 
@@ -219,34 +219,34 @@ Create `tests/source-upload-and-logs.test.ts`.
 
 Tier: core.
 
-- [ ] Add source-upload and configurable log-encoding wrappers as needed by this file.
+- [x] Add source-upload and configurable log-encoding wrappers as needed by this file.
 
 ### Deterministic source fixture
 
-- [ ] Check in a tiny fixture under `tests/fixtures/source-app`.
-- [ ] Create its tar archive with the runner's `tar` executable.
-- [ ] Load the archive into a real Node `File`.
-- [ ] Generate a unique response and log marker for each run.
-- [ ] Keep fixture images and dependencies small and pinned.
+- [x] Check in a tiny fixture under `tests/fixtures/source-app`.
+- [x] Create its tar archive with the runner's `tar` executable.
+- [x] Load the archive into a real Node `File`.
+- [x] Generate a unique response and log marker for each run.
+- [x] Keep fixture images and dependencies small and pinned.
 
 ### Source upload
 
-- [ ] Test attached upload.
-- [ ] Test detached upload.
-- [ ] Verify the built image executes.
-- [ ] Verify public response and build logs.
-- [ ] Test an alternate `captainDefinitionRelativeFilePath`.
-- [ ] Reject deployment with neither tarball nor captain-definition.
-- [ ] Reject deployment with both tarball and captain-definition.
-- [ ] Reject malformed captain-definition content.
+- [x] Test attached upload.
+- [x] Test detached upload.
+- [x] Verify the built image executes.
+- [x] Verify public response and build logs.
+- [x] Test an alternate `captainDefinitionRelativeFilePath`.
+- [x] Reject deployment with neither tarball nor captain-definition.
+- [x] Reject deployment with both tarball and captain-definition.
+- [x] Reject malformed captain-definition content.
 
 ### Runtime logs
 
-- [ ] Verify ASCII logs contain the unique marker.
-- [ ] Verify `utf8` logs preserve a Unicode marker.
-- [ ] Verify hex logs decode to the same content.
-- [ ] Verify missing-app log retrieval fails.
-- [ ] Keep raw log output bounded in diagnostics.
+- [x] Verify ASCII logs contain the unique marker.
+- [x] Verify `utf8` logs preserve a Unicode marker.
+- [x] Verify hex logs decode to the same content.
+- [x] Verify missing-app log retrieval fails.
+- [x] Keep raw log output bounded in diagnostics.
 
 ## PR7: Add persistent-storage and volume-safety tests
 
@@ -591,24 +591,24 @@ File: `tests/specialized/upgrade.test.ts`. Tier: destructive (specialized).
 
 This table should be updated whenever `caprover-api` adds or removes a public method.
 
-| API area | Methods | Coverage |
-| --- | --- | --- |
-| Authentication | `login`, automatic retry, `changePass` | PR2 server contracts; SDK unit tests for automatic retry; password change during provisioning |
-| Themes | `getAllThemes`, `getCurrentTheme`, `setCurrentTheme`, `saveTheme`, `deleteTheme` | PR13 |
-| Pro | state/configuration/OTP methods | PR14 and PR18 |
-| System setup | captain info, root domain, root SSL, force SSL | Provisioning and PR14 |
-| Applications | list, register, full update, PATCH, rename, delete, bulk delete | Existing suite, PR3, PR12 |
-| Deployments | captain-definition, source upload, build status, runtime logs, deploy token | PR5, PR6, PR12 |
-| Projects | list, register, update, delete | PR4 |
-| Domains and Nginx | base/custom domains, app/global Nginx, redirects, HTTP auth | PR8, PR9, PR15, PR18 |
-| Images and cleanup | unused images, image deletion, cleanup configuration | PR15 |
-| Registries | list, local/remote registry operations, default push registry | PR17 and PR18 |
-| One-click | lists, repositories, template fetch, deployment, progress | PR16 |
-| Nodes | list and add node | PR14 and PR18 |
-| Observability | load balancer, NetData, GoAccess and reports | PR14 and PR17 |
-| Backup and upgrade | backup creation/download, captain update | PR14 and PR18 |
-| Git webhooks | repository configuration and force build | PR18 |
-| Generic API | GET, POST, and PATCH generic commands | SDK unit tests; representative E2E error propagation in PR2 and raw contract assertions in PR3/PR5 |
+| API area           | Methods                                                                          | Coverage                                                                                           |
+| ------------------ | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Authentication     | `login`, automatic retry, `changePass`                                           | PR2 server contracts; SDK unit tests for automatic retry; password change during provisioning      |
+| Themes             | `getAllThemes`, `getCurrentTheme`, `setCurrentTheme`, `saveTheme`, `deleteTheme` | PR13                                                                                               |
+| Pro                | state/configuration/OTP methods                                                  | PR14 and PR18                                                                                      |
+| System setup       | captain info, root domain, root SSL, force SSL                                   | Provisioning and PR14                                                                              |
+| Applications       | list, register, full update, PATCH, rename, delete, bulk delete                  | Existing suite, PR3, PR12                                                                          |
+| Deployments        | captain-definition, source upload, build status, runtime logs, deploy token      | PR5, PR6, PR12                                                                                     |
+| Projects           | list, register, update, delete                                                   | PR4                                                                                                |
+| Domains and Nginx  | base/custom domains, app/global Nginx, redirects, HTTP auth                      | PR8, PR9, PR15, PR18                                                                               |
+| Images and cleanup | unused images, image deletion, cleanup configuration                             | PR15                                                                                               |
+| Registries         | list, local/remote registry operations, default push registry                    | PR17 and PR18                                                                                      |
+| One-click          | lists, repositories, template fetch, deployment, progress                        | PR16                                                                                               |
+| Nodes              | list and add node                                                                | PR14 and PR18                                                                                      |
+| Observability      | load balancer, NetData, GoAccess and reports                                     | PR14 and PR17                                                                                      |
+| Backup and upgrade | backup creation/download, captain update                                         | PR14 and PR18                                                                                      |
+| Git webhooks       | repository configuration and force build                                         | PR18                                                                                               |
+| Generic API        | GET, POST, and PATCH generic commands                                            | SDK unit tests; representative E2E error propagation in PR2 and raw contract assertions in PR3/PR5 |
 
 ## Completion tracking
 
