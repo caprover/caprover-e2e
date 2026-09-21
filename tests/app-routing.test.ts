@@ -160,14 +160,21 @@ async function expectAuthState(
 function websocketEcho(url: string, marker: string): Promise<void> {
     return new Promise((resolve, reject) => {
         const socket = new WebSocket(url)
+        let settled = false
         const timeout = setTimeout(() => {
-            socket.close()
-            reject(new Error(`WebSocket echo timed out for ${url}`))
+            finish(new Error(`WebSocket echo timed out for ${url}`))
         }, 10_000)
 
         const finish = (error?: Error) => {
+            if (settled) return
+            settled = true
             clearTimeout(timeout)
-            socket.close()
+            if (
+                socket.readyState === WebSocket.CONNECTING ||
+                socket.readyState === WebSocket.OPEN
+            ) {
+                socket.close()
+            }
             if (error) reject(error)
             else resolve()
         }
