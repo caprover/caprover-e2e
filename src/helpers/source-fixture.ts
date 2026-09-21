@@ -41,3 +41,28 @@ export async function sourceArchive(
         await rm(temporary, { recursive: true, force: true })
     }
 }
+
+export async function routingSourceArchive(): Promise<File> {
+    const temporary = await mkdtemp(join(tmpdir(), 'caprover-e2e-routing-'))
+    try {
+        const archive = join(temporary, 'source.tar')
+        await promisify(execFile)(
+            'tar',
+            [
+                '-cf',
+                archive,
+                '-C',
+                join(process.cwd(), 'tests/fixtures/routing-app'),
+                '.',
+            ],
+            { timeout: 10_000 }
+        )
+        return new File(
+            [new Uint8Array(await readFile(archive))],
+            'routing-source.tar',
+            { type: 'application/x-tar' }
+        )
+    } finally {
+        await rm(temporary, { recursive: true, force: true })
+    }
+}
