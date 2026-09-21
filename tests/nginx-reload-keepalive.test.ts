@@ -7,7 +7,7 @@ const RELOAD_ITERATIONS = 30
 const names = createTestNames()
 const name = names.initialAppName
 
-test('API keep-alive connection survives repeated NGINX reloads', async () => {
+test('API keep-alive connection survives delayed reuse after NGINX reloads', async () => {
     await withTestContext(async (context, cleanup) => {
         const api = context.caprover
 
@@ -29,9 +29,10 @@ test('API keep-alive connection survives repeated NGINX reloads', async () => {
                 `NGINX reload keep-alive reproduction: ${iteration + 1}/${RELOAD_ITERATIONS}`
             )
 
-            // updateApp() regenerates/reloads NGINX. There is intentionally no
-            // retry here; the shared API spacing mitigation may delay getApp().
+            // updateApp() regenerates/reloads NGINX. Reuse the pooled socket at
+            // the former one-second shutdown boundary, without a retry.
             await api.updateApp(name, { websocketSupport })
+            await new Promise((resolve) => setTimeout(resolve, 1_000))
             const app = await api.getApp(name)
 
             expect(app.websocketSupport).toBe(websocketSupport)
