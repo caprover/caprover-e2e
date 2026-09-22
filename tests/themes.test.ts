@@ -118,7 +118,10 @@ async function expectTheme(
                 (theme) => theme.name === expected.name
             )
             expect(matches).toHaveLength(1)
-            expect(matches[0]).toEqual({ ...expected, builtIn: false })
+            expect(matches[0]).toEqual({
+                ...expected,
+                builtIn: expected.builtIn ?? false,
+            })
         },
         { description: `theme ${expected.name} to round-trip` }
     )
