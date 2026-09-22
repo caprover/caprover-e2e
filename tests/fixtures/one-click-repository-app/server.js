@@ -16,9 +16,13 @@ const server = createServer((request, response) => {
 
     const prefix = '/v4/apps/'
     if (url.pathname.startsWith(prefix)) {
-        const templateName = decodeURIComponent(
-            url.pathname.slice(prefix.length)
-        )
+        let templateName
+        try {
+            templateName = decodeURIComponent(url.pathname.slice(prefix.length))
+        } catch {
+            sendJson(response, 400, { error: 'invalid template path' })
+            return
+        }
         const template = data.templates[templateName]
         if (template) {
             sendJson(response, 200, template)

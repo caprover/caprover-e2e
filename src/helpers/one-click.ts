@@ -1,4 +1,5 @@
 import { OneClickDeploymentState } from '../clients/caprover'
+import { withTimeout } from './retry'
 
 export interface OneClickProgressSnapshot {
     currentStep: number
@@ -29,14 +30,21 @@ export async function waitForOneClickDeployment(
     let previousStep = -1
 
     while (true) {
-        const state = await getProgress()
+        const remainingBeforeRequest = deadline - Date.now()
+        if (remainingBeforeRequest <= 0) throw timeoutError(timeoutMs, history)
+
+        const state = await withTimeout(
+            getProgress(),
+            remainingBeforeRequest,
+            'One-click deployment progress request'
+        )
         validateProgress(state, previousStep)
         previousStep = state.currentStep
         history.push({
             currentStep: state.currentStep,
             steps: [...state.steps],
             ...(state.error ? { error: state.error } : {}),
-            ...(state.successMessage
+            ...(state.successMessage !== undefined
                 ? { successMessage: state.successMessage }
                 : {}),
         })
@@ -48,7 +56,7 @@ export async function waitForOneClickDeployment(
                 history,
             }
 
-        if (state.currentStep >= state.steps.length && state.successMessage)
+        if (state.currentStep >= state.steps.length)
             return {
                 outcome: 'success',
                 state,
@@ -56,13 +64,18 @@ export async function waitForOneClickDeployment(
             }
 
         const remainingMs = deadline - Date.now()
-        if (remainingMs <= 0) {
-            throw new Error(
-                `Timed out after ${timeoutMs}ms waiting for one-click deployment. Last progress: ${JSON.stringify(history.at(-1))}`
-            )
-        }
+        if (remainingMs <= 0) throw timeoutError(timeoutMs, history)
         await delay(Math.min(intervalMs, remainingMs))
     }
+}
+
+function timeoutError(
+    timeoutMs: number,
+    history: OneClickProgressSnapshot[]
+): Error {
+    return new Error(
+        `Timed out after ${timeoutMs}ms waiting for one-click deployment. Last progress: ${JSON.stringify(history.at(-1))}`
+    )
 }
 
 function validateProgress(

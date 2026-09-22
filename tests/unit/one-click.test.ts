@@ -33,6 +33,33 @@ test('one-click polling returns an asynchronous deployment error', async () => {
     expect(result.state.error).toContain('Cannot parse')
 })
 
+test('one-click polling accepts a terminal state with an empty success message', async () => {
+    const result = await waitForOneClickDeployment(
+        async () => ({
+            steps: ['deploy'],
+            currentStep: 1,
+            error: '',
+            successMessage: '',
+        }),
+        { intervalMs: 0 }
+    )
+    expect(result.outcome).toBe('success')
+    expect(result.history[0].successMessage).toBe('')
+})
+
+test('one-click polling applies its timeout to a hanging progress request', async () => {
+    const startedAt = Date.now()
+    await expect(
+        waitForOneClickDeployment(() => new Promise(() => {}), {
+            timeoutMs: 20,
+            intervalMs: 0,
+        })
+    ).rejects.toThrow(
+        'One-click deployment progress request timed out after 20ms'
+    )
+    expect(Date.now() - startedAt).toBeLessThan(500)
+})
+
 test('one-click polling rejects a regressing progress state', async () => {
     const states = [
         { steps: ['queue', 'deploy'], currentStep: 1, error: '' },

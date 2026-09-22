@@ -93,6 +93,7 @@ test('custom one-click repositories list, fetch, deploy, reject duplicates, and 
             templateName,
             repositoryBaseUrl
         )
+        // caprover-api#11 tracks the SDK's string type for this backend object.
         const fetchedTemplate =
             fetched.appTemplate as unknown as CapRoverModels.IOneClickTemplate
         expect(fetchedTemplate).toEqual(repositoryData.templates[templateName])
@@ -222,9 +223,17 @@ function cleanUpRepository(
     repositoryUrl: string
 ): void {
     cleanup.add(async () => {
-        if ((await api.getAllOneClickAppRepos()).urls.includes(repositoryUrl))
-            await api.deleteCustomOneClickRepo(repositoryUrl)
+        const canonicalUrl = withoutTrailingSlashes(repositoryUrl)
+        const storedUrls = (await api.getAllOneClickAppRepos()).urls.filter(
+            (url) => withoutTrailingSlashes(url) === canonicalUrl
+        )
+        for (const storedUrl of storedUrls)
+            await api.deleteCustomOneClickRepo(storedUrl)
     })
+}
+
+function withoutTrailingSlashes(url: string): string {
+    return url.replace(/\/+$/, '')
 }
 
 function drainJob(
