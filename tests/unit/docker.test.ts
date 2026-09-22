@@ -103,3 +103,84 @@ describe('DockerInspector volume operations', () => {
         expect(exec).not.toHaveBeenCalled()
     })
 })
+
+test('normalizes service published ports and tolerates an omitted Docker field', async () => {
+    const exec = vi.fn().mockResolvedValue({
+        stdout: JSON.stringify([
+            {
+                Spec: {
+                    EndpointSpec: {
+                        Ports: [
+                            {
+                                TargetPort: 7000,
+                                PublishedPort: 40000,
+                                Protocol: 'TCP',
+                                PublishMode: 'INGRESS',
+                            },
+                            {
+                                TargetPort: 7001,
+                                PublishedPort: 40001,
+                                Protocol: 'udp',
+                                PublishMode: 'host',
+                            },
+                            {
+                                TargetPort: 0,
+                                PublishedPort: 40002,
+                                Protocol: 'tcp',
+                                PublishMode: 'ingress',
+                            },
+                            {
+                                TargetPort: 7000,
+                                PublishedPort: 65536,
+                                Protocol: 'tcp',
+                                PublishMode: 'ingress',
+                            },
+                            {
+                                TargetPort: 7000,
+                                PublishedPort: 40003,
+                                Protocol: 'sctp',
+                                PublishMode: 'ingress',
+                            },
+                            {
+                                TargetPort: 7000,
+                                PublishedPort: 40004,
+                                Protocol: 'tcp',
+                                PublishMode: 'bridge',
+                            },
+                        ],
+                    },
+                },
+            },
+        ]),
+        stderr: '',
+        exitCode: 0,
+    })
+    const inspector = new DockerInspector({ exec } as unknown as SshClient)
+
+    await expect(
+        inspector.getServicePublishedPorts('owned-app')
+    ).resolves.toEqual([
+        {
+            targetPort: 7000,
+            publishedPort: 40000,
+            protocol: 'tcp',
+            publishMode: 'ingress',
+        },
+        {
+            targetPort: 7001,
+            publishedPort: 40001,
+            protocol: 'udp',
+            publishMode: 'host',
+        },
+    ])
+
+    const noPorts = {
+        stdout: JSON.stringify([{ Spec: { EndpointSpec: {} } }]),
+        stderr: '',
+        exitCode: 0,
+    }
+    exec.mockResolvedValueOnce(noPorts).mockResolvedValueOnce(noPorts)
+    await expect(
+        inspector.getServicePublishedPorts('owned-app')
+    ).resolves.toEqual([])
+})

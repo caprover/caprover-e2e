@@ -43,7 +43,18 @@ export async function sourceArchive(
 }
 
 export async function routingSourceArchive(): Promise<File> {
-    const temporary = await mkdtemp(join(tmpdir(), 'caprover-e2e-routing-'))
+    return fixtureArchive('routing', 'routing-app')
+}
+
+export async function customPortsSourceArchive(): Promise<File> {
+    return fixtureArchive('custom-ports', 'custom-ports-app')
+}
+
+async function fixtureArchive(
+    name: string,
+    fixtureDirectory: string
+): Promise<File> {
+    const temporary = await mkdtemp(join(tmpdir(), `caprover-e2e-${name}-`))
     try {
         const archive = join(temporary, 'source.tar')
         await promisify(execFile)(
@@ -52,14 +63,14 @@ export async function routingSourceArchive(): Promise<File> {
                 '-cf',
                 archive,
                 '-C',
-                join(process.cwd(), 'tests/fixtures/routing-app'),
+                join(process.cwd(), 'tests/fixtures', fixtureDirectory),
                 '.',
             ],
             { timeout: 10_000 }
         )
         return new File(
             [new Uint8Array(await readFile(archive))],
-            'routing-source.tar',
+            `${name}-source.tar`,
             { type: 'application/x-tar' }
         )
     } finally {

@@ -29,6 +29,8 @@ if command -v ufw >/dev/null 2>&1; then
     ufw allow 80/tcp
     ufw allow 443/tcp
     ufw allow 3000/tcp
+    ufw allow 40000:40999/tcp
+    ufw allow 40000:40999/udp
 fi`,
             180_000
         )
@@ -57,7 +59,26 @@ docker run --rm \\
         )
         if (imageResult.exitCode !== 0)
             throw new Error('Unable to resolve running CapRover image')
-        console.log(`Running CapRover image: ${imageResult.stdout.trim()}`)
+        const runningImage = imageResult.stdout.trim()
+        console.log(`Running CapRover image: ${runningImage}`)
+        const digestResult = await ssh.exec(
+            `docker image inspect ${shellQuote(runningImage)} --format '{{join .RepoDigests "\\n"}}'`
+        )
+        const repository = runningImage
+            .replace(/@sha256:[a-f0-9]{64}$/i, '')
+            .replace(/:[^/:]+$/, '')
+        const resolvedImage = digestResult.stdout
+            .split(/\r?\n/)
+            .map((value) => value.trim())
+            .find(
+                (value) =>
+                    value.startsWith(`${repository}@sha256:`) &&
+                    /^.+@sha256:[a-f0-9]{64}$/i.test(value)
+            )
+        if (digestResult.exitCode !== 0 || !resolvedImage) {
+            throw new Error('Unable to resolve running CapRover image digest')
+        }
+        console.log(`Resolved running CapRover image digest: ${resolvedImage}`)
     } finally {
         ssh.close()
     }

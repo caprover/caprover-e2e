@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { expect, test } from 'vitest'
 import {
+    customPortsSourceArchive,
     routingSourceArchive,
     sourceArchive,
 } from '../../src/helpers/source-fixture'
@@ -58,6 +59,30 @@ test('routing source tar contains the HTTP and WebSocket fixture', async () => {
         ])
         expect(server.stdout).toContain("server.on('upgrade'")
         expect(server.stdout).toContain('server.listen(8080')
+    } finally {
+        await rm(temporary, { recursive: true, force: true })
+    }
+})
+
+test('custom-port source tar contains the TCP and UDP echo fixture', async () => {
+    const archive = await customPortsSourceArchive()
+    const temporary = await mkdtemp(
+        join(tmpdir(), 'caprover-custom-ports-test-')
+    )
+    try {
+        const path = join(temporary, 'fixture.tar')
+        await writeFile(path, new Uint8Array(await archive.arrayBuffer()))
+        const { stdout } = await promisify(execFile)('tar', ['-tf', path])
+        expect(stdout).toContain('./captain-definition')
+        expect(stdout).toContain('./Dockerfile')
+        expect(stdout).toContain('./server.js')
+        const server = await promisify(execFile)('tar', [
+            '-xOf',
+            path,
+            './server.js',
+        ])
+        expect(server.stdout).toContain('tcpServer.listen(7000')
+        expect(server.stdout).toContain('udpServer.bind(7001')
     } finally {
         await rm(temporary, { recursive: true, force: true })
     }

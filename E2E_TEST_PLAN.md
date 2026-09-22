@@ -334,17 +334,17 @@ Create `tests/custom-ports.test.ts` after PR10 lands and the server image used b
 
 Tier: destructive.
 
-- [ ] Add deterministic high-port allocation scoped to the run.
-- [ ] Configure and verify a TCP ingress mapping.
-- [ ] Configure and verify a UDP ingress mapping using Node's `dgram` client.
-- [ ] Configure and verify a TCP host-mode mapping.
-- [ ] Verify API persistence and Docker `EndpointSpec`.
-- [ ] Verify real TCP and UDP connectivity.
-- [ ] Replace and remove mappings.
-- [ ] Verify removed TCP mappings disappear from Docker and new TCP connections fail within a bounded timeout.
-- [ ] Verify removed UDP mappings disappear from Docker and repeated bounded echo probes stop receiving replies after connectivity was established. Use both checks because lack of a UDP reply alone does not prove port closure.
-- [ ] Verify a full POST update with `ports: []` clears configured mappings.
-- [ ] Reject invalid or incomplete port definitions.
+- [x] Add deterministic high-port allocation scoped to the run.
+- [x] Configure and verify a TCP ingress mapping.
+- [x] Configure and verify a UDP ingress mapping using Node's `dgram` client.
+- [x] Configure and verify a TCP host-mode mapping.
+- [x] Verify API persistence and Docker `EndpointSpec`.
+- [x] Verify real TCP and UDP connectivity.
+- [x] Replace and remove mappings.
+- [x] Verify removed TCP mappings disappear from Docker and new TCP connections fail within a bounded timeout.
+- [x] Verify removed UDP mappings disappear from Docker and repeated bounded echo probes stop receiving replies after connectivity was established. Use both checks because lack of a UDP reply alone does not prove port closure.
+- [x] Verify a full POST update with `ports: []` clears configured mappings.
+- [x] Reject invalid or incomplete port definitions.
 
 ## PR12: Add advanced application-setting tests
 

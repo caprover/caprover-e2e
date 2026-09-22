@@ -16,11 +16,28 @@ interface DockerService {
                 Mounts?: DockerMount[]
             }
         }
+        EndpointSpec?: {
+            Ports?: DockerPublishedPort[]
+        }
     }
     UpdateStatus?: {
         State?: string
         Message?: string
     }
+}
+
+interface DockerPublishedPort {
+    TargetPort?: number
+    PublishedPort?: number
+    Protocol?: string
+    PublishMode?: string
+}
+
+export interface PublishedPort {
+    targetPort: number
+    publishedPort: number
+    protocol: 'tcp' | 'udp'
+    publishMode: 'ingress' | 'host'
 }
 
 interface DockerMount {
@@ -170,6 +187,30 @@ export class DockerInspector {
     async getServiceEnvironment(appName: string): Promise<string[]> {
         const service = await this.getService(appName)
         return service.Spec?.TaskTemplate?.ContainerSpec?.Env ?? []
+    }
+
+    async getServicePublishedPorts(appName: string): Promise<PublishedPort[]> {
+        const service = await this.getService(appName)
+        return (service.Spec?.EndpointSpec?.Ports ?? []).flatMap((port) => {
+            const protocol = port.Protocol?.toLowerCase()
+            const publishMode = port.PublishMode?.toLowerCase()
+            if (
+                !isPortNumber(port.TargetPort) ||
+                !isPortNumber(port.PublishedPort) ||
+                (protocol !== 'tcp' && protocol !== 'udp') ||
+                (publishMode !== 'ingress' && publishMode !== 'host')
+            ) {
+                return []
+            }
+            return [
+                {
+                    targetPort: port.TargetPort!,
+                    publishedPort: port.PublishedPort!,
+                    protocol,
+                    publishMode,
+                },
+            ]
+        })
     }
 
     async getServiceVolumeSources(appName: string): Promise<string[]> {
@@ -446,4 +487,13 @@ function parseJson<T>(value: string, description: string): T {
 function environmentKey(entry: string): string {
     const separatorIndex = entry.indexOf('=')
     return separatorIndex < 0 ? entry : entry.slice(0, separatorIndex)
+}
+
+function isPortNumber(value: unknown): value is number {
+    return (
+        typeof value === 'number' &&
+        Number.isInteger(value) &&
+        value >= 1 &&
+        value <= 65_535
+    )
 }
