@@ -434,24 +434,24 @@ Tier: destructive for both files. Require ephemeral mode.
 
 ### Disk cleanup
 
-- [ ] Preserve the original cleanup settings.
-- [ ] Test valid settings, normalization, invalid cron, and negative limits.
-- [ ] Build a uniquely tagged test image over SSH.
-- [ ] Verify no service references its image ID.
-- [ ] Verify `getUnusedImages()` returns it.
-- [ ] Verify deployed images are excluded.
-- [ ] Delete only the uniquely owned image ID.
-- [ ] Verify only that image disappears.
-- [ ] Restore the original settings.
+- [x] Preserve the original cleanup settings.
+- [x] Test valid settings, normalization, invalid cron, and negative limits.
+- [x] Build a uniquely tagged test image over SSH.
+- [x] Verify no service references its image ID.
+- [x] Verify `getUnusedImages()` returns it.
+- [x] Verify deployed images are excluded.
+- [x] Delete only the uniquely owned image ID.
+- [x] Verify only that image disappears.
+- [x] Restore the original settings.
 
 ### Global Nginx
 
-- [ ] Preserve base and captain overrides.
-- [ ] Apply a reviewed harmless customization.
-- [ ] Verify API and observable behavior.
-- [ ] Submit invalid syntax.
-- [ ] Verify the last valid configuration remains active.
-- [ ] Restore original values in guaranteed cleanup.
+- [x] Preserve base and captain overrides.
+- [x] Apply a reviewed harmless customization.
+- [x] Verify API and observable behavior.
+- [x] Submit invalid syntax.
+- [x] Verify the last valid configuration remains active.
+- [x] Restore original values in guaranteed cleanup.
 
 ## PR16: Add one-click deployment and repository tests
 
