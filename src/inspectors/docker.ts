@@ -73,6 +73,19 @@ interface DockerSwarmInfo {
     NodeID?: string
 }
 
+export interface DockerNode {
+    ID: string
+    Spec: { Role: 'manager' | 'worker'; Availability: string }
+    ManagerStatus?: { Leader?: boolean }
+    Description: {
+        Hostname: string
+        Platform: { Architecture: string; OS: string }
+        Resources: { NanoCPUs: number; MemoryBytes: number }
+        Engine: { EngineVersion: string }
+    }
+    Status: { Addr: string; State: string }
+}
+
 interface DockerUpdateConfig {
     Parallelism?: number
     Delay?: number
@@ -239,6 +252,26 @@ export class DockerInspector {
             throw new Error('Docker did not report a local Swarm node ID')
         }
         return nodeId
+    }
+
+    async getNodes(): Promise<DockerNode[]> {
+        const listed = await this.exec('docker node ls --quiet')
+        const nodeIds = listed.stdout
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean)
+
+        for (const nodeId of nodeIds) {
+            if (!/^[a-z0-9]{25}$/.test(nodeId)) {
+                throw new Error(`Docker returned an invalid node ID: ${nodeId}`)
+            }
+        }
+        if (!nodeIds.length) return []
+
+        const inspected = await this.exec(
+            `docker node inspect ${nodeIds.map(shellQuote).join(' ')}`
+        )
+        return parseJson<DockerNode[]>(inspected.stdout, 'Swarm nodes')
     }
 
     async getServicePlacementConstraints(appName: string): Promise<string[]> {
