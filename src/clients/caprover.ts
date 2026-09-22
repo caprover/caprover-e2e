@@ -19,6 +19,10 @@ interface ServerInfo {
     captainSubDomain: string
 }
 
+type Theme = NonNullable<
+    Awaited<ReturnType<CapRoverAPI['getAllThemes']>>['themes']
+>[number]
+
 const API_TIMEOUT_MS = 30_000
 const DEPLOYMENT_TIMEOUT_MS = 90_000
 
@@ -46,6 +50,41 @@ export class CapRoverClient {
         return this.request(
             () => this.api.getCaptainInfo(),
             'retrieving CapRover server information'
+        )
+    }
+
+    getAllThemes(): Promise<{ themes: Theme[] | undefined }> {
+        return this.request(() => this.api.getAllThemes(), 'listing themes')
+    }
+
+    getCurrentTheme(): Promise<{ theme: Theme | undefined }> {
+        return this.request(
+            () =>
+                this.api.getCurrentTheme() as Promise<{
+                    theme: Theme | undefined
+                }>,
+            'retrieving the current theme'
+        )
+    }
+
+    async saveTheme(oldName: string, theme: Theme): Promise<void> {
+        await this.request(
+            () => this.api.saveTheme(oldName, theme),
+            `saving theme ${theme.name}`
+        )
+    }
+
+    async setCurrentTheme(themeName: string): Promise<void> {
+        await this.request(
+            () => this.api.setCurrentTheme(themeName),
+            `selecting theme ${themeName}`
+        )
+    }
+
+    async deleteTheme(themeName: string): Promise<void> {
+        await this.request(
+            () => this.api.deleteTheme(themeName),
+            `deleting theme ${themeName}`
         )
     }
 
@@ -258,4 +297,4 @@ export class CapRoverClient {
     }
 }
 
-export type { AppDefinition }
+export type { AppDefinition, Theme }
