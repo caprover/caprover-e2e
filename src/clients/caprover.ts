@@ -238,6 +238,13 @@ export class CapRoverClient {
         )
     }
 
+    deleteApps(appNames: string[]): Promise<AppDeleteResponse> {
+        return this.request(
+            () => this.api.deleteApp(undefined, [], appNames),
+            `deleting CapRover applications ${appNames.join(', ')}`
+        )
+    }
+
     destroy(): void {
         this.api.destroy()
     }

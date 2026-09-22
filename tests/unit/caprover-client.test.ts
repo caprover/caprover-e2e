@@ -69,6 +69,28 @@ test('persistent creation and owned-volume deletion use the SDK parameters', asy
     }
 })
 
+test('bulk deletion uses the SDK appNames parameter', async () => {
+    const deleteApp = vi
+        .spyOn(CapRoverAPI.prototype, 'deleteApp')
+        .mockResolvedValue({ volumesFailedToDelete: [] })
+    const client = new CapRoverClient('https://example.test', 'password')
+    try {
+        await expect(
+            client.deleteApps(['first-app', 'second-app'])
+        ).resolves.toEqual({
+            volumesFailedToDelete: [],
+        })
+        expect(deleteApp).toHaveBeenCalledExactlyOnceWith(
+            undefined,
+            [],
+            ['first-app', 'second-app']
+        )
+    } finally {
+        client.destroy()
+        vi.restoreAllMocks()
+    }
+})
+
 test('custom-domain operations use the SDK parameters', async () => {
     const attach = vi
         .spyOn(CapRoverAPI.prototype, 'attachNewCustomDomainToApp')

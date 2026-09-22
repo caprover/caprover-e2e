@@ -14,8 +14,13 @@ interface DockerService {
                 Image?: string
                 Env?: string[]
                 Mounts?: DockerMount[]
+                Labels?: Record<string, string>
+            }
+            Placement?: {
+                Constraints?: string[]
             }
         }
+        UpdateConfig?: DockerUpdateConfig
         EndpointSpec?: {
             Ports?: DockerPublishedPort[]
         }
@@ -48,6 +53,7 @@ interface DockerMount {
 
 interface DockerTask {
     ID?: string
+    NodeID?: string
     DesiredState?: string
     Spec?: {
         ContainerSpec?: {
@@ -64,6 +70,17 @@ interface DockerTask {
 interface DockerSwarmInfo {
     LocalNodeState?: string
     ControlAvailable?: boolean
+    NodeID?: string
+}
+
+interface DockerUpdateConfig {
+    Parallelism?: number
+    Delay?: number
+}
+
+export interface ServiceUpdateConfig {
+    parallelism?: number
+    delay?: number
 }
 
 export interface DockerDiagnostics {
@@ -211,6 +228,55 @@ export class DockerInspector {
                 },
             ]
         })
+    }
+
+    async getLocalManagerNodeId(): Promise<string> {
+        const result = await this.exec(
+            "docker info --format '{{.Swarm.NodeID}}'"
+        )
+        const nodeId = result.stdout.trim()
+        if (!nodeId) {
+            throw new Error('Docker did not report a local Swarm node ID')
+        }
+        return nodeId
+    }
+
+    async getServicePlacementConstraints(appName: string): Promise<string[]> {
+        const service = await this.getService(appName)
+        return service.Spec?.TaskTemplate?.Placement?.Constraints ?? []
+    }
+
+    async getRunningTaskNodeIds(appName: string): Promise<string[]> {
+        const tasks = await this.getDesiredTasks(appName)
+        return tasks
+            .filter(
+                (task) =>
+                    task.DesiredState === 'running' &&
+                    task.Status?.State === 'running'
+            )
+            .map((task) => task.NodeID)
+            .filter((nodeId): nodeId is string => !!nodeId)
+    }
+
+    async getServiceUpdateConfig(
+        appName: string
+    ): Promise<ServiceUpdateConfig> {
+        const updateConfig = (await this.getService(appName)).Spec?.UpdateConfig
+        return {
+            ...(updateConfig?.Parallelism === undefined
+                ? {}
+                : { parallelism: updateConfig.Parallelism }),
+            ...(updateConfig?.Delay === undefined
+                ? {}
+                : { delay: updateConfig.Delay }),
+        }
+    }
+
+    async getServiceContainerLabels(
+        appName: string
+    ): Promise<Record<string, string>> {
+        const service = await this.getService(appName)
+        return service.Spec?.TaskTemplate?.ContainerSpec?.Labels ?? {}
     }
 
     async getServiceVolumeSources(appName: string): Promise<string[]> {

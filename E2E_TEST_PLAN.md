@@ -352,19 +352,19 @@ Create `tests/advanced-app-settings.test.ts`.
 
 Tier: core.
 
-- [ ] Pin an app to the current manager `nodeId`.
-- [ ] Verify the Docker placement constraint.
-- [ ] Apply a deterministic `serviceUpdateOverride`.
-- [ ] Verify the resulting Docker `UpdateConfig`.
-- [ ] Apply a minimal deterministic `preDeployFunction`.
-- [ ] Verify its actual effect on the Docker update object.
-- [ ] Enable app deploy-token configuration.
-- [ ] Use the generated token to deploy.
-- [ ] Reject an invalid token.
-- [ ] Disable the token and verify the old token fails.
-- [ ] Create two apps and delete them through the bulk `appNames` API.
-- [ ] Verify both API definitions and services disappear.
-- [ ] Verify sending both `appName` and `appNames` fails.
+- [x] Pin an app to the current manager `nodeId`.
+- [x] Verify the Docker placement constraint.
+- [x] Apply a deterministic `serviceUpdateOverride`.
+- [x] Verify the resulting Docker `UpdateConfig`.
+- [x] Apply a minimal deterministic `preDeployFunction`.
+- [x] Verify its actual effect on the Docker update object.
+- [x] Enable app deploy-token configuration.
+- [x] Use the generated token to deploy.
+- [x] Reject an invalid token.
+- [x] Disable the token and verify the old token fails.
+- [x] Create two apps and delete them through the bulk `appNames` API.
+- [x] Verify both API definitions and services disappear.
+- [x] Verify sending both `appName` and `appNames` fails.
 
 ## PR13: Add theme tests
 
