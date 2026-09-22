@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest'
+import { prioritizeSystemDefaults } from '../../src/test-sequencer'
 import {
     coreFiles,
     destructiveFiles,
@@ -33,22 +34,20 @@ test('ephemeral default adds only ordinary destructive files', () => {
     expect(new Set(files).size).toBe(files.length)
 })
 
-test('fresh-system defaults run before tests that mutate global state', () => {
-    const defaultsIndex = destructiveFiles.indexOf(
-        'tests/system-defaults.test.ts'
-    )
-    expect(defaultsIndex).toBeGreaterThanOrEqual(0)
-    for (const file of [
-        'tests/themes.test.ts',
-        'tests/backup.test.ts',
-        'tests/disk-cleanup.test.ts',
-        'tests/system-nginx.test.ts',
-        'tests/registries.test.ts',
-        'tests/goaccess.test.ts',
-        'tests/netdata.test.ts',
-    ]) {
-        expect(destructiveFiles.indexOf(file)).toBeGreaterThan(defaultsIndex)
-    }
+test('fresh-system defaults are sequenced before other test files', () => {
+    const files: Array<[string, string]> = [
+        ['project', '/repo/tests/themes.test.ts'],
+        ['project', '/repo/tests/system-defaults.test.ts'],
+        ['project', '/repo/tests/backup.test.ts'],
+    ]
+
+    expect(
+        prioritizeSystemDefaults(files).map(([, filePath]) => filePath)
+    ).toEqual([
+        '/repo/tests/system-defaults.test.ts',
+        '/repo/tests/themes.test.ts',
+        '/repo/tests/backup.test.ts',
+    ])
 })
 
 test.each([undefined, '', 'persistent', 'true', 'Ephemeral'])(
