@@ -622,7 +622,7 @@ This table should be updated whenever `caprover-api` adds or removes a public me
 - [x] PR8 merged ([caprover-e2e PR #26](https://github.com/caprover/caprover-e2e/pull/26))
 - [x] PR9 merged ([caprover-e2e PR #27](https://github.com/caprover/caprover-e2e/pull/27))
 - [x] PR10 merged in `caprover/caprover` ([PR #2492](https://github.com/caprover/caprover/pull/2492))
-- [ ] PR11 merged
+- [x] PR11 merged ([caprover-e2e PR #30](https://github.com/caprover/caprover-e2e/pull/30))
 - [ ] PR12 merged
 - [ ] PR13 merged
 - [ ] PR14 merged
