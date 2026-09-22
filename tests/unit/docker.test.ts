@@ -189,7 +189,7 @@ test('reads node placement, update configuration, task nodes, and container labe
     const service = {
         Spec: {
             TaskTemplate: {
-                Placement: { Constraints: ['node.id==manager-node-id'] },
+                Placement: { Constraints: ['node.id == manager-node-id'] },
                 ContainerSpec: {
                     Labels: { 'com.caprover.e2e.predeploy': 'marker' },
                 },
@@ -234,7 +234,7 @@ test('reads node placement, update configuration, task nodes, and container labe
     )
     await expect(
         inspector.getServicePlacementConstraints('owned-app')
-    ).resolves.toEqual(['node.id==manager-node-id'])
+    ).resolves.toEqual(['node.id == manager-node-id'])
     await expect(inspector.getRunningTaskNodeIds('owned-app')).resolves.toEqual(
         ['manager-node-id']
     )

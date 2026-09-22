@@ -36,7 +36,7 @@ test('node placement, update override, pre-deploy function, and deploy token', a
             async () => {
                 expect(
                     await context.docker.getServicePlacementConstraints(name)
-                ).toContain(`node.id==${managerNodeId}`)
+                ).toContain(`node.id == ${managerNodeId}`)
                 expect(
                     await context.docker.getRunningTaskNodeIds(name)
                 ).toEqual([managerNodeId])
