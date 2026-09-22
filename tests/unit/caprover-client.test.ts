@@ -154,3 +154,48 @@ test('theme operations use the SDK parameters', async () => {
         vi.restoreAllMocks()
     }
 })
+
+test('system read and backup operations use the SDK parameters', async () => {
+    const version = vi
+        .spyOn(CapRoverAPI.prototype, 'getVersionInfo')
+        .mockResolvedValue({} as never)
+    const loadBalancer = vi
+        .spyOn(CapRoverAPI.prototype, 'getLoadBalancerInfo')
+        .mockResolvedValue({} as never)
+    const nodes = vi
+        .spyOn(CapRoverAPI.prototype, 'getAllNodes')
+        .mockResolvedValue({ nodes: [] } as never)
+    const features = vi
+        .spyOn(CapRoverAPI.prototype, 'getProFeaturesState')
+        .mockResolvedValue({ proFeaturesState: {} } as never)
+    const configs = vi
+        .spyOn(CapRoverAPI.prototype, 'getProConfigs')
+        .mockResolvedValue({ proConfigs: { alerts: [] } } as never)
+    const backup = vi
+        .spyOn(CapRoverAPI.prototype, 'createBackup')
+        .mockResolvedValue({ downloadToken: 'token' })
+    const client = new CapRoverClient('https://example.test', 'password')
+    try {
+        await client.getVersionInfo()
+        await client.getLoadBalancerInfo()
+        await client.getAllNodes()
+        await client.getProFeaturesState()
+        await client.getProConfigs()
+        await expect(client.createBackup()).resolves.toEqual({
+            downloadToken: 'token',
+        })
+
+        for (const spy of [
+            version,
+            loadBalancer,
+            nodes,
+            features,
+            configs,
+            backup,
+        ])
+            expect(spy).toHaveBeenCalledExactlyOnceWith()
+    } finally {
+        client.destroy()
+        vi.restoreAllMocks()
+    }
+})

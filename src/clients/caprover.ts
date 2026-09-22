@@ -22,6 +22,15 @@ interface ServerInfo {
 type Theme = NonNullable<
     Awaited<ReturnType<CapRoverAPI['getAllThemes']>>['themes']
 >[number]
+type VersionInfo = Awaited<ReturnType<CapRoverAPI['getVersionInfo']>>
+type LoadBalancerInfo = Awaited<ReturnType<CapRoverAPI['getLoadBalancerInfo']>>
+type NodeInfo = Awaited<ReturnType<CapRoverAPI['getAllNodes']>>['nodes'][number]
+type ProFeaturesState = Awaited<
+    ReturnType<CapRoverAPI['getProFeaturesState']>
+>['proFeaturesState']
+type ProConfigs = Awaited<
+    ReturnType<CapRoverAPI['getProConfigs']>
+>['proConfigs']
 
 const API_TIMEOUT_MS = 30_000
 const DEPLOYMENT_TIMEOUT_MS = 90_000
@@ -51,6 +60,42 @@ export class CapRoverClient {
             () => this.api.getCaptainInfo(),
             'retrieving CapRover server information'
         )
+    }
+
+    getVersionInfo(): Promise<VersionInfo> {
+        return this.request(
+            () => this.api.getVersionInfo(),
+            'retrieving CapRover version information'
+        )
+    }
+
+    getLoadBalancerInfo(): Promise<LoadBalancerInfo> {
+        return this.request(
+            () => this.api.getLoadBalancerInfo(),
+            'retrieving load-balancer information'
+        )
+    }
+
+    getAllNodes(): Promise<{ nodes: NodeInfo[] }> {
+        return this.request(() => this.api.getAllNodes(), 'listing Swarm nodes')
+    }
+
+    getProFeaturesState(): Promise<ProFeaturesState> {
+        return this.request(
+            () => this.api.getProFeaturesState(),
+            'retrieving Pro feature state'
+        ).then((response) => response.proFeaturesState)
+    }
+
+    getProConfigs(): Promise<ProConfigs> {
+        return this.request(
+            () => this.api.getProConfigs(),
+            'retrieving Pro configuration'
+        ).then((response) => response.proConfigs)
+    }
+
+    createBackup(): Promise<{ downloadToken: string }> {
+        return this.request(() => this.api.createBackup(), 'creating backup')
     }
 
     getAllThemes(): Promise<{ themes: Theme[] | undefined }> {
@@ -297,4 +342,12 @@ export class CapRoverClient {
     }
 }
 
-export type { AppDefinition, Theme }
+export type {
+    AppDefinition,
+    LoadBalancerInfo,
+    NodeInfo,
+    ProConfigs,
+    ProFeaturesState,
+    Theme,
+    VersionInfo,
+}

@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest'
+import { prioritizeSystemDefaults } from '../../src/test-sequencer'
 import {
     coreFiles,
     destructiveFiles,
@@ -31,6 +32,22 @@ test('ephemeral default adds only ordinary destructive files', () => {
     ).toBe(false)
     const files = [...smokeFiles, ...coreFiles, ...destructiveFiles]
     expect(new Set(files).size).toBe(files.length)
+})
+
+test('fresh-system defaults are sequenced before other test files', () => {
+    const files = [
+        { moduleId: '/repo/tests/themes.test.ts' },
+        { moduleId: '/repo/tests/system-defaults.test.ts' },
+        { moduleId: '/repo/tests/backup.test.ts' },
+    ]
+
+    expect(
+        prioritizeSystemDefaults(files).map((spec) => spec.moduleId)
+    ).toEqual([
+        '/repo/tests/system-defaults.test.ts',
+        '/repo/tests/themes.test.ts',
+        '/repo/tests/backup.test.ts',
+    ])
 })
 
 test.each([undefined, '', 'persistent', 'true', 'Ephemeral'])(

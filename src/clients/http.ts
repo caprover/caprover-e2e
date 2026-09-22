@@ -7,6 +7,13 @@ export interface HttpResult {
     headers: Headers
 }
 
+export interface BinaryHttpResult {
+    status: number
+    body: Buffer
+    finalUrl: string
+    headers: Headers
+}
+
 export interface HttpRequestOptions {
     headers?: HeadersInit
     redirect?: RequestRedirect
@@ -28,6 +35,24 @@ export class HttpClient {
         return {
             status: response.status,
             body: await response.text(),
+            finalUrl: response.url,
+            headers: response.headers,
+        }
+    }
+
+    async getBinary(
+        url: string,
+        options: HttpRequestOptions = {}
+    ): Promise<BinaryHttpResult> {
+        const response = await fetch(url, {
+            headers: options.headers,
+            redirect: options.redirect ?? 'follow',
+            signal: AbortSignal.timeout(this.requestTimeoutMs),
+        })
+
+        return {
+            status: response.status,
+            body: Buffer.from(await response.arrayBuffer()),
             finalUrl: response.url,
             headers: response.headers,
         }
