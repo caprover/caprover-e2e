@@ -62,17 +62,23 @@ docker run --rm \\
         const runningImage = imageResult.stdout.trim()
         console.log(`Running CapRover image: ${runningImage}`)
         const digestResult = await ssh.exec(
-            `docker image inspect ${shellQuote(runningImage)} --format '{{.Id}}'`
+            `docker image inspect ${shellQuote(runningImage)} --format '{{join .RepoDigests "\\n"}}'`
         )
-        if (
-            digestResult.exitCode !== 0 ||
-            !/^sha256:[a-f0-9]{64}$/.test(digestResult.stdout.trim())
-        ) {
+        const repository = runningImage
+            .replace(/@sha256:[a-f0-9]{64}$/i, '')
+            .replace(/:[^/:]+$/, '')
+        const resolvedImage = digestResult.stdout
+            .split(/\r?\n/)
+            .map((value) => value.trim())
+            .find(
+                (value) =>
+                    value.startsWith(`${repository}@sha256:`) &&
+                    /^.+@sha256:[a-f0-9]{64}$/i.test(value)
+            )
+        if (digestResult.exitCode !== 0 || !resolvedImage) {
             throw new Error('Unable to resolve running CapRover image digest')
         }
-        console.log(
-            `Resolved running CapRover image digest: ${digestResult.stdout.trim()}`
-        )
+        console.log(`Resolved running CapRover image digest: ${resolvedImage}`)
     } finally {
         ssh.close()
     }

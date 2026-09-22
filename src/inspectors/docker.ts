@@ -195,8 +195,8 @@ export class DockerInspector {
             const protocol = port.Protocol?.toLowerCase()
             const publishMode = port.PublishMode?.toLowerCase()
             if (
-                !Number.isInteger(port.TargetPort) ||
-                !Number.isInteger(port.PublishedPort) ||
+                !isPortNumber(port.TargetPort) ||
+                !isPortNumber(port.PublishedPort) ||
                 (protocol !== 'tcp' && protocol !== 'udp') ||
                 (publishMode !== 'ingress' && publishMode !== 'host')
             ) {
@@ -487,4 +487,13 @@ function parseJson<T>(value: string, description: string): T {
 function environmentKey(entry: string): string {
     const separatorIndex = entry.indexOf('=')
     return separatorIndex < 0 ? entry : entry.slice(0, separatorIndex)
+}
+
+function isPortNumber(value: unknown): value is number {
+    return (
+        typeof value === 'number' &&
+        Number.isInteger(value) &&
+        value >= 1 &&
+        value <= 65_535
+    )
 }

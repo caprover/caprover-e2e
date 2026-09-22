@@ -198,6 +198,8 @@ function normalizePort(mapping: {
 function tcpEcho(host: string, port: number, marker: string): Promise<void> {
     return new Promise((resolve, reject) => {
         const socket = net.connect({ host, port })
+        const expected = Buffer.from(marker)
+        let received = Buffer.alloc(0)
         let settled = false
         const timeout = setTimeout(
             () => finish(new Error('TCP echo timed out')),
@@ -215,7 +217,17 @@ function tcpEcho(host: string, port: number, marker: string): Promise<void> {
 
         socket.once('connect', () => socket.write(marker))
         socket.on('data', (data) => {
-            if (data.toString() !== marker) {
+            if (received.length + data.length > expected.length) {
+                finish(
+                    new Error(
+                        `TCP echo returned an unexpected payload on port ${port}`
+                    )
+                )
+                return
+            }
+            received = Buffer.concat([received, data])
+            if (received.length < expected.length) return
+            if (!received.equals(expected)) {
                 finish(
                     new Error(
                         `TCP echo returned an unexpected payload on port ${port}`
