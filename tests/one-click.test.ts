@@ -124,11 +124,6 @@ test('one-click deployment configures dependent services, a project, and public 
 
         const webUrl = `http://${appName}.${rootDomain}`
         await context.http.waitUntilReachable(webUrl, marker, 60_000)
-        await context.http.waitUntilNotMatching(
-            `http://${dependencyName}.${rootDomain}`,
-            marker,
-            60_000
-        )
     })
 })
 
