@@ -32,3 +32,22 @@ describe('HttpClient', () => {
         )
     })
 })
+
+test('getBinary preserves response bytes', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = vi.fn().mockResolvedValue(
+        new Response(new Uint8Array([0, 255, 10]), {
+            status: 200,
+            headers: { 'content-type': 'application/x-tar' },
+        })
+    )
+    try {
+        const response = await new HttpClient().getBinary(
+            'https://example.test'
+        )
+        expect(response.body).toEqual(Buffer.from([0, 255, 10]))
+        expect(response.headers.get('content-type')).toBe('application/x-tar')
+    } finally {
+        globalThis.fetch = originalFetch
+    }
+})
