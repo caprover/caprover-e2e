@@ -22,12 +22,14 @@ export class RawApiClient {
     async request<T = unknown>(
         method: 'GET' | 'POST' | 'PATCH',
         path: string,
-        body?: unknown
+        body?: unknown,
+        additionalHeaders: Record<string, string> = {}
     ): Promise<ApiEnvelope<T>> {
         const multipart = body instanceof FormData
         const response = await fetch(`${this.baseUrl}/api/v2${path}`, {
             method,
             headers: {
+                ...additionalHeaders,
                 'x-namespace': 'captain',
                 ...(multipart ? {} : { 'Content-Type': 'application/json' }),
                 ...(this.token ? { 'x-captain-auth': this.token } : {}),

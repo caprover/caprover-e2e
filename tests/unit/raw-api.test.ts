@@ -38,3 +38,50 @@ test('JSON API errors retain the server envelope', async () => {
         vi.unstubAllGlobals()
     }
 })
+
+test('additional headers are sent without replacing authenticated API headers', async () => {
+    const fetch = vi
+        .fn()
+        .mockResolvedValueOnce(
+            Response.json({
+                status: 100,
+                description: 'OK',
+                data: { token: 'authenticated-token' },
+            })
+        )
+        .mockResolvedValueOnce(
+            Response.json({ status: 100, description: 'OK' })
+        )
+    vi.stubGlobal('fetch', fetch)
+    const client = new RawApiClient('https://example.test')
+    try {
+        await client.login('password')
+        await client.request(
+            'POST',
+            '/test',
+            {},
+            {
+                'x-captain-app-token': 'app-token',
+                'x-captain-auth': 'untrusted-token',
+                'x-namespace': 'untrusted-namespace',
+            }
+        )
+
+        expect(fetch).toHaveBeenLastCalledWith(
+            'https://example.test/api/v2/test',
+            expect.objectContaining({
+                headers: expect.objectContaining({
+                    'x-captain-app-token': 'app-token',
+                    'x-captain-auth': expect.any(String),
+                    'x-namespace': 'captain',
+                    'Content-Type': 'application/json',
+                }),
+            })
+        )
+        expect(
+            (fetch.mock.calls[1][1] as RequestInit).headers
+        ).not.toMatchObject({ 'x-captain-auth': 'untrusted-token' })
+    } finally {
+        vi.unstubAllGlobals()
+    }
+})
