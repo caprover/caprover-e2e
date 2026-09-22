@@ -13,11 +13,11 @@ export const coreFiles = [
     'tests/one-click.test.ts',
 ]
 export const destructiveFiles = [
+    'tests/system-defaults.test.ts',
     'tests/persistent-storage.test.ts',
     'tests/custom-ports.test.ts',
     'tests/themes.test.ts',
     'tests/backup.test.ts',
-    'tests/system-defaults.test.ts',
     'tests/disk-cleanup.test.ts',
     'tests/system-nginx.test.ts',
     'tests/one-click-repositories.test.ts',
