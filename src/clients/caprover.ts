@@ -31,6 +31,13 @@ type ProFeaturesState = Awaited<
 type ProConfigs = Awaited<
     ReturnType<CapRoverAPI['getProConfigs']>
 >['proConfigs']
+type DiskCleanupSettings = Awaited<
+    ReturnType<CapRoverAPI['getDiskCleanUpSettings']>
+>
+type NginxConfig = Awaited<ReturnType<CapRoverAPI['getNginxConfig']>>
+type UnusedImage = Awaited<
+    ReturnType<CapRoverAPI['getUnusedImages']>
+>['unusedImages'][number]
 
 const API_TIMEOUT_MS = 30_000
 const DEPLOYMENT_TIMEOUT_MS = 90_000
@@ -96,6 +103,53 @@ export class CapRoverClient {
 
     createBackup(): Promise<{ downloadToken: string }> {
         return this.request(() => this.api.createBackup(), 'creating backup')
+    }
+
+    getDiskCleanupSettings(): Promise<DiskCleanupSettings> {
+        return this.request(
+            () => this.api.getDiskCleanUpSettings(),
+            'retrieving disk-cleanup settings'
+        )
+    }
+
+    setDiskCleanupSettings(settings: DiskCleanupSettings): Promise<void> {
+        return this.request(
+            () =>
+                this.api.setDiskCleanUpSettings(
+                    settings.mostRecentLimit,
+                    settings.cronSchedule,
+                    settings.timezone
+                ),
+            'updating disk-cleanup settings'
+        )
+    }
+
+    getUnusedImages(mostRecentLimit: number): Promise<UnusedImage[]> {
+        return this.request(
+            () => this.api.getUnusedImages(mostRecentLimit),
+            'listing unused Docker images'
+        ).then((response) => response.unusedImages)
+    }
+
+    deleteImages(imageIds: string[]): Promise<void> {
+        return this.request(
+            () => this.api.deleteImages(imageIds),
+            'deleting owned Docker images'
+        )
+    }
+
+    getNginxConfig(): Promise<NginxConfig> {
+        return this.request(
+            () => this.api.getNginxConfig(),
+            'retrieving global Nginx configuration'
+        )
+    }
+
+    setNginxConfig(customBase: string, customCaptain: string): Promise<void> {
+        return this.request(
+            () => this.api.setNginxConfig(customBase, customCaptain),
+            'updating global Nginx configuration'
+        )
     }
 
     getAllThemes(): Promise<{ themes: Theme[] | undefined }> {
@@ -344,10 +398,13 @@ export class CapRoverClient {
 
 export type {
     AppDefinition,
+    DiskCleanupSettings,
     LoadBalancerInfo,
+    NginxConfig,
     NodeInfo,
     ProConfigs,
     ProFeaturesState,
     Theme,
+    UnusedImage,
     VersionInfo,
 }
