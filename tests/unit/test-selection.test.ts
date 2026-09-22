@@ -33,6 +33,24 @@ test('ephemeral default adds only ordinary destructive files', () => {
     expect(new Set(files).size).toBe(files.length)
 })
 
+test('fresh-system defaults run before tests that mutate global state', () => {
+    const defaultsIndex = destructiveFiles.indexOf(
+        'tests/system-defaults.test.ts'
+    )
+    expect(defaultsIndex).toBeGreaterThanOrEqual(0)
+    for (const file of [
+        'tests/themes.test.ts',
+        'tests/backup.test.ts',
+        'tests/disk-cleanup.test.ts',
+        'tests/system-nginx.test.ts',
+        'tests/registries.test.ts',
+        'tests/goaccess.test.ts',
+        'tests/netdata.test.ts',
+    ]) {
+        expect(destructiveFiles.indexOf(file)).toBeGreaterThan(defaultsIndex)
+    }
+})
+
 test.each([undefined, '', 'persistent', 'true', 'Ephemeral'])(
     'rejects destructive selection and direct guard with %s',
     (value) => {
