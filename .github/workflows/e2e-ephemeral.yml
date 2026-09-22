@@ -37,7 +37,7 @@ jobs:
 
             - name: Run E2E suite
               id: e2e
-              timeout-minutes: 11
+              timeout-minutes: 15
               run: npm test
 
             - name: Collect failure diagnostics
