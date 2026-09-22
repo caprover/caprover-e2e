@@ -250,3 +250,40 @@ test('reads node placement, update configuration, task nodes, and container labe
         'com.caprover.e2e.predeploy': 'marker',
     })
 })
+
+test('lists node IDs before inspecting the exact returned nodes', async () => {
+    const nodeId = 'abcdefghijklmnopqrstuvwxy'
+    const node = { ID: nodeId, Spec: { Role: 'manager' } }
+    const exec = vi.fn(async (command: string) => {
+        if (command === 'docker node ls --quiet') {
+            return { stdout: `${nodeId}\n`, stderr: '', exitCode: 0 }
+        }
+        if (command === `docker node inspect '${nodeId}'`) {
+            return {
+                stdout: JSON.stringify([node]),
+                stderr: '',
+                exitCode: 0,
+            }
+        }
+        throw new Error(`Unexpected Docker command: ${command}`)
+    })
+    const inspector = new DockerInspector({ exec } as unknown as SshClient)
+
+    await expect(inspector.getNodes()).resolves.toEqual([node])
+    expect(exec).toHaveBeenNthCalledWith(1, 'docker node ls --quiet')
+    expect(exec).toHaveBeenNthCalledWith(2, `docker node inspect '${nodeId}'`)
+})
+
+test('rejects unexpected Docker node IDs before inspection', async () => {
+    const exec = vi.fn().mockResolvedValue({
+        stdout: 'not a node ID\n',
+        stderr: '',
+        exitCode: 0,
+    })
+    const inspector = new DockerInspector({ exec } as unknown as SshClient)
+
+    await expect(inspector.getNodes()).rejects.toThrow(
+        'Docker returned an invalid node ID'
+    )
+    expect(exec).toHaveBeenCalledExactlyOnceWith('docker node ls --quiet')
+})
