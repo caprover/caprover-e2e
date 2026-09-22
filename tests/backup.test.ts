@@ -32,6 +32,7 @@ test('backup download is inspectable, contains owned configuration, and is one-t
         const invalid = await context.http.getBinary(
             backupUrl(`${downloadToken}x`)
         )
+        expect(invalid.status).toBe(200)
         expect(isTarArchive(invalid)).toBe(false)
         expect(parseEnvelopeStatus(invalid.body)).toBe(1106)
 
@@ -51,6 +52,7 @@ test('backup download is inspectable, contains owned configuration, and is one-t
             const entries = await tarList(archivePath)
             expect(entries).toContain('meta/backup.json')
             expect(entries).toContain('data/config-captain.json')
+            expect(entries).not.toContain('data/data/config-captain.json')
 
             const meta = JSON.parse(
                 await tarRead(archivePath, 'meta/backup.json')
@@ -80,7 +82,7 @@ test('backup download is inspectable, contains owned configuration, and is one-t
             async () => {
                 const repeated = await context.http.getBinary(downloadUrl)
                 expect(isTarArchive(repeated)).toBe(false)
-                expect(repeated.status).toBeGreaterThan(0)
+                expect(repeated.status).toBe(404)
             },
             { description: 'one-time backup download to become unavailable' }
         )
