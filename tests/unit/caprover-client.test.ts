@@ -116,3 +116,41 @@ test('custom-domain operations use the SDK parameters', async () => {
         vi.restoreAllMocks()
     }
 })
+
+test('theme operations use the SDK parameters', async () => {
+    const themes = vi
+        .spyOn(CapRoverAPI.prototype, 'getAllThemes')
+        .mockResolvedValue({ themes: [] })
+    const current = vi
+        .spyOn(CapRoverAPI.prototype, 'getCurrentTheme')
+        .mockResolvedValue({ theme: undefined } as never)
+    const save = vi
+        .spyOn(CapRoverAPI.prototype, 'saveTheme')
+        .mockResolvedValue({})
+    const setCurrent = vi
+        .spyOn(CapRoverAPI.prototype, 'setCurrentTheme')
+        .mockResolvedValue({})
+    const remove = vi
+        .spyOn(CapRoverAPI.prototype, 'deleteTheme')
+        .mockResolvedValue({})
+    const client = new CapRoverClient('https://example.test', 'password')
+    const theme = { name: 'custom', content: 'content', extra: 'extra' }
+    try {
+        await expect(client.getAllThemes()).resolves.toEqual({ themes: [] })
+        await expect(client.getCurrentTheme()).resolves.toEqual({
+            theme: undefined,
+        })
+        await client.saveTheme('', theme)
+        await client.setCurrentTheme(theme.name)
+        await client.deleteTheme(theme.name)
+
+        expect(themes).toHaveBeenCalledExactlyOnceWith()
+        expect(current).toHaveBeenCalledExactlyOnceWith()
+        expect(save).toHaveBeenCalledExactlyOnceWith('', theme)
+        expect(setCurrent).toHaveBeenCalledExactlyOnceWith(theme.name)
+        expect(remove).toHaveBeenCalledExactlyOnceWith(theme.name)
+    } finally {
+        client.destroy()
+        vi.restoreAllMocks()
+    }
+})
