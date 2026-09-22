@@ -2,18 +2,18 @@ import { BaseSequencer } from 'vitest/node'
 
 const SYSTEM_DEFAULTS_SUFFIX = '/tests/system-defaults.test.ts'
 
-export function prioritizeSystemDefaults<T extends readonly [unknown, string]>(
+export function prioritizeSystemDefaults<T extends { moduleId: string }>(
     files: T[]
 ): T[] {
     const defaults: T[] = []
     const rest: T[] = []
 
-    for (const entry of files) {
-        const file = entry[1].replaceAll('\\', '/')
+    for (const spec of files) {
+        const file = spec.moduleId.replaceAll('\\', '/')
         if (file.endsWith(SYSTEM_DEFAULTS_SUFFIX)) {
-            defaults.push(entry)
+            defaults.push(spec)
         } else {
-            rest.push(entry)
+            rest.push(spec)
         }
     }
 
