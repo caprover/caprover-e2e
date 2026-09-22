@@ -199,3 +199,66 @@ test('system read and backup operations use the SDK parameters', async () => {
         vi.restoreAllMocks()
     }
 })
+
+test('disk-cleanup and global Nginx operations use the SDK parameters', async () => {
+    const cleanupSettings = {
+        mostRecentLimit: 2,
+        cronSchedule: '0 3 * * *',
+        timezone: 'UTC',
+    }
+    const nginxConfig = {
+        baseConfig: { byDefault: 'base-default', customValue: 'base-custom' },
+        captainConfig: {
+            byDefault: 'captain-default',
+            customValue: 'captain-custom',
+        },
+    }
+    const getCleanup = vi
+        .spyOn(CapRoverAPI.prototype, 'getDiskCleanUpSettings')
+        .mockResolvedValue(cleanupSettings)
+    const setCleanup = vi
+        .spyOn(CapRoverAPI.prototype, 'setDiskCleanUpSettings')
+        .mockResolvedValue(undefined)
+    const getUnused = vi
+        .spyOn(CapRoverAPI.prototype, 'getUnusedImages')
+        .mockResolvedValue({ unusedImages: [] })
+    const deleteImages = vi
+        .spyOn(CapRoverAPI.prototype, 'deleteImages')
+        .mockResolvedValue(undefined)
+    const getNginx = vi
+        .spyOn(CapRoverAPI.prototype, 'getNginxConfig')
+        .mockResolvedValue(nginxConfig)
+    const setNginx = vi
+        .spyOn(CapRoverAPI.prototype, 'setNginxConfig')
+        .mockResolvedValue(undefined)
+    const client = new CapRoverClient('https://example.test', 'password')
+    try {
+        await expect(client.getDiskCleanupSettings()).resolves.toEqual(
+            cleanupSettings
+        )
+        await client.setDiskCleanupSettings(cleanupSettings)
+        await expect(client.getUnusedImages(0)).resolves.toEqual({
+            unusedImages: [],
+        })
+        await client.deleteImages(['sha256:owned'])
+        await expect(client.getNginxConfig()).resolves.toEqual(nginxConfig)
+        await client.setNginxConfig('base-custom', 'captain-custom')
+
+        expect(getCleanup).toHaveBeenCalledExactlyOnceWith()
+        expect(setCleanup).toHaveBeenCalledExactlyOnceWith(
+            2,
+            '0 3 * * *',
+            'UTC'
+        )
+        expect(getUnused).toHaveBeenCalledExactlyOnceWith(0)
+        expect(deleteImages).toHaveBeenCalledExactlyOnceWith(['sha256:owned'])
+        expect(getNginx).toHaveBeenCalledExactlyOnceWith()
+        expect(setNginx).toHaveBeenCalledExactlyOnceWith(
+            'base-custom',
+            'captain-custom'
+        )
+    } finally {
+        client.destroy()
+        vi.restoreAllMocks()
+    }
+})
