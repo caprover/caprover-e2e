@@ -88,7 +88,7 @@ test('backup download is inspectable, contains owned configuration, and is one-t
 })
 
 function backupUrl(downloadToken: string): string {
-    const url = new URL('/api/v2/download', loadConfig().caproverUrl)
+    const url = new URL('/api/v2/downloads/', loadConfig().caproverUrl)
     url.searchParams.set('namespace', 'captain')
     url.searchParams.set('downloadToken', downloadToken)
     return url.toString()
