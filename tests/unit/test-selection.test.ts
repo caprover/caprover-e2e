@@ -35,14 +35,14 @@ test('ephemeral default adds only ordinary destructive files', () => {
 })
 
 test('fresh-system defaults are sequenced before other test files', () => {
-    const files: Array<[string, string]> = [
-        ['project', '/repo/tests/themes.test.ts'],
-        ['project', '/repo/tests/system-defaults.test.ts'],
-        ['project', '/repo/tests/backup.test.ts'],
+    const files = [
+        { moduleId: '/repo/tests/themes.test.ts' },
+        { moduleId: '/repo/tests/system-defaults.test.ts' },
+        { moduleId: '/repo/tests/backup.test.ts' },
     ]
 
     expect(
-        prioritizeSystemDefaults(files).map(([, filePath]) => filePath)
+        prioritizeSystemDefaults(files).map((spec) => spec.moduleId)
     ).toEqual([
         '/repo/tests/system-defaults.test.ts',
         '/repo/tests/themes.test.ts',
