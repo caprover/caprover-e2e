@@ -262,3 +262,84 @@ test('disk-cleanup and global Nginx operations use the SDK parameters', async ()
         vi.restoreAllMocks()
     }
 })
+
+test('one-click operations use the SDK parameters and always receive a values array', async () => {
+    const template = {
+        captainVersion: 4,
+        services: {},
+        caproverOneClickApp: {
+            variables: [],
+            instructions: { start: '', end: '' },
+            displayName: 'fixture',
+        },
+    }
+    const values = [{ key: '$$cap_appname', value: 'fixture-app' }]
+    const apps = vi
+        .spyOn(CapRoverAPI.prototype, 'getAllOneClickApps')
+        .mockResolvedValue({ oneClickApps: [] })
+    const definition = vi
+        .spyOn(CapRoverAPI.prototype, 'getOneClickAppByName')
+        .mockResolvedValue({ appTemplate: template } as never)
+    const repositories = vi
+        .spyOn(CapRoverAPI.prototype, 'getAllOneClickAppRepos')
+        .mockResolvedValue({ urls: [] })
+    const insert = vi
+        .spyOn(CapRoverAPI.prototype, 'addNewCustomOneClickRepo')
+        .mockResolvedValue(undefined)
+    const remove = vi
+        .spyOn(CapRoverAPI.prototype, 'deleteCustomOneClickRepo')
+        .mockResolvedValue(undefined)
+    const start = vi
+        .spyOn(CapRoverAPI.prototype, 'startOneClickAppDeploy')
+        .mockResolvedValue({ jobId: 'deploy-test' })
+    const progress = vi
+        .spyOn(CapRoverAPI.prototype, 'getOneClickAppDeployProgress')
+        .mockResolvedValue({
+            steps: ['done'],
+            currentStep: 1,
+            error: '',
+            successMessage: 'done',
+        })
+    const client = new CapRoverClient('https://example.test', 'password')
+    try {
+        await expect(client.getAllOneClickApps()).resolves.toEqual({
+            oneClickApps: [],
+        })
+        await expect(
+            client.getOneClickAppByName('fixture', 'https://repo.example')
+        ).resolves.toEqual({ appTemplate: template })
+        await expect(client.getAllOneClickAppRepos()).resolves.toEqual({
+            urls: [],
+        })
+        await client.addCustomOneClickRepo('https://repo.example')
+        await client.deleteCustomOneClickRepo('https://repo.example')
+        await expect(
+            client.startOneClickAppDeploy(
+                template,
+                values,
+                'TEMPLATE_ONE_CLICK'
+            )
+        ).resolves.toEqual({ jobId: 'deploy-test' })
+        await expect(
+            client.getOneClickAppDeployProgress('deploy-test')
+        ).resolves.toMatchObject({ currentStep: 1 })
+
+        expect(apps).toHaveBeenCalledExactlyOnceWith()
+        expect(definition).toHaveBeenCalledExactlyOnceWith(
+            'fixture',
+            'https://repo.example'
+        )
+        expect(repositories).toHaveBeenCalledExactlyOnceWith()
+        expect(insert).toHaveBeenCalledExactlyOnceWith('https://repo.example')
+        expect(remove).toHaveBeenCalledExactlyOnceWith('https://repo.example')
+        expect(start).toHaveBeenCalledExactlyOnceWith(
+            template,
+            values,
+            'TEMPLATE_ONE_CLICK'
+        )
+        expect(progress).toHaveBeenCalledExactlyOnceWith('deploy-test')
+    } finally {
+        client.destroy()
+        vi.restoreAllMocks()
+    }
+})
