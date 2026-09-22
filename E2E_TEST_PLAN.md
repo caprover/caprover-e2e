@@ -370,61 +370,61 @@ Tier: core.
 
 Create `tests/themes.test.ts`.
 
-Tier: destructive.
+Tier: destructive. Implemented and merged in [PR #32](https://github.com/caprover/caprover-e2e/pull/32).
 
 ### SDK prerequisite
 
-- [ ] Verify `caprover-api.saveTheme()` sends `extra` and `headEmbed` along with `oldName`, `name`, and `content`; fix the payload if still missing.
-- [ ] Add or confirm SDK unit coverage for supplied and omitted optional fields.
-- [ ] Link the SDK fix and consume a published version containing it before implementing the field round-trip assertions.
+- [x] Verify `caprover-api.saveTheme()` sends `extra` and `headEmbed` along with `oldName`, `name`, and `content`; fix the payload if still missing.
+- [x] Add or confirm SDK unit coverage for supplied and omitted optional fields.
+- [x] Link the SDK fix ([caprover-api PR #10](https://github.com/caprover/caprover-api/pull/10)) and consume published `caprover-api@0.0.23` before implementing the field round-trip assertions.
 
 ### E2E coverage
 
-- [ ] Save the original current theme.
-- [ ] List built-in themes.
-- [ ] Create a custom theme with content, extra data, and head embed through the SDK.
-- [ ] Verify all three fields round-trip through the API.
-- [ ] Verify it becomes current.
-- [ ] Retrieve it through the public unauthenticated endpoint.
-- [ ] Rename or update it.
-- [ ] Select another theme.
-- [ ] Verify deleting the active custom theme clears the current theme.
-- [ ] Reject editing or deleting a built-in theme.
-- [ ] Reject selecting a missing theme.
-- [ ] Restore the original theme, including an originally empty selection.
+- [x] Save the original current theme.
+- [x] List built-in themes.
+- [x] Create a custom theme with content, extra data, and head embed through the SDK.
+- [x] Verify all three fields round-trip through the API.
+- [x] Verify it becomes current.
+- [x] Retrieve it through the public unauthenticated endpoint.
+- [x] Rename or update it.
+- [x] Select another theme.
+- [x] Verify deleting the active custom theme clears the current theme.
+- [x] Reject editing or deleting a built-in theme.
+- [x] Reject selecting a missing theme.
+- [x] Restore the original theme, including an originally empty selection.
 
 ## PR14: Add backup and system-read tests
 
 Create `tests/backup.test.ts` (Tier: destructive), `tests/system-info.test.ts` (Tier: core), and `tests/system-defaults.test.ts` (Tier: destructive, ephemeral-only).
 
-Backup creation/download touches server-wide backup state; keep it ephemeral.
+Backup creation/download touches server-wide backup state; keep it ephemeral. Implemented and merged in [PR #33](https://github.com/caprover/caprover-e2e/pull/33).
 
 ### Backup
 
-- [ ] Add binary HTTP response support for archive downloads.
-- [ ] Create identifiable test configuration.
-- [ ] Request a backup.
-- [ ] Download it as binary through the one-time endpoint.
-- [ ] Validate the tar archive and expected file structure.
-- [ ] Inspect selected fields without logging the archive or secrets.
-- [ ] Verify an invalid token fails.
-- [ ] Verify a second download with the same token fails after the backup file is removed.
+- [x] Add binary HTTP response support for archive downloads.
+- [x] Create identifiable test configuration.
+- [x] Request a backup.
+- [x] Download it as binary through the one-time endpoint.
+- [x] Validate the tar archive and expected file structure.
+- [x] Inspect selected fields without logging the archive or secrets.
+- [x] Verify an invalid token fails.
+- [x] Verify a second download with the same token fails after the backup file is removed.
 
 ### System reads (core)
 
-- [ ] Test captain info, version info, load-balancer info, and node listing.
-- [ ] Verify root-domain and SSL fields are internally consistent with the server under test; existing servers may have different valid settings.
-- [ ] Verify version fields and non-negative load-balancer counters.
-- [ ] Generate traffic and verify cumulative request counters increase.
-- [ ] Verify API node identity and manager/leader information against Docker over SSH without assuming a single-node cluster.
-- [ ] Verify the current Pro feature state and configuration can be read without changing them or assuming a free installation.
+- [x] Test captain info, version info, load-balancer info, and node listing.
+- [x] Verify root-domain and SSL fields are internally consistent with the server under test; existing servers may have different valid settings.
+- [x] Verify version fields and non-negative load-balancer counters.
+- [x] Generate traffic and verify cumulative request counters increase.
+- [x] Verify API node identity and manager/leader information against Docker over SSH without assuming a single-node cluster.
+- [x] Verify the current Pro feature state and configuration can be read without changing them or assuming a free installation.
 
 ### Fresh-install defaults (ephemeral-only)
 
-- [ ] Require the ephemeral guard and run before any global-setting tests that could change the expected defaults.
-- [ ] Verify root-domain and SSL state matches the provisioning result.
-- [ ] Verify the freshly provisioned single-node environment contains one leader manager.
-- [ ] Verify the default free Pro feature state and default Pro configuration.
+- [x] Require the ephemeral guard and run before any global-setting tests that could change the expected defaults.
+- [x] Verify root-domain and SSL state matches the provisioning result.
+- [x] Verify the freshly provisioned single-node environment contains one leader manager.
+- [x] Verify the default free Pro feature state and default Pro configuration.
 
 ## PR15: Add destructive disk-cleanup and global Nginx tests
 
@@ -624,8 +624,8 @@ This table should be updated whenever `caprover-api` adds or removes a public me
 - [x] PR10 merged in `caprover/caprover` ([PR #2492](https://github.com/caprover/caprover/pull/2492))
 - [x] PR11 merged ([caprover-e2e PR #30](https://github.com/caprover/caprover-e2e/pull/30))
 - [x] PR12 merged ([caprover-e2e PR #31](https://github.com/caprover/caprover-e2e/pull/31))
-- [ ] PR13 merged
-- [ ] PR14 merged
+- [x] PR13 merged
+- [x] PR14 merged
 - [ ] PR15 merged
 - [ ] PR16 merged
 - [ ] PR17 merged
