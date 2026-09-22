@@ -430,7 +430,7 @@ Backup creation/download touches server-wide backup state; keep it ephemeral. Im
 
 Create `tests/disk-cleanup.test.ts` and `tests/system-nginx.test.ts`.
 
-Tier: destructive for both files. Require ephemeral mode.
+Tier: destructive for both files. Require ephemeral mode. Implemented and merged in [PR #35](https://github.com/caprover/caprover-e2e/pull/35).
 
 ### Disk cleanup
 
@@ -624,9 +624,9 @@ This table should be updated whenever `caprover-api` adds or removes a public me
 - [x] PR10 merged in `caprover/caprover` ([PR #2492](https://github.com/caprover/caprover/pull/2492))
 - [x] PR11 merged ([caprover-e2e PR #30](https://github.com/caprover/caprover-e2e/pull/30))
 - [x] PR12 merged ([caprover-e2e PR #31](https://github.com/caprover/caprover-e2e/pull/31))
-- [x] PR13 merged
-- [x] PR14 merged
-- [ ] PR15 merged
+- [x] PR13 merged ([caprover-e2e PR #32](https://github.com/caprover/caprover-e2e/pull/32))
+- [x] PR14 merged ([caprover-e2e PR #33](https://github.com/caprover/caprover-e2e/pull/33))
+- [x] PR15 merged ([caprover-e2e PR #35](https://github.com/caprover/caprover-e2e/pull/35))
 - [ ] PR16 merged
 - [ ] PR17 merged
 - [ ] PR18a Git webhook workflow implemented or linked to a follow-up issue
