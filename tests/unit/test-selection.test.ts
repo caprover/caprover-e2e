@@ -3,6 +3,7 @@ import { prioritizeSystemDefaults } from '../../src/test-sequencer'
 import {
     coreFiles,
     destructiveFiles,
+    gitWebhookFiles,
     requireEphemeral,
     selectTests,
     smokeFiles,
@@ -32,6 +33,7 @@ test('ephemeral default adds only ordinary destructive files', () => {
     ).toBe(false)
     const files = [...smokeFiles, ...coreFiles, ...destructiveFiles]
     expect(new Set(files).size).toBe(files.length)
+    expect(gitWebhookFiles).toEqual(['tests/specialized/git-webhooks.test.ts'])
 })
 
 test('fresh-system defaults are sequenced before other test files', () => {
@@ -58,5 +60,16 @@ test.each([undefined, '', 'persistent', 'true', 'Ephemeral'])(
             'require CAPROVER_E2E_ENVIRONMENT=ephemeral'
         )
         expect(() => requireEphemeral(environment)).toThrow()
+        expect(() => selectTests('git-webhooks', environment)).toThrow(
+            'require CAPROVER_E2E_ENVIRONMENT=ephemeral'
+        )
     }
 )
+
+test('specialized Git webhooks select only their own file', () => {
+    expect(
+        selectTests('git-webhooks', {
+            CAPROVER_E2E_ENVIRONMENT: 'ephemeral',
+        })
+    ).toEqual(gitWebhookFiles)
+})

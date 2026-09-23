@@ -22,6 +22,7 @@
         "test:core": "vitest run --mode core",
         "test:nginx-reload-race": "vitest run --mode nginx-reload-race",
         "test:destructive": "vitest run --mode destructive",
+        "test:git-webhooks": "vitest run --mode git-webhooks",
         "test:all": "vitest run --mode all"
     },
     "dependencies": {

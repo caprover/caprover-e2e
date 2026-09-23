@@ -1,5 +1,6 @@
 export const smokeFiles = ['tests/app-lifecycle.test.ts']
 export const nginxReloadRaceFiles = ['tests/nginx-reload-keepalive.test.ts']
+export const gitWebhookFiles = ['tests/specialized/git-webhooks.test.ts']
 export const coreFiles = [
     'tests/authentication.test.ts',
     'tests/app-configuration.test.ts',
@@ -44,6 +45,9 @@ export function selectTests(mode: string, environment = process.env): string[] {
             return coreFiles
         case 'nginx-reload-race':
             return nginxReloadRaceFiles
+        case 'git-webhooks':
+            requireEphemeral(environment)
+            return gitWebhookFiles
         case 'destructive':
             requireEphemeral(environment)
             return destructiveFiles
