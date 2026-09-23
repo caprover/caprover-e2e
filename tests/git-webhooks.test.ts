@@ -1,17 +1,18 @@
 import { setTimeout as delay } from 'node:timers/promises'
 import { expect, test } from 'vitest'
-import { loadConfig } from '../../src/config'
-import { createTestContext, type TestContext } from '../../src/context'
-import { withCleanup } from '../../src/helpers/cleanup'
+import { loadConfig } from '../src/config'
+import { createTestContext, type TestContext } from '../src/context'
+import { withImmediateFailureDiagnostics } from '../src/diagnostics'
+import { withCleanup } from '../src/helpers/cleanup'
 import {
     nextVersion,
     waitForDeployment,
     waitForImage,
     waitForServiceStable,
-} from '../../src/helpers/deployment'
-import { createTestNames } from '../../src/helpers/names'
-import { cleanUpApp } from '../../src/helpers/test-context'
-import { requireEphemeral } from '../../src/test-selection'
+} from '../src/helpers/deployment'
+import { createTestNames } from '../src/helpers/names'
+import { cleanUpApp } from '../src/helpers/test-context'
+import { requireEphemeral } from '../src/test-selection'
 
 // The dedicated private fixture repo contains this one-line captain-definition.
 const FIXTURE_IMAGE =
@@ -35,141 +36,147 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
     const { initialAppName: originalName, renamedAppName: renamedName } =
         createTestNames()
 
-    // Do not use the generic failure diagnostics here. Backend build logs can
-    // contain a Git remote with the HTTPS password or the SSH private key.
     try {
         await context.caprover.login()
         await context.ssh.connect()
         await context.docker.validateEnvironment()
         const { rootDomain } = await context.caprover.getApps()
 
-        await withCleanup(async (cleanup) => {
-            cleanUpApp(context, cleanup, originalName)
-            cleanUpApp(context, cleanup, renamedName)
-            await context.caprover.createApp(originalName)
-            await waitForServiceStable(context, originalName)
+        await withImmediateFailureDiagnostics(context.ssh, config, () =>
+            withCleanup(async (cleanup) => {
+                cleanUpApp(context, cleanup, originalName)
+                cleanUpApp(context, cleanup, renamedName)
+                await context.caprover.createApp(originalName)
+                await waitForServiceStable(context, originalName)
 
-            await context.caprover.patchApp(originalName, {
-                appPushWebhook: {
-                    repoInfo: {
-                        repo: fixture.httpsRepo,
-                        branch: fixture.branch,
-                        user: fixture.user,
-                        password: fixture.password,
+                await context.caprover.patchApp(originalName, {
+                    appPushWebhook: {
+                        repoInfo: {
+                            repo: fixture.httpsRepo,
+                            branch: fixture.branch,
+                            user: fixture.user,
+                            password: fixture.password,
+                        },
                     },
-                },
-            })
-            const httpsToken = await assertRepository(
-                context,
-                originalName,
-                fixture.httpsRepo,
-                fixture.branch,
-                fixture.password,
-                ''
-            )
-
-            // CapRover acknowledges all recognized webhook events before its
-            // asynchronous branch filter and build have finished.
-            const initialVersion = (await context.caprover.getApp(originalName))
-                .deployedVersion
-            expect(
-                await postPush(config.caproverUrl, httpsToken, 'untracked')
-            ).toBe(100)
-            await assertNoBuild(context, originalName, initialVersion)
-
-            expect(
-                await postPush(
-                    config.caproverUrl,
-                    `${httpsToken}invalid`,
-                    fixture.branch
+                })
+                const httpsToken = await assertRepository(
+                    context,
+                    originalName,
+                    fixture.httpsRepo,
+                    fixture.branch,
+                    fixture.password,
+                    ''
                 )
-            ).toBe(1000)
-            await assertNoBuild(context, originalName, initialVersion)
 
-            await triggerAndVerify(
-                context,
-                config.caproverUrl,
-                originalName,
-                httpsToken,
-                fixture,
-                rootDomain
-            )
+                // CapRover acknowledges all recognized webhook events before its
+                // asynchronous branch filter and build have finished.
+                const initialVersion = (
+                    await context.caprover.getApp(originalName)
+                ).deployedVersion
+                expect(
+                    await postPush(config.caproverUrl, httpsToken, 'untracked')
+                ).toBe(100)
+                await assertNoBuild(context, originalName, initialVersion)
 
-            await context.caprover.patchApp(originalName, {
-                appPushWebhook: {
-                    repoInfo: {
-                        repo: fixture.sshRepo,
-                        branch: fixture.branch,
-                        user: '',
-                        password: '',
-                        sshKey: fixture.sshKey,
+                expect(
+                    await postPush(
+                        config.caproverUrl,
+                        `${httpsToken}invalid`,
+                        fixture.branch
+                    )
+                ).toBe(1000)
+                await assertNoBuild(context, originalName, initialVersion)
+
+                await triggerAndVerify(
+                    context,
+                    config.caproverUrl,
+                    originalName,
+                    httpsToken,
+                    fixture,
+                    rootDomain
+                )
+
+                await context.caprover.patchApp(originalName, {
+                    appPushWebhook: {
+                        repoInfo: {
+                            repo: fixture.sshRepo,
+                            branch: fixture.branch,
+                            user: '',
+                            password: '',
+                            sshKey: fixture.sshKey,
+                        },
                     },
-                },
-            })
-            const sshToken = await assertRepository(
-                context,
-                originalName,
-                fixture.sshRepo,
-                fixture.branch,
-                '',
-                fixture.sshKey
-            )
-            expect(sshToken === httpsToken).toBe(true) // Credential changes do not rotate the token.
-            await triggerAndVerify(
-                context,
-                config.caproverUrl,
-                originalName,
-                sshToken,
-                fixture,
-                rootDomain
-            )
+                })
+                const sshToken = await assertRepository(
+                    context,
+                    originalName,
+                    fixture.sshRepo,
+                    fixture.branch,
+                    '',
+                    fixture.sshKey
+                )
+                expect(sshToken === httpsToken).toBe(true) // Credential changes do not rotate the token.
+                await triggerAndVerify(
+                    context,
+                    config.caproverUrl,
+                    originalName,
+                    sshToken,
+                    fixture,
+                    rootDomain
+                )
 
-            await context.caprover.renameApp(originalName, renamedName)
-            await waitForServiceStable(context, renamedName)
-            const renamedToken = await assertRepository(
-                context,
-                renamedName,
-                fixture.sshRepo,
-                fixture.branch,
-                '',
-                fixture.sshKey
-            )
-            expect(renamedToken === sshToken).toBe(false)
-            const renamedVersion = (await context.caprover.getApp(renamedName))
-                .deployedVersion
-            expect(
-                await postPush(config.caproverUrl, sshToken, fixture.branch)
-            ).toBe(1000)
-            await assertNoBuild(context, renamedName, renamedVersion)
-            await triggerAndVerify(
-                context,
-                config.caproverUrl,
-                renamedName,
-                renamedToken,
-                fixture,
-                rootDomain
-            )
+                await context.caprover.renameApp(originalName, renamedName)
+                await waitForServiceStable(context, renamedName)
+                const renamedToken = await assertRepository(
+                    context,
+                    renamedName,
+                    fixture.sshRepo,
+                    fixture.branch,
+                    '',
+                    fixture.sshKey
+                )
+                expect(renamedToken === sshToken).toBe(false)
+                const renamedVersion = (
+                    await context.caprover.getApp(renamedName)
+                ).deployedVersion
+                expect(
+                    await postPush(config.caproverUrl, sshToken, fixture.branch)
+                ).toBe(1000)
+                await assertNoBuild(context, renamedName, renamedVersion)
+                await triggerAndVerify(
+                    context,
+                    config.caproverUrl,
+                    renamedName,
+                    renamedToken,
+                    fixture,
+                    rootDomain
+                )
 
-            await context.caprover.patchApp(renamedName, {
-                appPushWebhook: {},
+                await context.caprover.patchApp(renamedName, {
+                    appPushWebhook: {},
+                })
+                expect(
+                    (await context.caprover.getApp(renamedName)).appPushWebhook
+                ).toBeUndefined()
+                const lastVersion = (await context.caprover.getApp(renamedName))
+                    .deployedVersion
+                // Current backend sends status 100, then catches the missing
+                // repoInfo in the background. Disabling means no new build.
+                expect(
+                    await postPush(
+                        config.caproverUrl,
+                        renamedToken,
+                        fixture.branch
+                    )
+                ).toBe(100)
+                await assertNoBuild(context, renamedName, lastVersion)
             })
-            expect(
-                (await context.caprover.getApp(renamedName)).appPushWebhook
-            ).toBeUndefined()
-            const lastVersion = (await context.caprover.getApp(renamedName))
-                .deployedVersion
-            // Current backend sends status 100, then catches the missing
-            // repoInfo in the background. Disabling means no new build.
-            expect(
-                await postPush(config.caproverUrl, renamedToken, fixture.branch)
-            ).toBe(100)
-            await assertNoBuild(context, renamedName, lastVersion)
-        })
+        )
     } finally {
         context.caprover.destroy()
         context.ssh.close()
     }
-})
+}, 420_000)
 
 function loadGitFixture(environment = process.env): GitFixture {
     const names = [

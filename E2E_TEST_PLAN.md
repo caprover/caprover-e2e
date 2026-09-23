@@ -14,7 +14,7 @@ Confirmed second batch: PR7 through PR9 are merged as [PR #25](https://github.co
 
 - Confirm the existing DigitalOcean, Cloudflare, and SSH provisioning secrets are present and valid in GitHub Actions. Update missing or expired values in GitHub; keep credentials out of this document and PR discussions.
 - Keep the backend custom-port fix (PR10) and SDK prerequisites (PR13 and PR17) as separate repository changes. Link their PRs and the consumed package versions or server images before enabling dependent assertions.
-- Defer specialized prerequisites until their corresponding PR18 follow-up: a dedicated Git test repository and HTTPS/SSH credentials, a dedicated Pro key, approval for an additional droplet, and the pinned upgrade-version pair.
+- Configure the PR18a dedicated Git test repository and HTTPS/SSH credentials before its first full fresh-server run. Defer the dedicated Pro key, approval for an additional droplet, and the pinned upgrade-version pair until their corresponding specialized follow-up.
 - Implement PR18 as five independently reviewable follow-up PRs, tracked below as PR18a through PR18e.
 
 ## First-batch implementation status
@@ -74,7 +74,7 @@ The existing-server workflow should run smoke and core tests. The fresh-server w
 
 Assign every test file to exactly one tier using explicit file lists or non-overlapping patterns. The existing lifecycle file belongs to smoke. Helper unit tests belong to unit. Each feature section below names its E2E files and tiers; mixed-tier PRs use separate files. Core assumes a dedicated test server and may create and delete uniquely owned apps and projects. Volume deletion, host-port changes, and global mutations require destructive mode.
 
-PR18 files belong to destructive and are specialized opt-in suites. Exclude them from the default destructive selection and `test:all`; run each through its dedicated workflow with an ephemeral guard and explicit prerequisites. Missing required configuration in an explicitly selected workflow must fail clearly.
+PR18a belongs to the ordinary destructive tier and runs in the default fresh-server suite after its Git fixture prerequisites are validated before provisioning. PR18b through PR18e are specialized opt-in suites: exclude them from the default destructive selection and `test:all`, and run each through its dedicated workflow with an ephemeral guard and explicit prerequisites. Missing required configuration must fail clearly before provisioning.
 
 ## PR1: Upgrade the API package and add minimal safety foundations
 
@@ -519,15 +519,15 @@ Tier: destructive for all three files. Require ephemeral mode. Implemented and m
 
 Full self-hosted registry build-and-push coverage belongs in the controlled SSL workflow because enabling it requests a real certificate.
 
-## PR18: Add specialized external workflows
+## PR18: Add external-integration coverage
 
-Implement the following five workflows in separate follow-up PRs (PR18a through PR18e). Each has its own prerequisites and completion entry.
+Implement the following five areas in separate follow-up PRs (PR18a through PR18e). Each has its own prerequisites and completion entry.
 
-Tier: destructive, specialized opt-in only. Each workflow provisions its own ephemeral environment and runs only its assigned file. Keep these files under `tests/specialized/` and outside default suite selection.
+Tier: destructive. PR18a joins the default fresh-server suite. PR18b through PR18e remain specialized opt-in workflows that provision their own ephemeral environments and run only their assigned files under `tests/specialized/`.
 
 ### PR18a: Git webhook workflow
 
-File: `tests/specialized/git-webhooks.test.ts`. Tier: destructive (specialized).
+File: `tests/git-webhooks.test.ts`. Tier: destructive. Validate the private Git fixture and both authentication methods before provisioning, then run this file as part of the standard fresh-server suite.
 
 - [ ] Configure a dedicated repository and credentials.
 - [ ] Test HTTPS and SSH repository authentication.

@@ -11,6 +11,13 @@ const MAX_SECTION_OUTPUT = 50_000
 const CAPTAIN_LOG_TAIL_LINES = 200
 const NGINX_LOG_TAIL_LINES = 115
 const DOCKER_EVENT_TAIL_LINES = 75
+const SENSITIVE_ENVIRONMENT_VARIABLES = [
+    'CAPROVER_PASSWORD',
+    'SSH_PRIVATE_KEY',
+    'CAPROVER_E2E_SSH_PRIVATE_KEY',
+    'E2E_GIT_HTTP_PASSWORD',
+    'E2E_GIT_SSH_PRIVATE_KEY',
+] as const
 
 interface SshExecutor {
     exec(command: string, timeoutMs?: number): Promise<SshCommandResult>
@@ -352,7 +359,12 @@ async function runRemoteSection(
         const output = [result.stdout.trim(), result.stderr.trim()]
             .filter(Boolean)
             .join('\n')
-        console.log(clip(output || '(no output)', section.preserveNewestOnClip))
+        console.log(
+            clip(
+                redactSensitiveValues(output || '(no output)'),
+                section.preserveNewestOnClip
+            )
+        )
         if (result.exitCode !== 0)
             console.log(`[exit code: ${result.exitCode}]`)
     } catch (error) {
@@ -400,9 +412,11 @@ function endGroup(): void {
 function formatExecError(error: unknown): string {
     if (!isExecError(error)) return formatError(error)
     return clip(
-        [error.message, error.stdout?.trim(), error.stderr?.trim()]
-            .filter(Boolean)
-            .join(' ')
+        redactSensitiveValues(
+            [error.message, error.stdout?.trim(), error.stderr?.trim()]
+                .filter(Boolean)
+                .join(' ')
+        )
     )
 }
 
@@ -417,7 +431,32 @@ function isExecError(
 }
 
 function formatError(error: unknown): string {
-    return error instanceof Error ? error.message : String(error)
+    return redactSensitiveValues(
+        error instanceof Error ? error.message : String(error)
+    )
+}
+
+export function redactSensitiveValues(
+    value: string,
+    environment: NodeJS.ProcessEnv = process.env
+): string {
+    const secrets = new Set<string>()
+    for (const name of SENSITIVE_ENVIRONMENT_VARIABLES) {
+        const configured = environment[name]
+        if (!configured?.trim()) continue
+        secrets.add(configured)
+        secrets.add(configured.replace(/\\n/g, '\n'))
+        secrets.add(encodeURIComponent(configured))
+        secrets.add(encodeURIComponent(configured.replace(/\\n/g, '\n')))
+    }
+
+    let redacted = value
+    for (const secret of [...secrets]
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length)) {
+        redacted = redacted.replaceAll(secret, '[REDACTED]')
+    }
+    return redacted.replace(/([?&]token=)[^&\s"']+/gi, '$1[REDACTED]')
 }
 
 function clip(value: string, preserveNewest = false): string {

@@ -145,11 +145,11 @@ The fresh-server workflow uses a generated CapRover password for each run. The
 existing-server workflow remains available for fast repeated test runs without
 reprovisioning infrastructure.
 
-### Git webhook workflow (specialized)
+### Git webhook coverage
 
-The manually triggered **CapRover E2E - Git Webhooks** workflow provisions a
-fresh server, runs only `tests/specialized/git-webhooks.test.ts`, and destroys
-the infrastructure. It is excluded from `npm test` and `test:destructive`.
+The standard **CapRover E2E - Fresh Server** workflow includes
+`tests/git-webhooks.test.ts` in its destructive tier. Persistent-server runs
+continue to exclude it.
 
 Create a dedicated **private** GitHub repository with the file
 [`tests/fixtures/git-webhook-repo/captain-definition`](tests/fixtures/git-webhook-repo/captain-definition)
@@ -173,21 +173,15 @@ in the `caprover-e2e` repository:
 | `E2E_GIT_SSH_PRIVATE_KEY` | Unencrypted private key for the read-only deploy key    |
 | `E2E_GIT_EXPECTED_COMMIT` | Full 40-character SHA of the fixture commit             |
 
-The workflow checks that settings exist before creating a droplet. The test
+The fresh-server workflow checks that settings exist before creating a droplet. The test
 also checks both URLs point to the same repository and compares the Git hash
 from each build to the expected commit. Git credentials and webhook tokens are
-never included in assertions or diagnostic output. The generic `diagnose`
-command is deliberately omitted because captain build logs can contain Git
-credentials after a failed clone. Running `npm run test:git-webhooks` directly
-requires `CAPROVER_E2E_ENVIRONMENT=ephemeral` and the same fixture settings.
-
-Before the new specialized workflow is present on `main`, validate its pull
-request by dispatching the existing **CapRover E2E - Fresh Server** workflow on
-the PR branch with **suite: git-webhooks**. The default selection still runs
-the full ordinary suite. The branch-specific dispatch can also be started with:
+never included in assertions. Failure diagnostics redact raw, newline-expanded,
+and URL-encoded credential values before printing captain logs. To validate the
+pull request, dispatch the normal fresh-server workflow on its branch:
 
 ```bash
-gh workflow run e2e-ephemeral.yml --ref test/pr18a-git-webhooks -f suite=git-webhooks
+gh workflow run e2e-ephemeral.yml --ref test/pr18a-git-webhooks
 ```
 
 ## Development checks
@@ -218,7 +212,9 @@ set it only for a freshly provisioned server owned by the run. Never point the s
 at a production server. Each future destructive file must call `requireEphemeral()`
 before creating a context or mutating resources. Direct file filters cannot expand
 the selected tier. Specialized workflows under `tests/specialized/` are excluded
-from all default selections and will have their own explicit configuration.
+from all default selections and have their own explicit configuration. Git webhook
+coverage is part of the ordinary destructive tier because its fixture prerequisites
+are validated before fresh-server provisioning.
 
 Core and destructive commands fail with no tests until their files are implemented.
 Existing-server workflow runs are serialized without cancelling an active run.

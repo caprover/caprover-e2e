@@ -14,6 +14,6 @@ export default defineConfig(({ mode }: { mode: string }) => ({
         include: selectTests(mode),
         sequence: { sequencer: CapRoverSequencer },
         hookTimeout: 120_000,
-        testTimeout: mode === 'git-webhooks' ? 420_000 : 240_000,
+        testTimeout: 240_000,
     },
 }))

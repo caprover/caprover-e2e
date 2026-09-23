@@ -1,10 +1,13 @@
 import { execFile as execFileCallback } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 
 const execFile = promisify(execFileCallback)
+if (!process.env.CI && existsSync('.env')) process.loadEnvFile('.env')
+
 const required = [
     'DIGITALOCEAN_TOKEN',
     'DIGITALOCEAN_SSH_KEY_ID',

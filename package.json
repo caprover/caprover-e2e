@@ -10,7 +10,7 @@
     "scripts": {
         "test": "npm run typecheck && npm run test:all",
         "test:unit": "vitest run --mode unit",
-        "test:ephemeral": "npm run build:provisioning && node .provisioning-dist/provisioning/commands/test-ephemeral.js",
+        "test:ephemeral": "node scripts/check-git-fixture.mjs && npm run build:provisioning && node .provisioning-dist/provisioning/commands/test-ephemeral.js",
         "provision": "npm run build:provisioning && node .provisioning-dist/provisioning/commands/provision.js",
         "diagnose": "npm run build:provisioning && node .provisioning-dist/provisioning/commands/diagnose.js",
         "destroy": "npm run build:provisioning && node .provisioning-dist/provisioning/commands/destroy.js",
@@ -22,7 +22,6 @@
         "test:core": "vitest run --mode core",
         "test:nginx-reload-race": "vitest run --mode nginx-reload-race",
         "test:destructive": "vitest run --mode destructive",
-        "test:git-webhooks": "vitest run --mode git-webhooks",
         "test:all": "vitest run --mode all"
     },
     "dependencies": {
