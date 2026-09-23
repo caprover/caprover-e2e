@@ -181,6 +181,15 @@ command is deliberately omitted because captain build logs can contain Git
 credentials after a failed clone. Running `npm run test:git-webhooks` directly
 requires `CAPROVER_E2E_ENVIRONMENT=ephemeral` and the same fixture settings.
 
+Before the new specialized workflow is present on `main`, validate its pull
+request by dispatching the existing **CapRover E2E - Fresh Server** workflow on
+the PR branch with **suite: git-webhooks**. The default selection still runs
+the full ordinary suite. The branch-specific dispatch can also be started with:
+
+```bash
+gh workflow run e2e-ephemeral.yml --ref test/pr18a-git-webhooks -f suite=git-webhooks
+```
+
 ## Development checks
 
 ```bash

@@ -2,6 +2,15 @@ name: CapRover E2E - Fresh Server
 
 on:
     workflow_dispatch:
+        inputs:
+            suite:
+                description: Test suite
+                type: choice
+                required: true
+                default: default
+                options:
+                    - default
+                    - git-webhooks
 
 permissions:
     contents: read
@@ -27,6 +36,20 @@ jobs:
                   node-version: 22
                   cache: npm
 
+            # This workflow already exists on main, so the branch's specialized
+            # suite can be dispatched and validated before its new workflow merges.
+            - name: Validate Git fixture before provisioning
+              if: inputs.suite == 'git-webhooks'
+              env:
+                  E2E_GIT_HTTPS_REPO: ${{ secrets.E2E_GIT_HTTPS_REPO }}
+                  E2E_GIT_SSH_REPO: ${{ secrets.E2E_GIT_SSH_REPO }}
+                  E2E_GIT_BRANCH: ${{ secrets.E2E_GIT_BRANCH }}
+                  E2E_GIT_HTTP_USER: ${{ secrets.E2E_GIT_HTTP_USER }}
+                  E2E_GIT_HTTP_PASSWORD: ${{ secrets.E2E_GIT_HTTP_PASSWORD }}
+                  E2E_GIT_SSH_PRIVATE_KEY: ${{ secrets.E2E_GIT_SSH_PRIVATE_KEY }}
+                  E2E_GIT_EXPECTED_COMMIT: ${{ secrets.E2E_GIT_EXPECTED_COMMIT }}
+              run: node scripts/check-git-fixture.mjs
+
             - name: Install dependencies
               timeout-minutes: 5
               run: npm ci
@@ -37,8 +60,22 @@ jobs:
 
             - name: Run E2E suite
               id: e2e
+              if: inputs.suite != 'git-webhooks'
               timeout-minutes: 15
               run: npm test
+
+            - name: Test Git webhooks
+              if: inputs.suite == 'git-webhooks'
+              timeout-minutes: 12
+              env:
+                  E2E_GIT_HTTPS_REPO: ${{ secrets.E2E_GIT_HTTPS_REPO }}
+                  E2E_GIT_SSH_REPO: ${{ secrets.E2E_GIT_SSH_REPO }}
+                  E2E_GIT_BRANCH: ${{ secrets.E2E_GIT_BRANCH }}
+                  E2E_GIT_HTTP_USER: ${{ secrets.E2E_GIT_HTTP_USER }}
+                  E2E_GIT_HTTP_PASSWORD: ${{ secrets.E2E_GIT_HTTP_PASSWORD }}
+                  E2E_GIT_SSH_PRIVATE_KEY: ${{ secrets.E2E_GIT_SSH_PRIVATE_KEY }}
+                  E2E_GIT_EXPECTED_COMMIT: ${{ secrets.E2E_GIT_EXPECTED_COMMIT }}
+              run: npm run typecheck && npm run test:git-webhooks
 
             - name: Collect failure diagnostics
               if: failure() && steps.e2e.outcome == 'failure'
