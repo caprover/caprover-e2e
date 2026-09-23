@@ -628,7 +628,7 @@ This table should be updated whenever `caprover-api` adds or removes a public me
 - [x] PR14 merged ([caprover-e2e PR #33](https://github.com/caprover/caprover-e2e/pull/33))
 - [x] PR15 merged ([caprover-e2e PR #35](https://github.com/caprover/caprover-e2e/pull/35))
 - [x] PR16 merged ([caprover-e2e PR #36](https://github.com/caprover/caprover-e2e/pull/36))
-- [ ] PR17 merged
+- [x] PR17 merged ([caprover-e2e PR #38](https://github.com/caprover/caprover-e2e/pull/38); [fresh-server run](https://github.com/caprover/caprover-e2e/actions/runs/35820353928): 36 files, 104 tests)
 - [ ] PR18a Git webhook workflow implemented or linked to a follow-up issue
 - [ ] PR18b SSL and self-hosted registry workflow implemented or linked to a follow-up issue
 - [ ] PR18c multi-node workflow implemented or linked to a follow-up issue
