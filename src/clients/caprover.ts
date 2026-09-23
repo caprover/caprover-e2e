@@ -50,6 +50,13 @@ type OneClickAppRepositories = Awaited<
 type OneClickDeploymentState = Awaited<
     ReturnType<CapRoverAPI['getOneClickAppDeployProgress']>
 >
+type RegistriesResponse = Awaited<
+    ReturnType<CapRoverAPI['getDockerRegistries']>
+>
+type GoAccessInfo = Awaited<ReturnType<CapRoverAPI['getGoAccessInfo']>>
+type GoAccessSettings = Parameters<CapRoverAPI['updateGoAccessInfo']>[0]
+type GoAccessReport = Awaited<ReturnType<CapRoverAPI['getGoAccessReports']>>
+type NetDataInfo = Awaited<ReturnType<CapRoverAPI['getNetDataInfo']>>
 
 export interface OneClickValuePair {
     key: string
@@ -102,6 +109,72 @@ export class CapRoverClient {
 
     getAllNodes(): Promise<{ nodes: NodeInfo[] }> {
         return this.request(() => this.api.getAllNodes(), 'listing Swarm nodes')
+    }
+
+    getDockerRegistries(): Promise<RegistriesResponse> {
+        return this.request(
+            () => this.api.getDockerRegistries(),
+            'listing Docker registries'
+        )
+    }
+
+    addDockerRegistry(registry: CapRoverModels.IRegistryInfo): Promise<void> {
+        return this.request(
+            () => this.api.addDockerRegistry(registry),
+            'adding Docker registry'
+        )
+    }
+
+    setDefaultPushDockerRegistry(registryId: string): Promise<void> {
+        return this.request(
+            () => this.api.setDefaultPushDockerRegistry(registryId),
+            'selecting default push registry'
+        )
+    }
+
+    getGoAccessInfo(): Promise<GoAccessInfo> {
+        return this.request(
+            () => this.api.getGoAccessInfo(),
+            'retrieving GoAccess settings'
+        )
+    }
+
+    updateGoAccessInfo(settings: GoAccessSettings): Promise<void> {
+        return this.request(
+            () => this.api.updateGoAccessInfo(settings),
+            'updating GoAccess settings'
+        )
+    }
+
+    getGoAccessReports(appName: string): Promise<GoAccessReport> {
+        return this.request(
+            () => this.api.getGoAccessReports(appName),
+            `listing GoAccess reports for ${appName}`,
+            DEPLOYMENT_TIMEOUT_MS
+        )
+    }
+
+    getGoAccessReport(reportUrl: string): Promise<string> {
+        return this.request(
+            () => this.api.getGoAccessReport(reportUrl),
+            'retrieving GoAccess report',
+            DEPLOYMENT_TIMEOUT_MS
+        )
+    }
+
+    getNetDataInfo(): Promise<NetDataInfo> {
+        return this.request(
+            () => this.api.getNetDataInfo(),
+            'retrieving NetData settings'
+        )
+    }
+
+    updateNetDataInfo(settings: NetDataInfo): Promise<void> {
+        return this.request(
+            () => this.api.updateNetDataInfo(settings),
+            'updating NetData settings',
+            DEPLOYMENT_TIMEOUT_MS
+        )
     }
 
     getProFeaturesState(): Promise<ProFeaturesState> {
@@ -489,4 +562,8 @@ export type {
     OneClickAppRepositories,
     OneClickAppsResponse,
     OneClickDeploymentState,
+    RegistriesResponse,
+    GoAccessInfo,
+    GoAccessSettings,
+    NetDataInfo,
 }

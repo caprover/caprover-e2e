@@ -4,6 +4,57 @@ import { DockerInspector } from '../../src/inspectors/docker'
 
 const docker = new DockerInspector({} as SshClient)
 
+describe('DockerInspector standalone container state', () => {
+    test.each([
+        [true, 'running'],
+        [false, 'stopped'],
+    ] as const)('reads Running=%s as %s', async (running, expected) => {
+        const exec = vi.fn().mockResolvedValue({
+            stdout: JSON.stringify([{ State: { Running: running } }]),
+            stderr: '',
+            exitCode: 0,
+        })
+        const inspector = new DockerInspector({ exec } as unknown as SshClient)
+        await expect(
+            inspector.getContainerState('captain-netdata-container')
+        ).resolves.toBe(expected)
+        expect(exec).toHaveBeenCalledWith(
+            "docker inspect 'captain-netdata-container'"
+        )
+    })
+
+    test('treats only a missing Docker object as absent', async () => {
+        const exec = vi
+            .fn()
+            .mockResolvedValueOnce({
+                stdout: '',
+                stderr: 'Error: No such object: captain-goaccess-container',
+                exitCode: 1,
+            })
+            .mockResolvedValueOnce({
+                stdout: '',
+                stderr: 'Cannot connect to the Docker daemon',
+                exitCode: 1,
+            })
+        const inspector = new DockerInspector({ exec } as unknown as SshClient)
+        await expect(
+            inspector.getContainerState('captain-goaccess-container')
+        ).resolves.toBe('absent')
+        await expect(
+            inspector.getContainerState('captain-goaccess-container')
+        ).rejects.toThrow('Cannot connect')
+    })
+
+    test('rejects arbitrary names before executing Docker', async () => {
+        const exec = vi.fn()
+        const inspector = new DockerInspector({ exec } as unknown as SshClient)
+        await expect(
+            inspector.getContainerState('other-container')
+        ).rejects.toThrow()
+        expect(exec).not.toHaveBeenCalled()
+    })
+})
+
 describe('DockerInspector.imageMatches', () => {
     test('matches an exact image tag', () => {
         expect(
