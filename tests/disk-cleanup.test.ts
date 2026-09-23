@@ -165,7 +165,9 @@ async function listImageIds(context: TestContext): Promise<string[]> {
 }
 
 async function getServiceImages(context: TestContext): Promise<string[]> {
-    const serviceIds = lines(await exec(context, 'docker service ls --quiet'))
+    const serviceIds = lines(
+        await exec(context, 'docker service ls --no-trunc --quiet')
+    )
     for (const serviceId of serviceIds) {
         if (!/^[a-z0-9]{25}$/.test(serviceId)) {
             throw new Error(
