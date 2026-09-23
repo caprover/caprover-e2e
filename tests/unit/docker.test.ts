@@ -4,6 +4,62 @@ import { DockerInspector } from '../../src/inspectors/docker'
 
 const docker = new DockerInspector({} as SshClient)
 
+describe('DockerInspector standalone container state', () => {
+    test.each([
+        [true, 'running'],
+        [false, 'stopped'],
+    ] as const)('reads Running=%s as %s', async (running, expected) => {
+        const exec = vi.fn().mockResolvedValue({
+            stdout: JSON.stringify([{ State: { Running: running } }]),
+            stderr: '',
+            exitCode: 0,
+        })
+        const inspector = new DockerInspector({ exec } as unknown as SshClient)
+        await expect(
+            inspector.getContainerState('captain-netdata-container')
+        ).resolves.toBe(expected)
+        expect(exec).toHaveBeenCalledExactlyOnceWith(
+            "docker inspect 'captain-netdata-container'"
+        )
+    })
+
+    test('treats a missing container as absent and propagates other failures', async () => {
+        const exec = vi
+            .fn()
+            .mockResolvedValueOnce({
+                stdout: '',
+                stderr: 'Error: No such object: captain-goaccess-container',
+                exitCode: 1,
+            })
+            .mockResolvedValueOnce({
+                stdout: '',
+                stderr: 'Cannot connect to the Docker daemon',
+                exitCode: 1,
+            })
+        const inspector = new DockerInspector({ exec } as unknown as SshClient)
+        await expect(
+            inspector.getContainerState('captain-goaccess-container')
+        ).resolves.toBe('absent')
+        await expect(
+            inspector.getContainerState('captain-goaccess-container')
+        ).rejects.toThrow('Cannot connect to the Docker daemon')
+    })
+
+    test('rejects unsafe names and invalid inspect results', async () => {
+        const exec = vi
+            .fn()
+            .mockResolvedValue({ stdout: '[]', stderr: '', exitCode: 0 })
+        const inspector = new DockerInspector({ exec } as unknown as SshClient)
+        await expect(
+            inspector.getContainerState('container; command')
+        ).rejects.toThrow('Unsafe Docker container name')
+        expect(exec).not.toHaveBeenCalled()
+        await expect(
+            inspector.getContainerState('captain-netdata-container')
+        ).rejects.toThrow('no valid state')
+    })
+})
+
 describe('DockerInspector.imageMatches', () => {
     test('matches an exact image tag', () => {
         expect(
