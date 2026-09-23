@@ -49,10 +49,17 @@ test('NetData runs behind the cookie-authenticated proxy and stops when disabled
         await api.updateNetDataInfo(enabled)
         await eventually(
             async () => {
-                expect(await api.getNetDataInfo()).toMatchObject({
+                const current = await api.getNetDataInfo()
+                expect(current).toMatchObject({
                     isEnabled: true,
-                    data: enabled.data,
+                    data: {
+                        slack: enabled.data.slack,
+                        telegram: enabled.data.telegram,
+                        pushBullet: enabled.data.pushBullet,
+                    },
                 })
+                // The backend normalizes SMTP to {} when username is empty.
+                expect(current.data.smtp).toEqual({})
                 expect(await context.docker.getContainerState(CONTAINER)).toBe(
                     'running'
                 )
