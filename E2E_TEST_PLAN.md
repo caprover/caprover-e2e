@@ -491,31 +491,31 @@ Tier: destructive for all three files. Require ephemeral mode.
 
 ### SDK prerequisite
 
-- [ ] Correct `defaultRegistryId` versus backend `defaultPushRegistryId` in `caprover-api`.
-- [ ] Publish and consume the corrected package.
+- [x] Correct `defaultRegistryId` versus backend `defaultPushRegistryId` in [`caprover-api` PR #17](https://github.com/caprover/caprover-api/pull/17).
+- [x] Publish and consume `caprover-api@0.0.25` through the [release PR #19](https://github.com/caprover/caprover-api/pull/19).
 
 ### Lightweight registry contracts
 
-- [ ] Read the initial registry list.
-- [ ] Reject an unknown default registry ID.
-- [ ] Specify a reachable registry endpoint and deliberately invalid credentials; verify the expected authentication rejection and registry error status.
-- [ ] Treat DNS failures, connection failures, and timeouts as test failures. They must not satisfy the invalid-credentials assertion.
+- [x] Read the initial registry list.
+- [x] Reject an unknown default registry ID.
+- [x] Specify a reachable registry endpoint and deliberately invalid credentials; verify the expected authentication rejection and registry error status.
+- [x] Treat DNS failures, connection failures, and timeouts as test failures. They must not satisfy the invalid-credentials assertion.
 
 ### GoAccess
 
-- [ ] Preserve settings.
-- [ ] Enable GoAccess and generate traffic.
-- [ ] Retrieve report listings and a live report.
-- [ ] Verify missing-app and missing-report behavior.
-- [ ] Restore settings.
+- [x] Preserve settings.
+- [x] Enable GoAccess and generate traffic.
+- [x] Retrieve report listings and a live report.
+- [x] Verify missing-app and missing-report behavior.
+- [x] Restore settings.
 
 ### NetData
 
-- [ ] Preserve settings.
-- [ ] Enable NetData with notifications disabled.
-- [ ] Verify service and proxied endpoint.
-- [ ] Disable NetData and verify removal.
-- [ ] Restore settings.
+- [x] Preserve settings.
+- [x] Enable NetData with notifications disabled.
+- [x] Verify service and proxied endpoint.
+- [x] Disable NetData and verify removal.
+- [x] Restore settings.
 
 Full self-hosted registry build-and-push coverage belongs in the controlled SSL workflow because enabling it requests a real certificate.
 

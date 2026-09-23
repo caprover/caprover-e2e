@@ -127,6 +127,39 @@ const VOLUME_MARKER_PATH = '/e2e-volume/marker'
 export class DockerInspector {
     constructor(private readonly ssh: SshClient) {}
 
+    async getContainerState(
+        name: string
+    ): Promise<'absent' | 'running' | 'stopped'> {
+        if (!/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/.test(name)) {
+            throw new Error(`Unsafe Docker container name: ${name}`)
+        }
+        const result = await this.ssh.exec(`docker inspect ${shellQuote(name)}`)
+        if (result.exitCode !== 0) {
+            if (
+                /no such (object|container)/i.test(
+                    `${result.stdout}\n${result.stderr}`
+                )
+            )
+                return 'absent'
+            throw new Error(
+                `docker inspect failed for ${name}: ${result.stderr.trim()}`
+            )
+        }
+        const containers = parseJson<Array<{ State?: { Running?: boolean } }>>(
+            result.stdout,
+            `container ${name}`
+        )
+        if (
+            containers.length !== 1 ||
+            typeof containers[0].State?.Running !== 'boolean'
+        ) {
+            throw new Error(
+                `Docker returned no valid state for container ${name}`
+            )
+        }
+        return containers[0].State.Running ? 'running' : 'stopped'
+    }
+
     async validateEnvironment(): Promise<void> {
         const result = await this.exec("docker info --format '{{json .Swarm}}'")
         const swarm = parseJson<DockerSwarmInfo>(result.stdout, 'Docker info')
