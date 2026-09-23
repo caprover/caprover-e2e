@@ -92,6 +92,8 @@ FIXTURE_FILE="$ROOT_DIR/tests/fixtures/git-webhook-repo/captain-definition"
 
 gh repo view "$TARGET_REPO" >/dev/null 2>&1 ||
     die "cannot access target repository: $TARGET_REPO"
+gh api "repos/$TARGET_REPO/actions/secrets/public-key" >/dev/null 2>&1 ||
+    die "cannot administer Actions secrets in target repository: $TARGET_REPO"
 
 WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}/caprover-e2e-git-fixture.XXXXXX")
 cleanup() {
