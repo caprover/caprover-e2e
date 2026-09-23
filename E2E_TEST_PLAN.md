@@ -2,7 +2,7 @@
 
 This document tracks expansion of the CapRover end-to-end test suite.
 
-The existing suite covers login, application creation, rename, one environment update, image deployment, scaling, redeployment, and deletion. Provisioning also covers root-domain configuration, root SSL, global force SSL, and password change.
+The suite covers authentication; application and project lifecycle; deployments; routing and Nginx; storage and ports; themes, backups, system settings, and one-click deployments; plus registry validation, GoAccess, and NetData. Provisioning also covers root-domain configuration, root SSL, global force SSL, and password change.
 
 Future agents should check each implementation item as it lands. A PR is complete when its required checkboxes are checked. Deferred work should link to a follow-up issue.
 
@@ -10,7 +10,7 @@ Future agents should check each implementation item as it lands. A PR is complet
 
 PR1 through PR6 were merged and validated through [PR #23](https://github.com/caprover/caprover-e2e/pull/23). The CapRover NGINX keep-alive fix landed in [CapRover PR #2491](https://github.com/caprover/caprover/pull/2491), and [PR #24](https://github.com/caprover/caprover-e2e/pull/24) removed the temporary API serialization and spacing mitigation after the full unmitigated suite passed.
 
-Confirmed second batch: PR7 through PR9 are merged as [PR #25](https://github.com/caprover/caprover-e2e/pull/25), [PR #26](https://github.com/caprover/caprover-e2e/pull/26), and [PR #27](https://github.com/caprover/caprover-e2e/pull/27). The delayed NGINX reload and connection-reuse regression was added in [PR #28](https://github.com/caprover/caprover-e2e/pull/28), with backend support in [CapRover PR #2494](https://github.com/caprover/caprover/pull/2494). PR10 through PR16 are merged, with [PR #36](https://github.com/caprover/caprover-e2e/pull/36) adding one-click deployment and repository coverage.
+Confirmed second batch: PR7 through PR9 are merged as [PR #25](https://github.com/caprover/caprover-e2e/pull/25), [PR #26](https://github.com/caprover/caprover-e2e/pull/26), and [PR #27](https://github.com/caprover/caprover-e2e/pull/27). The delayed NGINX reload and connection-reuse regression was added in [PR #28](https://github.com/caprover/caprover-e2e/pull/28), with backend support in [CapRover PR #2494](https://github.com/caprover/caprover/pull/2494). PR10 through PR17 are merged, with [PR #36](https://github.com/caprover/caprover-e2e/pull/36) adding one-click deployment and repository coverage and [PR #38](https://github.com/caprover/caprover-e2e/pull/38) adding registry and observability coverage. PR18a through PR18e remain pending.
 
 - Confirm the existing DigitalOcean, Cloudflare, and SSH provisioning secrets are present and valid in GitHub Actions. Update missing or expired values in GitHub; keep credentials out of this document and PR discussions.
 - Keep the backend custom-port fix (PR10) and SDK prerequisites (PR13 and PR17) as separate repository changes. Link their PRs and the consumed package versions or server images before enabling dependent assertions.
@@ -35,7 +35,7 @@ Merged companion SDK changes (included in version `0.0.22`):
 - [Authentication retry/error tests](https://github.com/caprover/caprover-api/pull/8): 14 SDK tests passed on that branch.
 - [Native FormData transport fix](https://github.com/caprover/caprover-api/pull/9): published `caprover-api@0.0.21` sends Node's native FormData as `[object FormData]` with `text/plain` content type. The fix pairs native FormData with native fetch; a local HTTP-server regression verifies multipart headers and binary file bytes. All 11 SDK tests passed on that branch.
 
-SDK version `0.0.22` contains the merged FormData fix and authentication test changes. The [release workflow](https://github.com/caprover/caprover-api/actions/runs/35488986770) successfully submitted the package to npm. The merged E2E suite pins `caprover-api@0.0.22` with a regenerated lockfile.
+SDK version `0.0.22` contains the merged FormData fix and authentication test changes. The [release workflow](https://github.com/caprover/caprover-api/actions/runs/35488986770) successfully submitted that package to npm. The current E2E suite pins `caprover-api@0.0.25` with a regenerated lockfile; the later SDK prerequisites are tracked in PR13 and PR17 below.
 
 ## Implementation rules
 
@@ -487,7 +487,7 @@ Keep inline deployments in the core file and global repository mutations in the 
 
 Create `tests/registries.test.ts`, `tests/goaccess.test.ts`, and `tests/netdata.test.ts`.
 
-Tier: destructive for all three files. Require ephemeral mode.
+Tier: destructive for all three files. Require ephemeral mode. Implemented and merged in [PR #38](https://github.com/caprover/caprover-e2e/pull/38) after a [fresh-server run](https://github.com/caprover/caprover-e2e/actions/runs/35820353928) passed 36 files and 104 tests.
 
 ### SDK prerequisite
 
@@ -513,7 +513,7 @@ Tier: destructive for all three files. Require ephemeral mode.
 
 - [x] Preserve settings.
 - [x] Enable NetData with notifications disabled.
-- [x] Verify service and proxied endpoint.
+- [x] Verify the standalone container and proxied endpoint.
 - [x] Disable NetData and verify removal.
 - [x] Restore settings.
 
