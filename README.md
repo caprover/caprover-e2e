@@ -151,7 +151,25 @@ The standard **CapRover E2E - Fresh Server** workflow includes
 `tests/git-webhooks.test.ts` in its destructive tier. Persistent-server runs
 continue to exclude it.
 
-Create a dedicated **private** GitHub repository with the file
+Run the setup script from a local checkout to create the dedicated **private**
+repository, populate its fixture commit, install a read-only SSH deploy key, and
+set all seven `E2E_GIT_*` Actions secrets:
+
+```bash
+./scripts/setup-git-fixture.sh
+```
+
+The script requires `gh`, `git`, `ssh`, and `ssh-keygen`. Authenticate `gh` with
+an account that can create the fixture repository and administer Actions
+secrets in `caprover/caprover-e2e`. GitHub does not expose an API for creating a
+fine-grained personal access token, so the script prompts without echoing for a
+token with read-only **Contents** access to the fixture repository. You can also
+provide it as `CAPROVER_E2E_GIT_HTTP_TOKEN`. The explicit `--use-gh-token`
+fallback uses the current GitHub CLI token, which may have access to more than
+the fixture repository. Run `./scripts/setup-git-fixture.sh --help` to override
+the repository names or branch.
+
+The resulting private repository contains the file
 [`tests/fixtures/git-webhook-repo/captain-definition`](tests/fixtures/git-webhook-repo/captain-definition)
 at its root on the configured branch. Pin the branch to that fixture commit
 while running this workflow. Give CapRover read access through both a
