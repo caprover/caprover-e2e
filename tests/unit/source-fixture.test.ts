@@ -6,6 +6,7 @@ import { promisify } from 'node:util'
 import { expect, test } from 'vitest'
 import {
     customPortsSourceArchive,
+    oneClickRepositorySourceArchive,
     routingSourceArchive,
     sourceArchive,
 } from '../../src/helpers/source-fixture'
@@ -83,6 +84,36 @@ test('custom-port source tar contains the TCP and UDP echo fixture', async () =>
         ])
         expect(server.stdout).toContain('tcpServer.listen(7000')
         expect(server.stdout).toContain('udpServer.bind(7001')
+    } finally {
+        await rm(temporary, { recursive: true, force: true })
+    }
+})
+
+test('one-click repository source tar contains generated repository data', async () => {
+    const archive = await oneClickRepositorySourceArchive({
+        list: { oneClickApps: [{ name: 'fixture-template' }] },
+        templates: { 'fixture-template': { captainVersion: 4 } },
+    })
+    const temporary = await mkdtemp(
+        join(tmpdir(), 'caprover-one-click-repository-test-')
+    )
+    try {
+        const path = join(temporary, 'fixture.tar')
+        await writeFile(path, new Uint8Array(await archive.arrayBuffer()))
+        const { stdout } = await promisify(execFile)('tar', ['-tf', path])
+        expect(stdout).toContain('./captain-definition')
+        expect(stdout).toContain('./Dockerfile')
+        expect(stdout).toContain('./server.js')
+        expect(stdout).toContain('./repository-data.json')
+        const data = await promisify(execFile)('tar', [
+            '-xOf',
+            path,
+            './repository-data.json',
+        ])
+        expect(JSON.parse(data.stdout)).toEqual({
+            list: { oneClickApps: [{ name: 'fixture-template' }] },
+            templates: { 'fixture-template': { captainVersion: 4 } },
+        })
     } finally {
         await rm(temporary, { recursive: true, force: true })
     }

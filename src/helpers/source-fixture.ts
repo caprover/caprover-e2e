@@ -4,6 +4,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 
+export interface OneClickRepositoryFixtureData {
+    list: { oneClickApps: unknown[] }
+    templates: Record<string, unknown>
+}
+
 export async function sourceArchive(
     marker: string,
     alternate = false
@@ -50,30 +55,57 @@ export async function customPortsSourceArchive(): Promise<File> {
     return fixtureArchive('custom-ports', 'custom-ports-app')
 }
 
+export async function oneClickRepositorySourceArchive(
+    data: OneClickRepositoryFixtureData
+): Promise<File> {
+    const temporary = await mkdtemp(join(tmpdir(), 'caprover-e2e-one-click-'))
+    try {
+        const source = join(temporary, 'source')
+        await cp(
+            join(process.cwd(), 'tests/fixtures/one-click-repository-app'),
+            source,
+            { recursive: true }
+        )
+        await writeFile(
+            join(source, 'repository-data.json'),
+            `${JSON.stringify(data, null, 2)}\n`
+        )
+        return await archiveFixture(
+            source,
+            'one-click-repository-source.tar',
+            temporary
+        )
+    } finally {
+        await rm(temporary, { recursive: true, force: true })
+    }
+}
+
 async function fixtureArchive(
     name: string,
     fixtureDirectory: string
 ): Promise<File> {
     const temporary = await mkdtemp(join(tmpdir(), `caprover-e2e-${name}-`))
     try {
-        const archive = join(temporary, 'source.tar')
-        await promisify(execFile)(
-            'tar',
-            [
-                '-cf',
-                archive,
-                '-C',
-                join(process.cwd(), 'tests/fixtures', fixtureDirectory),
-                '.',
-            ],
-            { timeout: 10_000 }
-        )
-        return new File(
-            [new Uint8Array(await readFile(archive))],
+        return await archiveFixture(
+            join(process.cwd(), 'tests/fixtures', fixtureDirectory),
             `${name}-source.tar`,
-            { type: 'application/x-tar' }
+            temporary
         )
     } finally {
         await rm(temporary, { recursive: true, force: true })
     }
+}
+
+async function archiveFixture(
+    source: string,
+    fileName: string,
+    destinationDirectory: string
+): Promise<File> {
+    const archive = join(destinationDirectory, fileName)
+    await promisify(execFile)('tar', ['-cf', archive, '-C', source, '.'], {
+        timeout: 10_000,
+    })
+    return new File([new Uint8Array(await readFile(archive))], fileName, {
+        type: 'application/x-tar',
+    })
 }

@@ -38,6 +38,23 @@ type NginxConfig = Awaited<ReturnType<CapRoverAPI['getNginxConfig']>>
 type UnusedImage = Awaited<
     ReturnType<CapRoverAPI['getUnusedImages']>
 >['unusedImages'][number]
+type OneClickAppsResponse = Awaited<
+    ReturnType<CapRoverAPI['getAllOneClickApps']>
+>
+type OneClickAppDefinitionResponse = Awaited<
+    ReturnType<CapRoverAPI['getOneClickAppByName']>
+>
+type OneClickAppRepositories = Awaited<
+    ReturnType<CapRoverAPI['getAllOneClickAppRepos']>
+>
+type OneClickDeploymentState = Awaited<
+    ReturnType<CapRoverAPI['getOneClickAppDeployProgress']>
+>
+
+export interface OneClickValuePair {
+    key: string
+    value: string
+}
 
 const API_TIMEOUT_MS = 30_000
 const DEPLOYMENT_TIMEOUT_MS = 90_000
@@ -385,6 +402,65 @@ export class CapRoverClient {
         )
     }
 
+    getAllOneClickApps(): Promise<OneClickAppsResponse> {
+        return this.request(
+            () => this.api.getAllOneClickApps(),
+            'listing one-click application templates'
+        )
+    }
+
+    getOneClickAppByName(
+        appName: string,
+        baseDomain: string
+    ): Promise<OneClickAppDefinitionResponse> {
+        return this.request(
+            () => this.api.getOneClickAppByName(appName, baseDomain),
+            `retrieving one-click application template ${appName}`
+        )
+    }
+
+    getAllOneClickAppRepos(): Promise<OneClickAppRepositories> {
+        return this.request(
+            () => this.api.getAllOneClickAppRepos(),
+            'listing custom one-click repositories'
+        )
+    }
+
+    addCustomOneClickRepo(repositoryUrl: string): Promise<void> {
+        return this.request(
+            () => this.api.addNewCustomOneClickRepo(repositoryUrl),
+            `adding custom one-click repository ${repositoryUrl}`
+        )
+    }
+
+    deleteCustomOneClickRepo(repositoryUrl: string): Promise<void> {
+        return this.request(
+            () => this.api.deleteCustomOneClickRepo(repositoryUrl),
+            `deleting custom one-click repository ${repositoryUrl}`
+        )
+    }
+
+    startOneClickAppDeploy(
+        template: CapRoverModels.IOneClickTemplate,
+        values: OneClickValuePair[],
+        templateName?: string
+    ): Promise<{ jobId: string }> {
+        return this.request(
+            () =>
+                this.api.startOneClickAppDeploy(template, values, templateName),
+            'starting one-click application deployment'
+        )
+    }
+
+    getOneClickAppDeployProgress(
+        jobId: string
+    ): Promise<OneClickDeploymentState> {
+        return this.request(
+            () => this.api.getOneClickAppDeployProgress(jobId),
+            `retrieving one-click deployment progress ${jobId}`
+        )
+    }
+
     destroy(): void {
         this.api.destroy()
     }
@@ -409,4 +485,8 @@ export type {
     Theme,
     UnusedImage,
     VersionInfo,
+    OneClickAppDefinitionResponse,
+    OneClickAppRepositories,
+    OneClickAppsResponse,
+    OneClickDeploymentState,
 }

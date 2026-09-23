@@ -165,19 +165,14 @@ async function listImageIds(context: TestContext): Promise<string[]> {
 }
 
 async function getServiceImages(context: TestContext): Promise<string[]> {
-    const serviceIds = lines(await exec(context, 'docker service ls --quiet'))
-    for (const serviceId of serviceIds) {
-        if (!/^[a-z0-9]{25}$/.test(serviceId)) {
-            throw new Error(
-                `Docker returned an invalid service ID: ${serviceId}`
-            )
-        }
-    }
-    if (serviceIds.length === 0) return []
+    const serviceNames = lines(
+        await exec(context, "docker service ls --format '{{.Name}}'")
+    )
+    if (serviceNames.length === 0) return []
     return lines(
         await exec(
             context,
-            `docker service inspect --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' ${serviceIds.map(shellQuote).join(' ')}`
+            `docker service inspect --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' ${serviceNames.map(shellQuote).join(' ')}`
         )
     )
 }
