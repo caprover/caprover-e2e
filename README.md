@@ -168,11 +168,12 @@ workflow. Provisioning validates them before creating a droplet. The workflow is
 manual-only and serialized through a dedicated concurrency group.
 
 Each complete run requests four Let's Encrypt certificates: dashboard, app,
-custom domain, and registry. Let's Encrypt currently permits 50 certificates
-per registered domain in a rolling seven-day period. Limit this workflow to at
-most 10 dispatches per rolling seven days for the configured base domain, which
-budgets 40 certificates and leaves room for interrupted attempts and other HTTPS
-runs. A failed run may consume part of its four-certificate budget.
+custom domain, and registry. [Let's Encrypt currently permits 50 certificates
+per registered domain in a rolling seven-day period](https://letsencrypt.org/docs/rate-limits/#new-certificates-per-registered-domain).
+Limit this workflow to at most 10 dispatches per rolling seven days for the
+configured base domain, which budgets 40 certificates and leaves room for
+interrupted attempts and other HTTPS runs. A failed run may consume part of its
+four-certificate budget.
 
 Dispatch the specialized workflow with:
 
