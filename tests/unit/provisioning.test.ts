@@ -36,6 +36,22 @@ describe('provisioning configuration', () => {
             'docker-20-04'
         )
     })
+
+    test('defaults to HTTP and accepts an explicit HTTPS opt-in', () => {
+        expect(loadProvisioningConfig(validEnvironment).enableHttps).toBe(false)
+        expect(
+            loadProvisioningConfig({
+                ...validEnvironment,
+                E2E_ENABLE_HTTPS: 'true',
+            }).enableHttps
+        ).toBe(true)
+        expect(() =>
+            loadProvisioningConfig({
+                ...validEnvironment,
+                E2E_ENABLE_HTTPS: 'yes',
+            })
+        ).toThrow('E2E_ENABLE_HTTPS must be true or false')
+    })
 })
 
 describe('provisioning helpers', () => {

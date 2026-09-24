@@ -31,7 +31,8 @@ export async function configureCapRover(
     rootDomain: string,
     initialPassword: string,
     password: string,
-    certificateEmail: string
+    certificateEmail: string,
+    enableHttps: boolean
 ): Promise<string> {
     const setupUrl = `http://${ipAddress}:3000`
     console.log('Waiting for the CapRover bootstrap HTTP endpoint...')
@@ -81,21 +82,23 @@ export async function configureCapRover(
             }
         )
 
-        console.log('Enabling HTTPS...')
-        await withTimeout(
-            domainApi.enableRootSsl(certificateEmail),
-            120_000,
-            'CapRover root SSL setup'
-        )
+        if (enableHttps) {
+            console.log('Enabling HTTPS...')
+            await withTimeout(
+                domainApi.enableRootSsl(certificateEmail),
+                120_000,
+                'CapRover root SSL setup'
+            )
+        }
     } finally {
         domainApi.destroy()
     }
 
-    const httpsUrl = `https://captain.${rootDomain}`
-    const secureApi = createApi(httpsUrl, initialPassword)
+    const caproverUrl = enableHttps ? `https://captain.${rootDomain}` : httpUrl
+    const secureApi = createApi(caproverUrl, initialPassword)
     try {
         await retryUntil(
-            'CapRover HTTPS API',
+            'CapRover dashboard API',
             () => secureApi.login(initialPassword),
             {
                 timeoutMs: 90_000,
@@ -104,11 +107,13 @@ export async function configureCapRover(
             }
         )
 
-        await withTimeout(
-            secureApi.forceSsl(true),
-            30_000,
-            'forcing CapRover HTTPS'
-        )
+        if (enableHttps) {
+            await withTimeout(
+                secureApi.forceSsl(true),
+                30_000,
+                'forcing CapRover HTTPS'
+            )
+        }
         await withTimeout(
             secureApi.changePass(initialPassword, password),
             30_000,
@@ -118,7 +123,7 @@ export async function configureCapRover(
         secureApi.destroy()
     }
 
-    const verificationApi = createApi(httpsUrl, password)
+    const verificationApi = createApi(caproverUrl, password)
     try {
         await retryUntil(
             'CapRover login with generated credentials',
@@ -136,7 +141,7 @@ export async function configureCapRover(
         verificationApi.destroy()
     }
 
-    return httpsUrl
+    return caproverUrl
 }
 
 async function waitForHttpResponse(

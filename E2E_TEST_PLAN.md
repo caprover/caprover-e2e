@@ -542,7 +542,7 @@ File: `tests/git-webhooks.test.ts`. Tier: destructive. Validate the private Git 
 
 File: `tests/specialized/ssl-and-registry.test.ts`. Tier: destructive (specialized).
 
-Fresh-server provisioning already requests a real certificate for `captain.<rootDomain>` through `enableRootSsl()`. Certificate-rate management must account for every fresh-server run as well as this workflow's additional app, custom-domain, and registry certificates.
+Fresh-server provisioning defaults to HTTP. This controlled SSL workflow must enable `E2E_ENABLE_HTTPS=true` to request a real dashboard certificate for `captain.<rootDomain>` through `enableRootSsl()`. Certificate-rate management must account for its dashboard, app, custom-domain, and registry certificates.
 
 - [ ] Document issuance volume and configure workflow cadence/concurrency with provisioning included in the budget.
 - [ ] Call `enableSslForBaseDomain(appName)` and verify a trusted certificate and HTTPS response for `<app>.<rootDomain>`. Dashboard/root SSL remains provisioning coverage.

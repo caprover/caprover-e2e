@@ -57,7 +57,8 @@ export async function provisionEnvironment(
             rootDomain,
             initialPassword,
             password,
-            `admin@${config.baseDomain}`
+            `admin@${config.baseDomain}`,
+            config.enableHttps
         )
         await saveState(state)
 

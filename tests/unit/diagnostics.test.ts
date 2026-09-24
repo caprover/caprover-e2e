@@ -42,8 +42,17 @@ test('immediate diagnostics capture volatile CapRover failure evidence', () => {
     expect(commands).toContain('table full')
     expect(commands).toContain('127.0.0.1:3000')
     expect(commands).toContain('--resolve')
+    expect(commands).toContain('captain.example.com:443:127.0.0.1')
     expect(commands).not.toContain('docker service inspect')
     expect(commands).not.toContain('printenv')
+})
+
+test('HTTP diagnostics probe port 80', () => {
+    const sections = buildImmediateDiagnosticSections(
+        'http://captain.example.com'
+    )
+    const command = sections[0].command
+    expect(command).toContain('captain.example.com:80:127.0.0.1')
 })
 
 test('diagnostic command failures do not stop later sections', async () => {

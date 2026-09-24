@@ -2,6 +2,11 @@ name: CapRover E2E - Fresh Server
 
 on:
     workflow_dispatch:
+        inputs:
+            enable_https:
+                description: Issue a real Let's Encrypt certificate for the dashboard
+                type: boolean
+                default: false
 
 permissions:
     contents: read
@@ -17,6 +22,7 @@ jobs:
             CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
             E2E_BASE_DOMAIN: ${{ secrets.E2E_BASE_DOMAIN }}
             CAPROVER_E2E_SSH_PRIVATE_KEY: ${{ secrets.CAPROVER_E2E_SSH_PRIVATE_KEY }}
+            E2E_ENABLE_HTTPS: ${{ inputs.enable_https }}
             E2E_GIT_HTTPS_REPO: ${{ secrets.E2E_GIT_HTTPS_REPO }}
             E2E_GIT_SSH_REPO: ${{ secrets.E2E_GIT_SSH_REPO }}
             E2E_GIT_BRANCH: ${{ secrets.E2E_GIT_BRANCH }}

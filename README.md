@@ -33,11 +33,12 @@ The suite supports the current `<appName>` Docker service naming and the legacy
 - For existing-server runs: a disposable CapRover installation with a configured
   root domain
 - Public wildcard DNS for application subdomains
-- Ports 80 and 443 reachable from the test runner
+- Port 80 reachable from the test runner (and port 443 for HTTPS runs)
 - SSH access to the Docker Swarm manager
 - Docker access for the configured SSH user
 
-The CapRover URL must use HTTPS and be the dashboard origin, for example:
+For existing-server runs, the CapRover URL must use HTTPS and be the dashboard
+origin, for example:
 
 ```text
 https://captain.example.com
@@ -83,7 +84,7 @@ generated connection details are passed directly to the test process.
 
 `provision` creates one DigitalOcean droplet, creates a unique unproxied
 Cloudflare wildcard DNS record, verifies Docker is available, starts a fresh
-CapRover instance, configures its root domain and HTTPS, and generates a temporary
+CapRover instance, configures its root domain, and generates a temporary
 CapRover password. The default DigitalOcean image has Docker preinstalled; custom
 images still use the existing Docker installation fallback when needed. The generated cleanup state is stored locally in
 `.e2e-provisioning-state.json` and is gitignored.
@@ -130,6 +131,14 @@ The **CapRover E2E - Fresh Server** workflow provisions a new environment, runs
 the smoke, core, and ordinary destructive suites, and destroys the temporary DNS record and droplet
 even when the test step fails.
 
+Run it normally to use HTTP without issuing a certificate. To exercise the
+dashboard SSL setup, check **Enable HTTPS** when dispatching the same workflow.
+This issues a real Let's Encrypt certificate, forces dashboard HTTPS, and runs
+the same suite over HTTPS. Local `npm run test:ephemeral` also defaults to HTTP;
+set `E2E_ENABLE_HTTPS=true` in `.env` to opt in. Only `true` and `false` are
+accepted. Both modes use HTTP for application subdomains unless a test explicitly
+enables SSL on an app.
+
 Configure these repository secrets:
 
 | Secret                         | Description                                                    |
@@ -144,6 +153,11 @@ Configure these repository secrets:
 The fresh-server workflow uses a generated CapRover password for each run. The
 existing-server workflow remains available for fast repeated test runs without
 reprovisioning infrastructure.
+
+HTTP mode exposes the generated, short-lived dashboard credentials in transit.
+The private Git webhook test sends its long-lived GitHub token, deploy key, and
+webhook tokens through an SSH tunnel to the server's local API in HTTP mode.
+That test still runs as part of the normal suite.
 
 ### Git webhook coverage
 
@@ -252,8 +266,9 @@ containing the required backend fix and retain the run's image output.
 Authentication coverage exercises valid login, empty/oversized password validation,
 one wrong-password attempt, SDK error propagation, and an unauthenticated request.
 Rapid repeated runs can encounter the server's global failed-login backoff; wait
-for that window to expire before retrying. Root-domain setup, root SSL, global
-force SSL, and password change are covered by fresh-server provisioning.
+for that window to expire before retrying. Root-domain setup and password change
+are covered by every fresh-server run; root SSL and global force SSL are covered
+when **Enable HTTPS** is checked.
 
 ## Source uploads
 

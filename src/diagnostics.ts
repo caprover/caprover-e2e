@@ -267,7 +267,10 @@ fi`,
 }
 
 async function printRunnerConnectivity(config: TestConfig): Promise<void> {
-    const hostname = new URL(config.caproverUrl).hostname
+    const dashboard = new URL(config.caproverUrl)
+    const hostname = dashboard.hostname
+    const port = dashboard.protocol === 'https:' ? 443 : 80
+    const protocol = dashboard.protocol.slice(0, -1).toUpperCase()
     const probes: ProbeResult[] = []
 
     try {
@@ -288,10 +291,10 @@ async function printRunnerConnectivity(config: TestConfig): Promise<void> {
     }
 
     const connectivityProbes = await Promise.all([
-        curlProbe('Public HTTPS', [`${config.caproverUrl}/`]),
-        curlProbe('HTTPS bypassing DNS', [
+        curlProbe(`Public ${protocol}`, [`${config.caproverUrl}/`]),
+        curlProbe(`${protocol} bypassing DNS`, [
             '--resolve',
-            `${hostname}:443:${config.sshHost}`,
+            `${hostname}:${port}:${config.sshHost}`,
             `${config.caproverUrl}/`,
         ]),
         curlProbe('Captain port 3000', [
@@ -378,6 +381,7 @@ function buildLocalConnectivityCommand(
     caproverUrl: string,
     hostname: string
 ): string {
+    const port = new URL(caproverUrl).protocol === 'https:' ? 443 : 80
     const writeFormat =
         'status=%{http_code} remote=%{remote_ip} connect=%{time_connect}s first_byte=%{time_starttransfer}s total=%{time_total}s\\n'
 
@@ -387,7 +391,7 @@ getent ahosts ${shellQuote(hostname)} || true
 echo "Captain direct:"
 curl -sS -o /dev/null --max-time 5 -w ${shellQuote(writeFormat)} http://127.0.0.1:3000/ || true
 echo "Nginx to Captain:"
-curl -sS -o /dev/null --max-time 5 --resolve ${shellQuote(`${hostname}:443:127.0.0.1`)} -w ${shellQuote(writeFormat)} ${shellQuote(`${caproverUrl}/`)} || true`
+curl -sS -o /dev/null --max-time 5 --resolve ${shellQuote(`${hostname}:${port}:127.0.0.1`)} -w ${shellQuote(writeFormat)} ${shellQuote(`${caproverUrl}/`)} || true`
 }
 
 function servicePsCommand(serviceName: string): string {

@@ -26,7 +26,11 @@ export function loadConfig(
         }
     }
 
-    const caproverUrl = normalizeCapRoverUrl(environment.CAPROVER_URL!)
+    const isEphemeral = environment.CAPROVER_E2E_ENVIRONMENT === 'ephemeral'
+    const caproverUrl = normalizeCapRoverUrl(
+        environment.CAPROVER_URL!,
+        isEphemeral
+    )
     const sshPort = parseSshPort(environment.SSH_PORT)
 
     return {
@@ -40,7 +44,7 @@ export function loadConfig(
     }
 }
 
-function normalizeCapRoverUrl(value: string): string {
+function normalizeCapRoverUrl(value: string, isEphemeral: boolean): string {
     let url: URL
 
     try {
@@ -49,8 +53,13 @@ function normalizeCapRoverUrl(value: string): string {
         throw new Error('CAPROVER_URL must be a valid absolute URL')
     }
 
-    if (url.protocol !== 'https:') {
-        throw new Error('CAPROVER_URL must use https')
+    if (
+        url.protocol !== 'https:' &&
+        !(isEphemeral && url.protocol === 'http:')
+    ) {
+        throw new Error(
+            'CAPROVER_URL must use https (or http for ephemeral runs)'
+        )
     }
 
     if (url.pathname !== '/' || url.search || url.hash) {
