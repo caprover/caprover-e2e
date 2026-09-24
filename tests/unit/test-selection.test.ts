@@ -32,6 +32,7 @@ test('ephemeral default adds only ordinary destructive files', () => {
     ).toBe(false)
     const files = [...smokeFiles, ...coreFiles, ...destructiveFiles]
     expect(new Set(files).size).toBe(files.length)
+    expect(destructiveFiles).toContain('tests/git-webhooks.test.ts')
 })
 
 test('fresh-system defaults are sequenced before other test files', () => {

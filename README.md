@@ -145,6 +145,63 @@ The fresh-server workflow uses a generated CapRover password for each run. The
 existing-server workflow remains available for fast repeated test runs without
 reprovisioning infrastructure.
 
+### Git webhook coverage
+
+The standard **CapRover E2E - Fresh Server** workflow includes
+`tests/git-webhooks.test.ts` in its destructive tier. Persistent-server runs
+continue to exclude it.
+
+Run the setup script from a local checkout to create the dedicated **private**
+repository, populate its fixture commit, install a read-only SSH deploy key, and
+set all seven `E2E_GIT_*` Actions secrets:
+
+```bash
+./scripts/setup-git-fixture.sh
+```
+
+The script requires `gh`, `git`, `ssh`, and `ssh-keygen`. Authenticate `gh` with
+an account that can create the fixture repository and administer Actions
+secrets in `caprover/caprover-e2e`. GitHub does not expose an API for creating a
+fine-grained personal access token, so the script prompts without echoing for a
+token with read-only **Contents** access to the fixture repository. You can also
+provide it as `CAPROVER_E2E_GIT_HTTP_TOKEN`. The explicit `--use-gh-token`
+fallback uses the current GitHub CLI token, which may have access to more than
+the fixture repository. Run `./scripts/setup-git-fixture.sh --help` to override
+the repository names or branch.
+
+The resulting private repository contains the file
+[`tests/fixtures/git-webhook-repo/captain-definition`](tests/fixtures/git-webhook-repo/captain-definition)
+at its root on the configured branch. Pin the branch to that fixture commit
+while running this workflow. Give CapRover read access through both a
+fine-grained read-only GitHub token and a read-only deploy key. Use a separate
+key from the one used to SSH into the DigitalOcean server. No GitHub webhook
+needs to be installed: the test sends the GitHub push payload directly to
+CapRover and verifies the resulting Git clone and deployment.
+
+Configure the fresh-server secrets listed above and these additional secrets
+in the `caprover-e2e` repository:
+
+| Secret                    | Value                                                   |
+| ------------------------- | ------------------------------------------------------- |
+| `E2E_GIT_HTTPS_REPO`      | `https://github.com/owner/private-fixture.git`          |
+| `E2E_GIT_SSH_REPO`        | `git@github.com:owner/private-fixture.git`              |
+| `E2E_GIT_BRANCH`          | Branch containing the pinned fixture commit             |
+| `E2E_GIT_HTTP_USER`       | Git username, commonly `x-access-token`                 |
+| `E2E_GIT_HTTP_PASSWORD`   | Read-only fine-grained GitHub token for that repository |
+| `E2E_GIT_SSH_PRIVATE_KEY` | Unencrypted private key for the read-only deploy key    |
+| `E2E_GIT_EXPECTED_COMMIT` | Full 40-character SHA of the fixture commit             |
+
+The fresh-server workflow checks that settings exist before creating a droplet. The test
+also checks both URLs point to the same repository and compares the Git hash
+from each build to the expected commit. Git credentials and webhook tokens are
+never included in assertions. Failure diagnostics redact raw, newline-expanded,
+and URL-encoded credential values before printing captain logs. Dispatch the
+normal fresh-server workflow with:
+
+```bash
+gh workflow run e2e-ephemeral.yml
+```
+
 ## Development checks
 
 ```bash
@@ -173,7 +230,9 @@ set it only for a freshly provisioned server owned by the run. Never point the s
 at a production server. Each future destructive file must call `requireEphemeral()`
 before creating a context or mutating resources. Direct file filters cannot expand
 the selected tier. Specialized workflows under `tests/specialized/` are excluded
-from all default selections and will have their own explicit configuration.
+from all default selections and have their own explicit configuration. Git webhook
+coverage is part of the ordinary destructive tier because its fixture prerequisites
+are validated before fresh-server provisioning.
 
 Core and destructive commands fail with no tests until their files are implemented.
 Existing-server workflow runs are serialized without cancelling an active run.

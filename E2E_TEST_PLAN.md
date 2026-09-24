@@ -10,11 +10,11 @@ Future agents should check each implementation item as it lands. A PR is complet
 
 PR1 through PR6 were merged and validated through [PR #23](https://github.com/caprover/caprover-e2e/pull/23). The CapRover NGINX keep-alive fix landed in [CapRover PR #2491](https://github.com/caprover/caprover/pull/2491), and [PR #24](https://github.com/caprover/caprover-e2e/pull/24) removed the temporary API serialization and spacing mitigation after the full unmitigated suite passed.
 
-Confirmed second batch: PR7 through PR9 are merged as [PR #25](https://github.com/caprover/caprover-e2e/pull/25), [PR #26](https://github.com/caprover/caprover-e2e/pull/26), and [PR #27](https://github.com/caprover/caprover-e2e/pull/27). The delayed NGINX reload and connection-reuse regression was added in [PR #28](https://github.com/caprover/caprover-e2e/pull/28), with backend support in [CapRover PR #2494](https://github.com/caprover/caprover/pull/2494). PR10 through PR17 are merged, with [PR #36](https://github.com/caprover/caprover-e2e/pull/36) adding one-click deployment and repository coverage and [PR #38](https://github.com/caprover/caprover-e2e/pull/38) adding registry and observability coverage. PR18a through PR18e remain pending.
+Confirmed second batch: PR7 through PR9 are merged as [PR #25](https://github.com/caprover/caprover-e2e/pull/25), [PR #26](https://github.com/caprover/caprover-e2e/pull/26), and [PR #27](https://github.com/caprover/caprover-e2e/pull/27). The delayed NGINX reload and connection-reuse regression was added in [PR #28](https://github.com/caprover/caprover-e2e/pull/28), with backend support in [CapRover PR #2494](https://github.com/caprover/caprover/pull/2494). PR10 through PR18a are implemented, with [PR #36](https://github.com/caprover/caprover-e2e/pull/36) adding one-click deployment and repository coverage, [PR #38](https://github.com/caprover/caprover-e2e/pull/38) adding registry and observability coverage, and [PR #39](https://github.com/caprover/caprover-e2e/pull/39) adding Git webhook coverage. PR18b through PR18e remain pending.
 
 - Confirm the existing DigitalOcean, Cloudflare, and SSH provisioning secrets are present and valid in GitHub Actions. Update missing or expired values in GitHub; keep credentials out of this document and PR discussions.
 - Keep the backend custom-port fix (PR10) and SDK prerequisites (PR13 and PR17) as separate repository changes. Link their PRs and the consumed package versions or server images before enabling dependent assertions.
-- Defer specialized prerequisites until their corresponding PR18 follow-up: a dedicated Git test repository and HTTPS/SSH credentials, a dedicated Pro key, approval for an additional droplet, and the pinned upgrade-version pair.
+- The PR18a dedicated Git test repository and HTTPS/SSH credentials are configured and validated. Defer the dedicated Pro key, approval for an additional droplet, and the pinned upgrade-version pair until their corresponding specialized follow-up.
 - Implement PR18 as five independently reviewable follow-up PRs, tracked below as PR18a through PR18e.
 
 ## First-batch implementation status
@@ -74,7 +74,7 @@ The existing-server workflow should run smoke and core tests. The fresh-server w
 
 Assign every test file to exactly one tier using explicit file lists or non-overlapping patterns. The existing lifecycle file belongs to smoke. Helper unit tests belong to unit. Each feature section below names its E2E files and tiers; mixed-tier PRs use separate files. Core assumes a dedicated test server and may create and delete uniquely owned apps and projects. Volume deletion, host-port changes, and global mutations require destructive mode.
 
-PR18 files belong to destructive and are specialized opt-in suites. Exclude them from the default destructive selection and `test:all`; run each through its dedicated workflow with an ephemeral guard and explicit prerequisites. Missing required configuration in an explicitly selected workflow must fail clearly.
+PR18a belongs to the ordinary destructive tier and runs in the default fresh-server suite after its Git fixture prerequisites are validated before provisioning. PR18b through PR18e are specialized opt-in suites: exclude them from the default destructive selection and `test:all`, and run each through its dedicated workflow with an ephemeral guard and explicit prerequisites. Missing required configuration must fail clearly before provisioning.
 
 ## PR1: Upgrade the API package and add minimal safety foundations
 
@@ -519,24 +519,24 @@ Tier: destructive for all three files. Require ephemeral mode. Implemented and m
 
 Full self-hosted registry build-and-push coverage belongs in the controlled SSL workflow because enabling it requests a real certificate.
 
-## PR18: Add specialized external workflows
+## PR18: Add external-integration coverage
 
-Implement the following five workflows in separate follow-up PRs (PR18a through PR18e). Each has its own prerequisites and completion entry.
+Implement the following five areas in separate follow-up PRs (PR18a through PR18e). Each has its own prerequisites and completion entry.
 
-Tier: destructive, specialized opt-in only. Each workflow provisions its own ephemeral environment and runs only its assigned file. Keep these files under `tests/specialized/` and outside default suite selection.
+Tier: destructive. PR18a joins the default fresh-server suite. PR18b through PR18e remain specialized opt-in workflows that provision their own ephemeral environments and run only their assigned files under `tests/specialized/`.
 
 ### PR18a: Git webhook workflow
 
-File: `tests/specialized/git-webhooks.test.ts`. Tier: destructive (specialized).
+File: `tests/git-webhooks.test.ts`. Tier: destructive. Validate the private Git fixture and both authentication methods before provisioning, then run this file as part of the standard fresh-server suite.
 
-- [ ] Configure a dedicated repository and credentials.
-- [ ] Test HTTPS and SSH repository authentication.
-- [ ] Verify the intended sensitive-field response contract.
-- [ ] Trigger a matching-branch build.
-- [ ] Verify a nonmatching branch causes no deployment.
-- [ ] Verify invalid token behavior.
-- [ ] Verify rename rotates the webhook token.
-- [ ] Verify clearing repository settings disables the webhook.
+- [x] Configure a dedicated repository and credentials.
+- [x] Test HTTPS and SSH repository authentication.
+- [x] Verify the intended sensitive-field response contract.
+- [x] Trigger a matching-branch build.
+- [x] Verify a nonmatching branch causes no deployment.
+- [x] Verify invalid token behavior.
+- [x] Verify rename rotates the webhook token.
+- [x] Verify clearing repository settings disables the webhook.
 
 ### PR18b: Controlled SSL and self-hosted registry workflow
 
@@ -629,7 +629,7 @@ This table should be updated whenever `caprover-api` adds or removes a public me
 - [x] PR15 merged ([caprover-e2e PR #35](https://github.com/caprover/caprover-e2e/pull/35))
 - [x] PR16 merged ([caprover-e2e PR #36](https://github.com/caprover/caprover-e2e/pull/36))
 - [x] PR17 merged ([caprover-e2e PR #38](https://github.com/caprover/caprover-e2e/pull/38); [fresh-server run](https://github.com/caprover/caprover-e2e/actions/runs/35820353928): 36 files, 104 tests)
-- [ ] PR18a Git webhook workflow implemented or linked to a follow-up issue
+- [x] PR18a implemented ([caprover-e2e PR #39](https://github.com/caprover/caprover-e2e/pull/39); [fresh-server run](https://github.com/caprover/caprover-e2e/actions/runs/35954049277): 37 files, 106 tests)
 - [ ] PR18b SSL and self-hosted registry workflow implemented or linked to a follow-up issue
 - [ ] PR18c multi-node workflow implemented or linked to a follow-up issue
 - [ ] PR18d Pro and 2FA workflow implemented or linked to a follow-up issue

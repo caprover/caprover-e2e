@@ -24,6 +24,7 @@ export const destructiveFiles = [
     'tests/registries.test.ts',
     'tests/goaccess.test.ts',
     'tests/netdata.test.ts',
+    'tests/git-webhooks.test.ts',
 ]
 
 export function requireEphemeral(environment = process.env): void {

@@ -2,6 +2,7 @@ import { expect, test, vi } from 'vitest'
 import {
     buildImmediateDiagnosticSections,
     captureImmediateDiagnostics,
+    redactSensitiveValues,
 } from '../../src/diagnostics'
 
 test('immediate diagnostics capture volatile CapRover failure evidence', () => {
@@ -71,4 +72,32 @@ test('diagnostic command failures do not stop later sections', async () => {
     expect(ssh.exec).toHaveBeenCalledTimes(
         buildImmediateDiagnosticSections('https://captain.example.com').length
     )
+})
+
+test('diagnostics redact raw, escaped, and URL-encoded credentials', () => {
+    const environment = {
+        E2E_GIT_HTTP_PASSWORD: 'token:value/with spaces',
+        E2E_GIT_SSH_PRIVATE_KEY:
+            '-----BEGIN KEY-----\\nprivate-material\\n-----END KEY-----\\n',
+    }
+    const rawKey = environment.E2E_GIT_SSH_PRIVATE_KEY.replace(/\\n/g, '\n')
+    const output = [
+        environment.E2E_GIT_HTTP_PASSWORD,
+        encodeURIComponent(environment.E2E_GIT_HTTP_PASSWORD),
+        environment.E2E_GIT_SSH_PRIVATE_KEY,
+        rawKey,
+        rawKey.trim(),
+        encodeURIComponent(rawKey),
+        encodeURIComponent(rawKey.trim()),
+        'POST /triggerbuild?namespace=captain&token=generated-webhook-token',
+    ].join('\n')
+
+    const redacted = redactSensitiveValues(output, environment)
+    expect(redacted).not.toContain('token:value')
+    expect(redacted).not.toContain(
+        encodeURIComponent(environment.E2E_GIT_HTTP_PASSWORD)
+    )
+    expect(redacted).not.toContain('private-material')
+    expect(redacted).not.toContain('generated-webhook-token')
+    expect(redacted).toContain('[REDACTED]')
 })
