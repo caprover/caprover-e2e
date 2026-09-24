@@ -16,9 +16,11 @@ test('fresh provisioning has expected system and Pro defaults', async () => {
 
         expect(server.rootDomain).toBe(apps.rootDomain)
         expect(server.rootDomain).toMatch(/^e2e-[a-z0-9-]+\./)
-        expect(server.hasRootSsl).toBe(true)
-        expect(server.forceSsl).toBe(true)
-        expect(new URL(loadConfig().caproverUrl).hostname).toBe(
+        const dashboardUrl = new URL(loadConfig().caproverUrl)
+        const httpsEnabled = dashboardUrl.protocol === 'https:'
+        expect(server.hasRootSsl).toBe(httpsEnabled)
+        expect(server.forceSsl).toBe(httpsEnabled)
+        expect(dashboardUrl.hostname).toBe(
             `${server.captainSubDomain}.${server.rootDomain}`
         )
 

@@ -92,7 +92,12 @@ export class CapRoverClient {
         return this.request(
             () => this.api.getCaptainInfo(),
             'retrieving CapRover server information'
-        )
+        ).then((info) => ({
+            ...info,
+            // A fresh install omits the SSL flags until they are configured.
+            hasRootSsl: info.hasRootSsl ?? false,
+            forceSsl: info.forceSsl ?? false,
+        }))
     }
 
     getVersionInfo(): Promise<VersionInfo> {

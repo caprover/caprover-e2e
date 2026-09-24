@@ -92,9 +92,9 @@ npm run provision
                   → updateRootDomain()
                   → wait for http://captain.<root-domain> to respond
                   → login at http://captain.<root-domain>
-                  → enableRootSsl()
-                  → login at https://captain.<root-domain>
-                  → forceSsl()
+                  → if E2E_ENABLE_HTTPS=true: enableRootSsl()
+                  → login at http(s)://captain.<root-domain>
+                  → if HTTPS: forceSsl()
                   → changePass()
                   → verify login with the new password
 
@@ -254,9 +254,9 @@ using the `caprover-e2e` droplet tag and generated `e2e-*` DNS name.
 Each environment uses two random 28-character CapRover passwords:
 
 1. The installation password is passed to the CapRover installer and used while
-   configuring the root domain and enabling HTTPS.
-2. After HTTPS is available, the provisioner replaces it with a separate test
-   password and verifies that the new credentials work.
+   configuring the root domain and, if requested, enabling HTTPS.
+2. The provisioner replaces it with a separate test password and verifies that
+   the new credentials work over the selected dashboard protocol.
 
 CapRover rejects passwords longer than 29 characters, which is why the generator
 uses 21 random bytes encoded as a 28-character Base64URL value.
@@ -277,6 +277,7 @@ Required credentials and identifiers are documented in the repository
 | `DIGITALOCEAN_SIZE`   | `s-1vcpu-2gb`            |
 | `DIGITALOCEAN_IMAGE`  | `docker-20-04`           |
 | `CAPROVER_IMAGE`      | `caprover/caprover-edge` |
+| `E2E_ENABLE_HTTPS`    | `false`                  |
 
 Local execution loads a gitignored `.env` file. CI supplies environment variables
 directly and does not load `.env`.

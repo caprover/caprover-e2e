@@ -27,6 +27,22 @@ describe('loadConfig', () => {
         ).toBe('192.0.2.10')
     })
 
+    test('allows HTTP only on disposable servers', () => {
+        expect(
+            loadConfig({
+                ...validEnvironment,
+                CAPROVER_E2E_ENVIRONMENT: 'ephemeral',
+                CAPROVER_URL: 'http://captain.example.com',
+            }).caproverUrl
+        ).toBe('http://captain.example.com')
+        expect(() =>
+            loadConfig({
+                ...validEnvironment,
+                CAPROVER_URL: 'http://captain.example.com',
+            })
+        ).toThrow(/CAPROVER_URL/)
+    })
+
     test('reports the missing variable without exposing other values', () => {
         expect(() => loadConfig({ ...validEnvironment, SSH_USER: '' })).toThrow(
             'Missing required environment variable: SSH_USER'
@@ -35,7 +51,6 @@ describe('loadConfig', () => {
 
     test.each([
         'captain.example.com',
-        'http://captain.example.com',
         'ftp://captain.example.com',
         'https://captain.example.com/api/v2',
         'https://captain.example.com?query=value',

@@ -11,6 +11,7 @@ export interface ProvisioningConfig {
     digitalOceanSize: string
     digitalOceanImage: string
     caproverImage: string
+    enableHttps: boolean
 }
 
 const REQUIRED_VARIABLES = [
@@ -42,6 +43,11 @@ export function loadProvisioningConfig(
         throw new Error('E2E_BASE_DOMAIN must contain a domain name')
     }
 
+    const enableHttps = environment.E2E_ENABLE_HTTPS?.trim() || 'false'
+    if (enableHttps !== 'true' && enableHttps !== 'false') {
+        throw new Error('E2E_ENABLE_HTTPS must be true or false')
+    }
+
     return {
         digitalOceanToken: environment.DIGITALOCEAN_TOKEN!.trim(),
         digitalOceanSshKeyId: environment.DIGITALOCEAN_SSH_KEY_ID!.trim(),
@@ -59,6 +65,7 @@ export function loadProvisioningConfig(
             environment.DIGITALOCEAN_IMAGE?.trim() || 'docker-20-04',
         caproverImage:
             environment.CAPROVER_IMAGE?.trim() || 'caprover/caprover-edge',
+        enableHttps: enableHttps === 'true',
     }
 }
 

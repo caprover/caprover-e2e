@@ -2,7 +2,7 @@
 
 This document tracks expansion of the CapRover end-to-end test suite.
 
-The suite covers authentication; application and project lifecycle; deployments; routing and Nginx; storage and ports; themes, backups, system settings, and one-click deployments; plus registry validation, GoAccess, and NetData. Provisioning also covers root-domain configuration, root SSL, global force SSL, and password change.
+The suite covers authentication; application and project lifecycle; deployments; routing and Nginx; storage and ports; themes, backups, system settings, and one-click deployments; plus registry validation, GoAccess, and NetData. Provisioning covers root-domain configuration and password change on every fresh run. Root SSL and global force SSL are covered when HTTPS is enabled.
 
 Future agents should check each implementation item as it lands. A PR is complete when its required checkboxes are checked. Deferred work should link to a follow-up issue.
 
@@ -108,7 +108,7 @@ Tier: core.
 - [x] Avoid enough repeated failures to trigger the global login backoff.
 - [x] Verify one representative SDK error propagates the server's `captainStatus` and `captainMessage`; add a small assertion helper here if reused.
 - [x] Verify an unauthenticated user endpoint returns the expected authorization status.
-- [x] Document root domain, root SSL, global force SSL, and password change as provisioning coverage.
+- [x] Document root domain and password change as provisioning coverage, with root SSL and global force SSL covered by HTTPS-enabled runs.
 
 ### Companion SDK unit coverage (`caprover-api`)
 
@@ -542,7 +542,7 @@ File: `tests/git-webhooks.test.ts`. Tier: destructive. Validate the private Git 
 
 File: `tests/specialized/ssl-and-registry.test.ts`. Tier: destructive (specialized).
 
-Fresh-server provisioning already requests a real certificate for `captain.<rootDomain>` through `enableRootSsl()`. Certificate-rate management must account for every fresh-server run as well as this workflow's additional app, custom-domain, and registry certificates.
+Fresh-server provisioning defaults to HTTP. This controlled SSL workflow must enable `E2E_ENABLE_HTTPS=true` to request a real dashboard certificate for `captain.<rootDomain>` through `enableRootSsl()`. Certificate-rate management must account for its dashboard, app, custom-domain, and registry certificates.
 
 - [ ] Document issuance volume and configure workflow cadence/concurrency with provisioning included in the budget.
 - [ ] Call `enableSslForBaseDomain(appName)` and verify a trusted certificate and HTTPS response for `<app>.<rootDomain>`. Dashboard/root SSL remains provisioning coverage.
