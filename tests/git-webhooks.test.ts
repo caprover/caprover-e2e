@@ -1,6 +1,5 @@
 import { setTimeout as delay } from 'node:timers/promises'
 import { expect, test } from 'vitest'
-import { CapRoverClient } from '../src/clients/caprover'
 import { loadConfig } from '../src/config'
 import { createTestContext, type TestContext } from '../src/context'
 import { withImmediateFailureDiagnostics } from '../src/diagnostics'
@@ -36,26 +35,12 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
         fixture.branch === 'untracked' ? 'untracked-e2e' : 'untracked'
     const config = loadConfig()
     const context = createTestContext(config)
-    let apiUrl = config.caproverUrl
-    let closeTunnel: (() => Promise<void>) | undefined
     const { initialAppName: originalName, renamedAppName: renamedName } =
         createTestNames()
 
     try {
-        await context.ssh.connect()
-        if (new URL(apiUrl).protocol === 'http:') {
-            // Keep Git credentials and webhook tokens inside SSH when the
-            // temporary dashboard has no certificate.
-            const tunnel = await context.ssh.forwardLocalPort(3000)
-            apiUrl = tunnel.url
-            closeTunnel = tunnel.close
-            context.caprover.destroy()
-            context.caprover = new CapRoverClient(
-                apiUrl,
-                config.caproverPassword
-            )
-        }
         await context.caprover.login()
+        await context.ssh.connect()
         await context.docker.validateEnvironment()
         const { rootDomain } = await context.caprover.getApps()
 
@@ -91,7 +76,11 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
                 const initialVersion = initialApp.deployedVersion
                 const initialVersionCount = initialApp.versions.length
                 expect(
-                    await postPush(apiUrl, httpsToken, untrackedBranch)
+                    await postPush(
+                        config.caproverUrl,
+                        httpsToken,
+                        untrackedBranch
+                    )
                 ).toBe(100)
                 await assertNoBuild(
                     context,
@@ -102,7 +91,7 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
 
                 expect(
                     await postPush(
-                        apiUrl,
+                        config.caproverUrl,
                         `${httpsToken}invalid`,
                         fixture.branch
                     )
@@ -116,7 +105,7 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
 
                 await triggerAndVerify(
                     context,
-                    apiUrl,
+                    config.caproverUrl,
                     originalName,
                     httpsToken,
                     fixture,
@@ -145,7 +134,7 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
                 expect(sshToken === httpsToken).toBe(true) // Credential changes do not rotate the token.
                 await triggerAndVerify(
                     context,
-                    apiUrl,
+                    config.caproverUrl,
                     originalName,
                     sshToken,
                     fixture,
@@ -166,9 +155,9 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
                 const renamedApp = await context.caprover.getApp(renamedName)
                 const renamedVersion = renamedApp.deployedVersion
                 const renamedVersionCount = renamedApp.versions.length
-                expect(await postPush(apiUrl, sshToken, fixture.branch)).toBe(
-                    1106
-                ) // The stale token version follows the same auth path.
+                expect(
+                    await postPush(config.caproverUrl, sshToken, fixture.branch)
+                ).toBe(1106) // The stale token version follows the same auth path.
                 await assertNoBuild(
                     context,
                     renamedName,
@@ -177,7 +166,7 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
                 )
                 await triggerAndVerify(
                     context,
-                    apiUrl,
+                    config.caproverUrl,
                     renamedName,
                     renamedToken,
                     fixture,
@@ -196,7 +185,11 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
                 // Current backend sends status 100, then catches the missing
                 // repoInfo in the background. Disabling means no new build.
                 expect(
-                    await postPush(apiUrl, renamedToken, fixture.branch)
+                    await postPush(
+                        config.caproverUrl,
+                        renamedToken,
+                        fixture.branch
+                    )
                 ).toBe(100)
                 await assertNoBuild(
                     context,
@@ -208,11 +201,7 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
         )
     } finally {
         context.caprover.destroy()
-        try {
-            await closeTunnel?.()
-        } finally {
-            context.ssh.close()
-        }
+        context.ssh.close()
     }
 }, 420_000)
 

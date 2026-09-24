@@ -1,5 +1,4 @@
 import { Client, ConnectConfig } from 'ssh2'
-import { createServer, Socket } from 'node:net'
 
 export interface SshCommandResult {
     stdout: string
@@ -120,60 +119,6 @@ export class SshClient {
                         stderr,
                         exitCode: exitCode ?? -1,
                     })
-                })
-            })
-        })
-    }
-
-    forwardLocalPort(remotePort: number): Promise<{
-        url: string
-        close: () => Promise<void>
-    }> {
-        if (!this.connected) {
-            return Promise.reject(new Error('SSH client is not connected'))
-        }
-
-        const sockets = new Set<Socket>()
-        const server = createServer((socket) => {
-            sockets.add(socket)
-            socket.once('close', () => sockets.delete(socket))
-            socket.once('error', () => socket.destroy())
-            this.client.forwardOut(
-                '127.0.0.1',
-                0,
-                '127.0.0.1',
-                remotePort,
-                (error, stream) => {
-                    if (error || socket.destroyed) {
-                        socket.destroy()
-                        stream?.destroy()
-                        return
-                    }
-                    stream.once('error', () => socket.destroy())
-                    socket.pipe(stream).pipe(socket)
-                }
-            )
-        })
-
-        return new Promise((resolve, reject) => {
-            server.once('error', reject)
-            server.listen(0, '127.0.0.1', () => {
-                server.off('error', reject)
-                const address = server.address()
-                if (!address || typeof address === 'string') {
-                    server.close()
-                    reject(new Error('Could not bind the SSH tunnel'))
-                    return
-                }
-                resolve({
-                    url: `http://127.0.0.1:${address.port}`,
-                    close: () =>
-                        new Promise<void>((resolveClose, rejectClose) => {
-                            server.close((error) =>
-                                error ? rejectClose(error) : resolveClose()
-                            )
-                            for (const socket of sockets) socket.destroy()
-                        }),
                 })
             })
         })

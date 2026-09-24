@@ -154,11 +154,6 @@ The fresh-server workflow uses a generated CapRover password for each run. The
 existing-server workflow remains available for fast repeated test runs without
 reprovisioning infrastructure.
 
-HTTP mode exposes the generated, short-lived dashboard credentials in transit.
-The private Git webhook test sends its long-lived GitHub token, deploy key, and
-webhook tokens through an SSH tunnel to the server's local API in HTTP mode.
-That test still runs as part of the normal suite.
-
 ### Git webhook coverage
 
 The standard **CapRover E2E - Fresh Server** workflow includes
