@@ -84,7 +84,7 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
                         `${httpsToken}invalid`,
                         fixture.branch
                     )
-                ).toBe(1000)
+                ).toBe(1106) // Webhook rejection falls through to STATUS_AUTH_TOKEN_INVALID.
                 await assertNoBuild(context, originalName, initialVersion)
 
                 await triggerAndVerify(
@@ -141,7 +141,7 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
                 ).deployedVersion
                 expect(
                     await postPush(config.caproverUrl, sshToken, fixture.branch)
-                ).toBe(1000)
+                ).toBe(1106) // The stale token version follows the same auth path.
                 await assertNoBuild(context, renamedName, renamedVersion)
                 await triggerAndVerify(
                     context,
