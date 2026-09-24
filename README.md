@@ -154,6 +154,33 @@ The fresh-server workflow uses a generated CapRover password for each run. The
 existing-server workflow remains available for fast repeated test runs without
 reprovisioning infrastructure.
 
+### Controlled SSL and self-hosted registry coverage
+
+The manual **CapRover E2E - SSL and Registry** workflow provisions its own
+ephemeral server with dashboard HTTPS enabled and runs only
+`tests/specialized/ssl-and-registry.test.ts`. It verifies trusted certificates
+for an app's base domain and custom domain, app-level force-SSL redirects, and
+the self-hosted registry's API, Docker service, TLS endpoint, default-push
+behavior, deletion protections, image contents, and cleanup.
+
+The workflow uses the same six provisioning secrets as the normal fresh-server
+workflow. Provisioning validates them before creating a droplet. The workflow is
+manual-only and serialized through a dedicated concurrency group.
+
+Each complete run requests four Let's Encrypt certificates: dashboard, app,
+custom domain, and registry. [Let's Encrypt currently permits 50 certificates
+per registered domain in a rolling seven-day period](https://letsencrypt.org/docs/rate-limits/#new-certificates-per-registered-domain).
+Limit this workflow to at most 10 dispatches per rolling seven days for the
+configured base domain, which budgets 40 certificates and leaves room for
+interrupted attempts and other HTTPS runs. A failed run may consume part of its
+four-certificate budget.
+
+Dispatch the specialized workflow with:
+
+```bash
+gh workflow run e2e-ssl-and-registry.yml
+```
+
 ### Git webhook coverage
 
 The standard **CapRover E2E - Fresh Server** workflow includes
@@ -224,14 +251,15 @@ failure.
 
 ## Test tiers and safety
 
-| Command                    | Selection                                                               |
-| -------------------------- | ----------------------------------------------------------------------- |
-| `npm test`                 | Type checking, then `test:all`                                          |
-| `npm run test:unit`        | Local unit tests, no server required                                    |
-| `npm run test:smoke`       | Existing application lifecycle                                          |
-| `npm run test:core`        | Explicitly listed app-scoped tests on a dedicated test server           |
-| `npm run test:destructive` | Explicitly listed global and destructive tests; requires ephemeral mode |
-| `npm run test:all`         | Unit, smoke, core; adds ordinary destructive tests in ephemeral mode    |
+| Command                                     | Selection                                                               |
+| ------------------------------------------- | ----------------------------------------------------------------------- |
+| `npm test`                                  | Type checking, then `test:all`                                          |
+| `npm run test:unit`                         | Local unit tests, no server required                                    |
+| `npm run test:smoke`                        | Existing application lifecycle                                          |
+| `npm run test:core`                         | Explicitly listed app-scoped tests on a dedicated test server           |
+| `npm run test:destructive`                  | Explicitly listed global and destructive tests; requires ephemeral mode |
+| `npm run test:specialized:ssl-and-registry` | Controlled SSL and registry file; requires ephemeral mode               |
+| `npm run test:all`                          | Unit, smoke, core; adds ordinary destructive tests in ephemeral mode    |
 
 Provisioning sets `CAPROVER_E2E_ENVIRONMENT=ephemeral` for the test process.
 Leave this unset for existing servers. This flag declares a disposable environment;

@@ -6,6 +6,7 @@ import {
     requireEphemeral,
     selectTests,
     smokeFiles,
+    sslAndRegistryFiles,
 } from '../../src/test-selection'
 
 test('default invocation excludes destructive and specialized files on persistent servers', () => {
@@ -33,6 +34,11 @@ test('ephemeral default adds only ordinary destructive files', () => {
     const files = [...smokeFiles, ...coreFiles, ...destructiveFiles]
     expect(new Set(files).size).toBe(files.length)
     expect(destructiveFiles).toContain('tests/git-webhooks.test.ts')
+    expect(
+        selectTests('ssl-and-registry', {
+            CAPROVER_E2E_ENVIRONMENT: 'ephemeral',
+        })
+    ).toEqual(sslAndRegistryFiles)
 })
 
 test('fresh-system defaults are sequenced before other test files', () => {
@@ -56,6 +62,9 @@ test.each([undefined, '', 'persistent', 'true', 'Ephemeral'])(
     (value) => {
         const environment = { CAPROVER_E2E_ENVIRONMENT: value }
         expect(() => selectTests('destructive', environment)).toThrow(
+            'require CAPROVER_E2E_ENVIRONMENT=ephemeral'
+        )
+        expect(() => selectTests('ssl-and-registry', environment)).toThrow(
             'require CAPROVER_E2E_ENVIRONMENT=ephemeral'
         )
         expect(() => requireEphemeral(environment)).toThrow()

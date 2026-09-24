@@ -95,15 +95,28 @@ test('custom-domain operations use the SDK parameters', async () => {
     const attach = vi
         .spyOn(CapRoverAPI.prototype, 'attachNewCustomDomainToApp')
         .mockResolvedValue(undefined)
+    const enableBaseSsl = vi
+        .spyOn(CapRoverAPI.prototype, 'enableSslForBaseDomain')
+        .mockResolvedValue(undefined)
+    const enableCustomSsl = vi
+        .spyOn(CapRoverAPI.prototype, 'enableSslForCustomDomain')
+        .mockResolvedValue(undefined)
     const remove = vi
         .spyOn(CapRoverAPI.prototype, 'removeCustomDomain')
         .mockResolvedValue(undefined)
     const client = new CapRoverClient('https://example.test', 'password')
     try {
         await client.attachCustomDomain('test-app', 'custom.example.test')
+        await client.enableSslForBaseDomain('test-app')
+        await client.enableSslForCustomDomain('test-app', 'custom.example.test')
         await client.removeCustomDomain('test-app', 'custom.example.test')
 
         expect(attach).toHaveBeenCalledExactlyOnceWith(
+            'test-app',
+            'custom.example.test'
+        )
+        expect(enableBaseSsl).toHaveBeenCalledExactlyOnceWith('test-app')
+        expect(enableCustomSsl).toHaveBeenCalledExactlyOnceWith(
             'test-app',
             'custom.example.test'
         )
@@ -111,6 +124,36 @@ test('custom-domain operations use the SDK parameters', async () => {
             'test-app',
             'custom.example.test'
         )
+    } finally {
+        client.destroy()
+        vi.restoreAllMocks()
+    }
+})
+
+test('self-hosted registry operations use the SDK contracts', async () => {
+    const enable = vi
+        .spyOn(CapRoverAPI.prototype, 'enableSelfHostedDockerRegistry')
+        .mockResolvedValue(undefined)
+    const setDefault = vi
+        .spyOn(CapRoverAPI.prototype, 'setDefaultPushDockerRegistry')
+        .mockResolvedValue(undefined)
+    const remove = vi
+        .spyOn(CapRoverAPI.prototype, 'deleteDockerRegistry')
+        .mockResolvedValue(undefined)
+    const disable = vi
+        .spyOn(CapRoverAPI.prototype, 'disableSelfHostedDockerRegistry')
+        .mockResolvedValue(undefined)
+    const client = new CapRoverClient('https://example.test', 'password')
+    try {
+        await client.enableSelfHostedDockerRegistry()
+        await client.setDefaultPushDockerRegistry('registry-id')
+        await client.deleteDockerRegistry('registry-id')
+        await client.disableSelfHostedDockerRegistry()
+
+        expect(enable).toHaveBeenCalledExactlyOnceWith()
+        expect(setDefault).toHaveBeenCalledExactlyOnceWith('registry-id')
+        expect(remove).toHaveBeenCalledExactlyOnceWith('registry-id')
+        expect(disable).toHaveBeenCalledExactlyOnceWith()
     } finally {
         client.destroy()
         vi.restoreAllMocks()
