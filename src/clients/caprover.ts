@@ -164,6 +164,29 @@ export class CapRoverClient {
         )
     }
 
+    deleteDockerRegistry(id: string): Promise<void> {
+        return this.request(
+            () => this.api.deleteDockerRegistry(id),
+            'deleting Docker registry'
+        )
+    }
+
+    enableSelfHostedDockerRegistry(): Promise<void> {
+        return this.request(
+            () => this.api.enableSelfHostedDockerRegistry(),
+            'enabling self-hosted Docker registry',
+            180_000
+        )
+    }
+
+    disableSelfHostedDockerRegistry(): Promise<void> {
+        return this.request(
+            () => this.api.disableSelfHostedDockerRegistry(),
+            'disabling self-hosted Docker registry',
+            DEPLOYMENT_TIMEOUT_MS
+        )
+    }
+
     getGoAccessInfo(): Promise<GoAccessState> {
         return this.request(
             () => this.api.getGoAccessInfo(),
@@ -349,6 +372,22 @@ export class CapRoverClient {
         return this.request(
             () => this.api.removeCustomDomain(name, domain),
             `removing custom domain ${domain} from ${name}`
+        )
+    }
+
+    enableSslForBaseDomain(name: string): Promise<void> {
+        return this.request(
+            () => this.api.enableSslForBaseDomain(name),
+            `enabling base-domain SSL for ${name}`,
+            180_000
+        )
+    }
+
+    enableSslForCustomDomain(name: string, domain: string): Promise<void> {
+        return this.request(
+            () => this.api.enableSslForCustomDomain(name, domain),
+            `enabling custom-domain SSL for ${domain}`,
+            180_000
         )
     }
 

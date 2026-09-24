@@ -10,7 +10,7 @@ Future agents should check each implementation item as it lands. A PR is complet
 
 PR1 through PR6 were merged and validated through [PR #23](https://github.com/caprover/caprover-e2e/pull/23). The CapRover NGINX keep-alive fix landed in [CapRover PR #2491](https://github.com/caprover/caprover/pull/2491), and [PR #24](https://github.com/caprover/caprover-e2e/pull/24) removed the temporary API serialization and spacing mitigation after the full unmitigated suite passed.
 
-Confirmed second batch: PR7 through PR9 are merged as [PR #25](https://github.com/caprover/caprover-e2e/pull/25), [PR #26](https://github.com/caprover/caprover-e2e/pull/26), and [PR #27](https://github.com/caprover/caprover-e2e/pull/27). The delayed NGINX reload and connection-reuse regression was added in [PR #28](https://github.com/caprover/caprover-e2e/pull/28), with backend support in [CapRover PR #2494](https://github.com/caprover/caprover/pull/2494). PR10 through PR18a are implemented, with [PR #36](https://github.com/caprover/caprover-e2e/pull/36) adding one-click deployment and repository coverage, [PR #38](https://github.com/caprover/caprover-e2e/pull/38) adding registry and observability coverage, and [PR #39](https://github.com/caprover/caprover-e2e/pull/39) adding Git webhook coverage. PR18b through PR18e remain pending.
+Confirmed second batch: PR7 through PR9 are merged as [PR #25](https://github.com/caprover/caprover-e2e/pull/25), [PR #26](https://github.com/caprover/caprover-e2e/pull/26), and [PR #27](https://github.com/caprover/caprover-e2e/pull/27). The delayed NGINX reload and connection-reuse regression was added in [PR #28](https://github.com/caprover/caprover-e2e/pull/28), with backend support in [CapRover PR #2494](https://github.com/caprover/caprover/pull/2494). PR10 through PR18b are implemented, with [PR #36](https://github.com/caprover/caprover-e2e/pull/36) adding one-click deployment and repository coverage, [PR #38](https://github.com/caprover/caprover-e2e/pull/38) adding registry and observability coverage, [PR #39](https://github.com/caprover/caprover-e2e/pull/39) adding Git webhook coverage, and PR18b adding controlled SSL and self-hosted registry coverage. PR18c through PR18e remain pending.
 
 - Confirm the existing DigitalOcean, Cloudflare, and SSH provisioning secrets are present and valid in GitHub Actions. Update missing or expired values in GitHub; keep credentials out of this document and PR discussions.
 - Keep the backend custom-port fix (PR10) and SDK prerequisites (PR13 and PR17) as separate repository changes. Link their PRs and the consumed package versions or server images before enabling dependent assertions.
@@ -544,16 +544,16 @@ File: `tests/specialized/ssl-and-registry.test.ts`. Tier: destructive (specializ
 
 Fresh-server provisioning defaults to HTTP. This controlled SSL workflow must enable `E2E_ENABLE_HTTPS=true` to request a real dashboard certificate for `captain.<rootDomain>` through `enableRootSsl()`. Certificate-rate management must account for its dashboard, app, custom-domain, and registry certificates.
 
-- [ ] Document issuance volume and configure workflow cadence/concurrency with provisioning included in the budget.
-- [ ] Call `enableSslForBaseDomain(appName)` and verify a trusted certificate and HTTPS response for `<app>.<rootDomain>`. Dashboard/root SSL remains provisioning coverage.
-- [ ] Enable app-level force SSL and verify redirect behavior.
-- [ ] Enable custom-domain SSL and verify the certificate.
-- [ ] Enable the self-hosted registry.
-- [ ] Verify its service, TLS endpoint, and API entry.
-- [ ] Set it as default, build an app, and verify the image is pushed.
-- [ ] Verify local-registry deletion protections.
-- [ ] Disable the registry and verify cleanup.
-- [ ] Remove the custom domain and verify cleanup behavior.
+- [x] Document issuance volume and configure workflow cadence/concurrency with provisioning included in the budget.
+- [x] Call `enableSslForBaseDomain(appName)` and verify a trusted certificate and HTTPS response for `<app>.<rootDomain>`. Dashboard/root SSL remains provisioning coverage.
+- [x] Enable app-level force SSL and verify redirect behavior.
+- [x] Enable custom-domain SSL and verify the certificate.
+- [x] Enable the self-hosted registry.
+- [x] Verify its service, TLS endpoint, and API entry.
+- [x] Set it as default, build an app, and verify the image is pushed.
+- [x] Verify local-registry deletion protections.
+- [x] Disable the registry and verify cleanup.
+- [x] Remove the custom domain and verify cleanup behavior.
 
 ### PR18c: Multi-node workflow
 
@@ -630,7 +630,7 @@ This table should be updated whenever `caprover-api` adds or removes a public me
 - [x] PR16 merged ([caprover-e2e PR #36](https://github.com/caprover/caprover-e2e/pull/36))
 - [x] PR17 merged ([caprover-e2e PR #38](https://github.com/caprover/caprover-e2e/pull/38); [fresh-server run](https://github.com/caprover/caprover-e2e/actions/runs/35820353928): 36 files, 104 tests)
 - [x] PR18a implemented ([caprover-e2e PR #39](https://github.com/caprover/caprover-e2e/pull/39); [fresh-server run](https://github.com/caprover/caprover-e2e/actions/runs/35954049277): 37 files, 106 tests)
-- [ ] PR18b SSL and self-hosted registry workflow implemented or linked to a follow-up issue
+- [x] PR18b SSL and self-hosted registry workflow implemented
 - [ ] PR18c multi-node workflow implemented or linked to a follow-up issue
 - [ ] PR18d Pro and 2FA workflow implemented or linked to a follow-up issue
 - [ ] PR18e upgrade workflow implemented or linked to a follow-up issue
