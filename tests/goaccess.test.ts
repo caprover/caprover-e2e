@@ -64,7 +64,11 @@ test('GoAccess records routed traffic and serves a live report', async () => {
         )
 
         for (let request = 0; request < 3; request++) {
-            expect((await context.http.get(appUrl)).status).toBe(200)
+            await context.http.waitUntilReachable(
+                appUrl,
+                'Welcome to nginx!',
+                10_000
+            )
         }
 
         const reports = await api.getGoAccessReports(appName)
