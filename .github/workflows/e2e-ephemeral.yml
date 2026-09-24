@@ -21,8 +21,6 @@ jobs:
             E2E_GIT_SSH_REPO: ${{ secrets.E2E_GIT_SSH_REPO }}
             E2E_GIT_BRANCH: ${{ secrets.E2E_GIT_BRANCH }}
             E2E_GIT_HTTP_USER: ${{ secrets.E2E_GIT_HTTP_USER }}
-            E2E_GIT_HTTP_PASSWORD: ${{ secrets.E2E_GIT_HTTP_PASSWORD }}
-            E2E_GIT_SSH_PRIVATE_KEY: ${{ secrets.E2E_GIT_SSH_PRIVATE_KEY }}
             E2E_GIT_EXPECTED_COMMIT: ${{ secrets.E2E_GIT_EXPECTED_COMMIT }}
         steps:
             - name: Check out repository
@@ -37,6 +35,9 @@ jobs:
                   cache: npm
 
             - name: Validate Git fixture before provisioning
+              env:
+                  E2E_GIT_HTTP_PASSWORD: ${{ secrets.E2E_GIT_HTTP_PASSWORD }}
+                  E2E_GIT_SSH_PRIVATE_KEY: ${{ secrets.E2E_GIT_SSH_PRIVATE_KEY }}
               run: node scripts/check-git-fixture.mjs
 
             - name: Install dependencies
@@ -50,12 +51,19 @@ jobs:
             - name: Run E2E suite
               id: e2e
               timeout-minutes: 25
+              env:
+                  E2E_GIT_HTTP_PASSWORD: ${{ secrets.E2E_GIT_HTTP_PASSWORD }}
+                  E2E_GIT_SSH_PRIVATE_KEY: ${{ secrets.E2E_GIT_SSH_PRIVATE_KEY }}
               run: npm test
 
             - name: Collect failure diagnostics
               if: failure() && steps.e2e.outcome == 'failure'
               continue-on-error: true
               timeout-minutes: 3
+              env:
+                  # Diagnostics need the values so they can redact Captain logs.
+                  E2E_GIT_HTTP_PASSWORD: ${{ secrets.E2E_GIT_HTTP_PASSWORD }}
+                  E2E_GIT_SSH_PRIVATE_KEY: ${{ secrets.E2E_GIT_SSH_PRIVATE_KEY }}
               run: npm run diagnose
 
             - name: Destroy temporary infrastructure

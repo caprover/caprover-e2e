@@ -195,11 +195,11 @@ The fresh-server workflow checks that settings exist before creating a droplet. 
 also checks both URLs point to the same repository and compares the Git hash
 from each build to the expected commit. Git credentials and webhook tokens are
 never included in assertions. Failure diagnostics redact raw, newline-expanded,
-and URL-encoded credential values before printing captain logs. To validate the
-pull request, dispatch the normal fresh-server workflow on its branch:
+and URL-encoded credential values before printing captain logs. Dispatch the
+normal fresh-server workflow with:
 
 ```bash
-gh workflow run e2e-ephemeral.yml --ref test/pr18a-git-webhooks
+gh workflow run e2e-ephemeral.yml
 ```
 
 ## Development checks

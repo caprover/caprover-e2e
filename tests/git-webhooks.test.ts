@@ -31,6 +31,8 @@ interface GitFixture {
 test('private Git credentials, branch filtering, token rotation, and disabling webhooks', async () => {
     requireEphemeral()
     const fixture = loadGitFixture()
+    const untrackedBranch =
+        fixture.branch === 'untracked' ? 'untracked-e2e' : 'untracked'
     const config = loadConfig()
     const context = createTestContext(config)
     const { initialAppName: originalName, renamedAppName: renamedName } =
@@ -70,13 +72,22 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
 
                 // CapRover acknowledges all recognized webhook events before its
                 // asynchronous branch filter and build have finished.
-                const initialVersion = (
-                    await context.caprover.getApp(originalName)
-                ).deployedVersion
+                const initialApp = await context.caprover.getApp(originalName)
+                const initialVersion = initialApp.deployedVersion
+                const initialVersionCount = initialApp.versions.length
                 expect(
-                    await postPush(config.caproverUrl, httpsToken, 'untracked')
+                    await postPush(
+                        config.caproverUrl,
+                        httpsToken,
+                        untrackedBranch
+                    )
                 ).toBe(100)
-                await assertNoBuild(context, originalName, initialVersion)
+                await assertNoBuild(
+                    context,
+                    originalName,
+                    initialVersion,
+                    initialVersionCount
+                )
 
                 expect(
                     await postPush(
@@ -85,7 +96,12 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
                         fixture.branch
                     )
                 ).toBe(1106) // Webhook rejection falls through to STATUS_AUTH_TOKEN_INVALID.
-                await assertNoBuild(context, originalName, initialVersion)
+                await assertNoBuild(
+                    context,
+                    originalName,
+                    initialVersion,
+                    initialVersionCount
+                )
 
                 await triggerAndVerify(
                     context,
@@ -136,13 +152,18 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
                     fixture.sshKey
                 )
                 expect(renamedToken === sshToken).toBe(false)
-                const renamedVersion = (
-                    await context.caprover.getApp(renamedName)
-                ).deployedVersion
+                const renamedApp = await context.caprover.getApp(renamedName)
+                const renamedVersion = renamedApp.deployedVersion
+                const renamedVersionCount = renamedApp.versions.length
                 expect(
                     await postPush(config.caproverUrl, sshToken, fixture.branch)
                 ).toBe(1106) // The stale token version follows the same auth path.
-                await assertNoBuild(context, renamedName, renamedVersion)
+                await assertNoBuild(
+                    context,
+                    renamedName,
+                    renamedVersion,
+                    renamedVersionCount
+                )
                 await triggerAndVerify(
                     context,
                     config.caproverUrl,
@@ -158,8 +179,9 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
                 expect(
                     (await context.caprover.getApp(renamedName)).appPushWebhook
                 ).toBeUndefined()
-                const lastVersion = (await context.caprover.getApp(renamedName))
-                    .deployedVersion
+                const lastApp = await context.caprover.getApp(renamedName)
+                const lastVersion = lastApp.deployedVersion
+                const lastVersionCount = lastApp.versions.length
                 // Current backend sends status 100, then catches the missing
                 // repoInfo in the background. Disabling means no new build.
                 expect(
@@ -169,7 +191,12 @@ test('private Git credentials, branch filtering, token rotation, and disabling w
                         fixture.branch
                     )
                 ).toBe(100)
-                await assertNoBuild(context, renamedName, lastVersion)
+                await assertNoBuild(
+                    context,
+                    renamedName,
+                    lastVersion,
+                    lastVersionCount
+                )
             })
         )
     } finally {
@@ -303,7 +330,8 @@ async function postPush(
 async function assertNoBuild(
     context: TestContext,
     name: string,
-    version: number
+    version: number,
+    versionCount: number
 ): Promise<void> {
     // The webhook response precedes the branch check. Sample across the
     // scheduling window and assert that no version was added or started.
@@ -311,11 +339,14 @@ async function assertNoBuild(
     while (Date.now() < deadline) {
         const app = await context.caprover.getApp(name)
         expect(app.deployedVersion).toBe(version)
+        expect(app.versions.length).toBe(versionCount)
         expect(app.isAppBuilding).toBe(false)
         expect((await context.caprover.getBuildLogs(name)).isAppBuilding).toBe(
             false
         )
         await delay(700)
     }
-    expect((await context.caprover.getApp(name)).deployedVersion).toBe(version)
+    const final = await context.caprover.getApp(name)
+    expect(final.deployedVersion).toBe(version)
+    expect(final.versions.length).toBe(versionCount)
 }

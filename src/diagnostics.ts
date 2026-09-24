@@ -444,10 +444,16 @@ export function redactSensitiveValues(
     for (const name of SENSITIVE_ENVIRONMENT_VARIABLES) {
         const configured = environment[name]
         if (!configured?.trim()) continue
-        secrets.add(configured)
-        secrets.add(configured.replace(/\\n/g, '\n'))
-        secrets.add(encodeURIComponent(configured))
-        secrets.add(encodeURIComponent(configured.replace(/\\n/g, '\n')))
+        const decoded = configured.replace(/\\n/g, '\n')
+        for (const candidate of [
+            configured,
+            decoded,
+            configured.trim(),
+            decoded.trim(),
+        ]) {
+            secrets.add(candidate)
+            secrets.add(encodeURIComponent(candidate))
+        }
     }
 
     let redacted = value

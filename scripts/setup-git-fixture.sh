@@ -158,22 +158,6 @@ else
 fi
 [[ -n "$HTTP_TOKEN" ]] || die 'the HTTPS token cannot be empty'
 
-KEY_FILE="$WORK_DIR/deploy-key"
-ssh-keygen -q -t ed25519 -N '' -C 'caprover-e2e-git-fixture' -f "$KEY_FILE"
-
-while IFS= read -r key_id; do
-    [[ -n "$key_id" ]] || continue
-    gh api --method DELETE "repos/$FIXTURE_REPO/keys/$key_id"
-done < <(
-    gh api "repos/$FIXTURE_REPO/keys" \
-        --jq ".[] | select(.title == \"$DEPLOY_KEY_TITLE\") | .id"
-)
-
-gh api --method POST "repos/$FIXTURE_REPO/keys" \
-    -f "title=$DEPLOY_KEY_TITLE" \
-    -f "key=$(<"$KEY_FILE.pub")" \
-    -F read_only=true >/dev/null
-
 HTTPS_REPO="https://github.com/$FIXTURE_REPO.git"
 SSH_REPO="git@github.com:$FIXTURE_REPO.git"
 ASKPASS_FILE="$WORK_DIR/askpass.sh"
@@ -199,13 +183,27 @@ HTTP_COMMIT=$(
         git -c credential.helper= ls-remote \
         "$HTTPS_REPO" "refs/heads/$BRANCH" | awk '{print $1}'
 )
+[[ "$HTTP_COMMIT" == "$EXPECTED_COMMIT" ]] ||
+    die 'HTTPS authentication did not resolve the expected fixture commit'
+
+OLD_DEPLOY_KEY_IDS=$(
+    gh api "repos/$FIXTURE_REPO/keys" \
+        --jq ".[] | select(.title == \"$DEPLOY_KEY_TITLE\") | .id"
+)
+
+KEY_FILE="$WORK_DIR/deploy-key"
+ssh-keygen -q -t ed25519 -N '' -C 'caprover-e2e-git-fixture' -f "$KEY_FILE"
+
+gh api --method POST "repos/$FIXTURE_REPO/keys" \
+    -f "title=$DEPLOY_KEY_TITLE" \
+    -f "key=$(<"$KEY_FILE.pub")" \
+    -F read_only=true >/dev/null
+
 SSH_COMMIT=$(
     GIT_TERMINAL_PROMPT=0 \
         GIT_SSH_COMMAND="ssh -i $KEY_FILE -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$WORK_DIR/known-hosts" \
         git ls-remote "$SSH_REPO" "refs/heads/$BRANCH" | awk '{print $1}'
 )
-[[ "$HTTP_COMMIT" == "$EXPECTED_COMMIT" ]] ||
-    die 'HTTPS authentication did not resolve the expected fixture commit'
 [[ "$SSH_COMMIT" == "$EXPECTED_COMMIT" ]] ||
     die 'SSH authentication did not resolve the expected fixture commit'
 
@@ -236,6 +234,11 @@ for secret_name in \
     grep -Fxq "$secret_name" <<<"$SECRET_NAMES" ||
         die "Actions secret was not found after setting it: $secret_name"
 done
+
+while IFS= read -r key_id; do
+    [[ -n "$key_id" ]] || continue
+    gh api --method DELETE "repos/$FIXTURE_REPO/keys/$key_id"
+done <<<"$OLD_DEPLOY_KEY_IDS"
 
 unset HTTP_TOKEN CAPROVER_E2E_GIT_HTTP_TOKEN
 printf '\nFixture setup complete.\n'
