@@ -63,7 +63,7 @@ test('trusted application SSL and the self-hosted registry work through their fu
                 description: `${appName} base-domain SSL state`,
             }
         )
-        await verifyTrustedCertificate(`${appName}.${rootDomain}`, 443)
+        await waitForTrustedCertificate(`${appName}.${rootDomain}`, 443)
         await context.http.waitUntilReachable(httpsUrl, marker, 60_000)
 
         await api.updateApp(appName, { forceSsl: true })
@@ -92,7 +92,7 @@ test('trusted application SSL and the self-hosted registry work through their fu
                 description: `${customDomain} SSL state`,
             }
         )
-        await verifyTrustedCertificate(customDomain, 443)
+        await waitForTrustedCertificate(customDomain, 443)
         await context.http.waitUntilReachable(customHttpsUrl, marker, 60_000)
 
         cleanup.add(async () => {
@@ -159,21 +159,36 @@ test('trusted application SSL and the self-hosted registry work through their fu
 
         const registryHost = `registry.${rootDomain}`
         const registryUrl = `https://${registryHost}:${REGISTRY_PORT}`
-        await verifyTrustedCertificate(registryHost, REGISTRY_PORT)
-        const anonymousRegistry = await context.http.get(`${registryUrl}/v2/`)
-        expect(anonymousRegistry.status).toBe(401)
-        expect(
-            anonymousRegistry.headers.get('docker-distribution-api-version')
-        ).toBe('registry/2.0')
+        await waitForTrustedCertificate(registryHost, REGISTRY_PORT)
+        await eventually(
+            async () => {
+                const response = await context.http.get(`${registryUrl}/v2/`)
+                expect(response.status).toBe(401)
+                expect(
+                    response.headers.get('docker-distribution-api-version')
+                ).toBe('registry/2.0')
+            },
+            {
+                timeoutMs: 60_000,
+                description: 'self-hosted registry anonymous endpoint',
+            }
+        )
 
         const registryAuthorization = `Basic ${Buffer.from(
             `${localRegistry.registryUser}:${localRegistry.registryPassword}`
         ).toString('base64')}`
-        const authenticatedRegistry = await context.http.get(
-            `${registryUrl}/v2/`,
-            { headers: { authorization: registryAuthorization } }
+        await eventually(
+            async () => {
+                const response = await context.http.get(`${registryUrl}/v2/`, {
+                    headers: { authorization: registryAuthorization },
+                })
+                expect(response.status).toBe(200)
+            },
+            {
+                timeoutMs: 60_000,
+                description: 'self-hosted registry authenticated endpoint',
+            }
         )
-        expect(authenticatedRegistry.status).toBe(200)
 
         await api.setDefaultPushDockerRegistry(localRegistry.id)
         expect((await api.getDockerRegistries()).defaultPushRegistryId).toBe(
@@ -308,5 +323,12 @@ function verifyTrustedCertificate(host: string, port: number): Promise<void> {
                 fail(error)
             }
         })
+    })
+}
+
+function waitForTrustedCertificate(host: string, port: number): Promise<void> {
+    return eventually(() => verifyTrustedCertificate(host, port), {
+        timeoutMs: 60_000,
+        description: `trusted TLS certificate for ${host}:${port}`,
     })
 }
