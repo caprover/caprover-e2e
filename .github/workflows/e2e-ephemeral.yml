@@ -4,17 +4,21 @@ on:
     workflow_dispatch:
         inputs:
             enable_https:
-                description: Issue a real Let's Encrypt certificate for the dashboard
+                description: Enable HTTPS and run Pro + 2FA coverage
                 type: boolean
                 default: false
 
 permissions:
     contents: read
 
+concurrency:
+    group: ${{ inputs.enable_https && 'caprover-e2e-certificate-issuing' || format('caprover-e2e-ephemeral-{0}', github.run_id) }}
+    cancel-in-progress: false
+
 jobs:
     e2e:
         runs-on: ubuntu-latest
-        timeout-minutes: 65
+        timeout-minutes: 100
         env:
             DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
             DIGITALOCEAN_SSH_KEY_ID: ${{ secrets.DIGITALOCEAN_SSH_KEY_ID }}
@@ -46,6 +50,16 @@ jobs:
                   E2E_GIT_SSH_PRIVATE_KEY: ${{ secrets.E2E_GIT_SSH_PRIVATE_KEY }}
               run: node scripts/check-git-fixture.mjs
 
+            - name: Check dedicated Pro key before provisioning
+              if: inputs.enable_https
+              env:
+                  E2E_PRO_API_KEY: ${{ secrets.E2E_PRO_API_KEY }}
+              run: |
+                  if [[ -z "$E2E_PRO_API_KEY" ]]; then
+                      echo '::error::Missing E2E_PRO_API_KEY Actions secret'
+                      exit 1
+                  fi
+
             - name: Install dependencies
               timeout-minutes: 5
               run: npm ci
@@ -62,14 +76,23 @@ jobs:
                   E2E_GIT_SSH_PRIVATE_KEY: ${{ secrets.E2E_GIT_SSH_PRIVATE_KEY }}
               run: npm test
 
+            - name: Run Pro and 2FA E2E suite
+              id: pro
+              if: inputs.enable_https
+              timeout-minutes: 25
+              env:
+                  E2E_PRO_API_KEY: ${{ secrets.E2E_PRO_API_KEY }}
+              run: npm run test:specialized:pro-and-2fa
+
             - name: Collect failure diagnostics
-              if: failure() && steps.e2e.outcome == 'failure'
+              if: failure() && (steps.e2e.outcome == 'failure' || steps.pro.outcome == 'failure')
               continue-on-error: true
               timeout-minutes: 3
               env:
                   # Diagnostics need the values so they can redact Captain logs.
                   E2E_GIT_HTTP_PASSWORD: ${{ secrets.E2E_GIT_HTTP_PASSWORD }}
                   E2E_GIT_SSH_PRIVATE_KEY: ${{ secrets.E2E_GIT_SSH_PRIVATE_KEY }}
+                  E2E_PRO_API_KEY: ${{ inputs.enable_https && secrets.E2E_PRO_API_KEY || '' }}
               run: npm run diagnose
 
             - name: Destroy temporary infrastructure

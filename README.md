@@ -110,7 +110,7 @@ and a bounded tail of logs from the generated test application.
 | Workflow                   | Purpose                                                                                   | Infrastructure             |
 | -------------------------- | ----------------------------------------------------------------------------------------- | -------------------------- |
 | `e2e-multi-node.yml`       | Multi-node worker joining, placement, self-hosted registry, and persistent-volume testing | 2 droplets, 2 certificates |
-| `e2e-ephemeral.yml`        | Full ordinary suite on a fresh server                                                     | 1 droplet, HTTP by default |
+| `e2e-ephemeral.yml`        | Full fresh-server suite; HTTPS mode also runs Pro and 2FA coverage                        | 1 droplet, HTTP by default |
 | `e2e-ssl-and-registry.yml` | Dedicated SSL and self-hosted registry coverage                                           | 1 droplet, 4 certificates  |
 | `e2e.yml`                  | Run the ordinary non-destructive suite against an existing server you provide             | No provisioning            |
 
@@ -121,7 +121,7 @@ flowchart TB
     subgraph ORDINARY["Ordinary E2E suite"]
         direction TB
 
-        FRESH["Fresh Server<br/><code>e2e-ephemeral.yml</code><br/><br/>Complete ordinary ephemeral suite"]
+        FRESH["Fresh Server<br/><code>e2e-ephemeral.yml</code><br/><br/>Ordinary suite<br/>HTTPS mode adds Pro + 2FA"]
 
         EXISTING["Existing Server<br/><code>e2e.yml</code><br/><br/>Smoke + core tests<br/>Strict subset of Fresh Server"]
 
@@ -170,13 +170,15 @@ The **CapRover E2E - Fresh Server** workflow provisions a new environment, runs
 the smoke, core, and ordinary destructive suites, and destroys its temporary
 infrastructure even when the test step fails.
 
-Run it normally to use HTTP without issuing a certificate. To exercise the
-dashboard SSL setup, check **Enable HTTPS** when dispatching the same workflow.
-This issues a real Let's Encrypt certificate, forces dashboard HTTPS, and runs
-the same suite over HTTPS. Local `npm run test:ephemeral` also defaults to HTTP;
-set `E2E_ENABLE_HTTPS=true` in `.env` to opt in. Only `true` and `false` are
-accepted. Both modes use HTTP for application subdomains unless a test explicitly
-enables SSL on an app.
+Run it normally to use HTTP without issuing a certificate. Check **Enable HTTPS**
+to issue a real Let's Encrypt certificate, force dashboard HTTPS, run the
+ordinary suite over HTTPS, and then run the Pro and 2FA specialized coverage on
+the same server. HTTPS runs require the dedicated `E2E_PRO_API_KEY` secret and
+share the certificate-issuing concurrency group with the other certificate
+workflows. Local `npm run test:ephemeral` still defaults to HTTP; setting
+`E2E_ENABLE_HTTPS=true` locally only enables HTTPS provisioning and does not
+automatically invoke the separate Pro/2FA npm command. Both modes use HTTP for
+application subdomains unless a test explicitly enables SSL on an app.
 
 Configure these repository secrets:
 
@@ -188,6 +190,7 @@ Configure these repository secrets:
 | `CLOUDFLARE_ZONE_ID`           | Cloudflare zone ID containing the E2E base domain              |
 | `E2E_BASE_DOMAIN`              | Base domain under which temporary wildcard records are created |
 | `CAPROVER_E2E_SSH_PRIVATE_KEY` | Private key matching the DigitalOcean SSH key                  |
+| `E2E_PRO_API_KEY`              | Dedicated Pro instance key; required only for HTTPS runs       |
 
 The fresh-server workflow uses a generated CapRover password for each run. The
 existing-server workflow remains available for fast repeated test runs without
@@ -210,11 +213,11 @@ Each complete run requests four Let's Encrypt certificates: dashboard, app,
 custom domain, and registry. [Let's Encrypt currently permits 50 certificates
 per registered domain in a rolling seven-day period](https://letsencrypt.org/docs/rate-limits/#new-certificates-per-registered-domain).
 Manage its four-certificate cost together with the multi-node workflow's
-two-certificate cost and the Pro workflow's one-certificate cost. Keep
-`4 × SSL runs + 2 × multi-node runs + Pro runs + HTTPS fresh-server runs`
-at or below 40 per rolling seven days for the configured base domain. This
-leaves room for interrupted attempts and other HTTPS runs. A failed run may
-consume part of its certificate budget.
+two-certificate cost and the fresh-server HTTPS mode's one-certificate cost.
+Keep `4 × SSL runs + 2 × multi-node runs + HTTPS fresh-server runs` at or below
+40 per rolling seven days for the configured base domain. This leaves room for
+interrupted attempts and other HTTPS runs. A failed run may consume part of its
+certificate budget.
 
 Dispatch the specialized workflow with:
 
@@ -249,11 +252,12 @@ gh workflow run e2e-multi-node.yml
 
 ### Pro and two-factor authentication coverage
 
-The manual **CapRover E2E - Pro and 2FA** workflow provisions one disposable
-HTTPS server and runs only `tests/specialized/pro-and-2fa.test.ts`. It claims a
+The **CapRover E2E - Fresh Server** workflow includes
+`tests/specialized/pro-and-2fa.test.ts` whenever **Enable HTTPS** is checked. The
+ordinary fresh-server suite runs first over HTTPS, then the Pro/2FA test claims a
 dedicated Pro key, checks subscription state and Pro configuration, requests a
 fresh TOTP URI, enables two-factor authentication, verifies login requires an
-OTP, then logs in with a generated code. Test cleanup disables 2FA and restores
+OTP, and logs in with a generated code. Test cleanup disables 2FA and restores
 the initial Pro configuration before infrastructure teardown.
 
 Configure `E2E_PRO_API_KEY` as an Actions secret containing an instance key
@@ -261,15 +265,14 @@ reserved solely for this suite. The Pro service updates the key's associated
 hostname on each claim and replaces its stored TOTP secret on setup, so the
 same key works across fresh runs. The Pro service retains the most recent
 hostname until the next claim; keep the key separate from any live server.
-The workflow validates the secret is present before provisioning. It uses the
-same six provisioning secrets as Fresh Server, shares the certificate-issuing
-concurrency group with the SSL and multi-node workflows, and requests one
-dashboard certificate per complete run.
+HTTPS fresh-server runs validate the secret before provisioning, share the
+certificate-issuing concurrency group with the SSL and multi-node workflows,
+and request one dashboard certificate per complete run.
 
-Dispatch it with:
+Dispatch the combined HTTPS + Pro/2FA mode with:
 
 ```bash
-gh workflow run e2e-pro-and-2fa.yml
+gh workflow run e2e-ephemeral.yml -f enable_https=true
 ```
 
 ### Upgrade coverage
@@ -390,9 +393,9 @@ Leave this unset for existing servers. This flag declares a disposable environme
 set it only for a freshly provisioned server owned by the run. Never point the suite
 at a production server. Each future destructive file must call `requireEphemeral()`
 before creating a context or mutating resources. Direct file filters cannot expand
-the selected tier. Specialized workflows under `tests/specialized/` are excluded
-from all default selections and have their own explicit configuration. Git webhook
-coverage is part of the ordinary destructive tier because its fixture prerequisites
+the selected tier. Specialized tests under `tests/specialized/` are excluded
+from all default selections and run only through their explicit workflow modes.
+Git webhook coverage is part of the ordinary destructive tier because its fixture prerequisites
 are validated before fresh-server provisioning.
 
 Core and destructive commands fail with no tests until their files are implemented.
