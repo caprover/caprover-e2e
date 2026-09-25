@@ -362,9 +362,9 @@ Leave this unset for existing servers. This flag declares a disposable environme
 set it only for a freshly provisioned server owned by the run. Never point the suite
 at a production server. Each future destructive file must call `requireEphemeral()`
 before creating a context or mutating resources. Direct file filters cannot expand
-the selected tier. Specialized tests under `tests/specialized/` are excluded from all default
-selections and run only through their explicit workflow modes. Git webhook
-coverage is part of the ordinary destructive tier because its fixture prerequisites
+the selected tier. Specialized tests under `tests/specialized/` are excluded
+from all default selections and run only through their explicit workflow modes.
+Git webhook coverage is part of the ordinary destructive tier because its fixture prerequisites
 are validated before fresh-server provisioning.
 
 Core and destructive commands fail with no tests until their files are implemented.
