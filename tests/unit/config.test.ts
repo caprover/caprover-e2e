@@ -27,6 +27,14 @@ describe('loadConfig', () => {
         ).toBe('192.0.2.10')
     })
 
+    test('loads an optional worker address', () => {
+        expect(
+            loadConfig({ ...validEnvironment, E2E_WORKER_IP: ' 192.0.2.20 ' })
+                .workerIpAddress
+        ).toBe('192.0.2.20')
+        expect(loadConfig(validEnvironment).workerIpAddress).toBeUndefined()
+    })
+
     test('allows HTTP only on disposable servers', () => {
         expect(
             loadConfig({

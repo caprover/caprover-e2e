@@ -23,6 +23,7 @@
         "test:nginx-reload-race": "vitest run --mode nginx-reload-race",
         "test:destructive": "vitest run --mode destructive",
         "test:specialized:ssl-and-registry": "vitest run --mode ssl-and-registry",
+        "test:specialized:multi-node": "vitest run --mode multi-node",
         "test:all": "vitest run --mode all"
     },
     "dependencies": {

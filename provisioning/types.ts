@@ -6,6 +6,9 @@ export interface ProvisioningState {
     dnsRecordId?: string
     rootDomain?: string
     caproverUrl?: string
+    workerDropletName?: string
+    workerDropletId?: number
+    workerIpAddress?: string
 }
 
 export interface ProvisionedEnvironment {

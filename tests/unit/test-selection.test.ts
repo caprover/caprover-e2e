@@ -3,6 +3,7 @@ import { prioritizeSystemDefaults } from '../../src/test-sequencer'
 import {
     coreFiles,
     destructiveFiles,
+    multiNodeFiles,
     requireEphemeral,
     selectTests,
     smokeFiles,
@@ -39,6 +40,11 @@ test('ephemeral default adds only ordinary destructive files', () => {
             CAPROVER_E2E_ENVIRONMENT: 'ephemeral',
         })
     ).toEqual(sslAndRegistryFiles)
+    expect(
+        selectTests('multi-node', {
+            CAPROVER_E2E_ENVIRONMENT: 'ephemeral',
+        })
+    ).toEqual(multiNodeFiles)
 })
 
 test('fresh-system defaults are sequenced before other test files', () => {
@@ -65,6 +71,9 @@ test.each([undefined, '', 'persistent', 'true', 'Ephemeral'])(
             'require CAPROVER_E2E_ENVIRONMENT=ephemeral'
         )
         expect(() => selectTests('ssl-and-registry', environment)).toThrow(
+            'require CAPROVER_E2E_ENVIRONMENT=ephemeral'
+        )
+        expect(() => selectTests('multi-node', environment)).toThrow(
             'require CAPROVER_E2E_ENVIRONMENT=ephemeral'
         )
         expect(() => requireEphemeral(environment)).toThrow()

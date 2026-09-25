@@ -243,6 +243,34 @@ test('system read and backup operations use the SDK parameters', async () => {
     }
 })
 
+test('worker addition uses the SDK node contract', async () => {
+    const addNode = vi
+        .spyOn(CapRoverAPI.prototype, 'addDockerNode')
+        .mockResolvedValue(undefined)
+    const client = new CapRoverClient('https://example.test', 'password')
+    try {
+        await client.addDockerNode(
+            'worker',
+            'private-key',
+            '192.0.2.20',
+            '22',
+            'root',
+            '192.0.2.10'
+        )
+        expect(addNode).toHaveBeenCalledExactlyOnceWith(
+            'worker',
+            'private-key',
+            '192.0.2.20',
+            '22',
+            'root',
+            '192.0.2.10'
+        )
+    } finally {
+        client.destroy()
+        vi.restoreAllMocks()
+    }
+})
+
 test('disk-cleanup and global Nginx operations use the SDK parameters', async () => {
     const cleanupSettings = {
         mostRecentLimit: 2,

@@ -118,6 +118,29 @@ export class CapRoverClient {
         return this.request(() => this.api.getAllNodes(), 'listing Swarm nodes')
     }
 
+    addDockerNode(
+        nodeType: 'manager' | 'worker',
+        privateKey: string,
+        remoteNodeIpAddress: string,
+        sshPort: string,
+        sshUser: string,
+        captainIpAddress: string
+    ): Promise<void> {
+        return this.request(
+            () =>
+                this.api.addDockerNode(
+                    nodeType,
+                    privateKey,
+                    remoteNodeIpAddress,
+                    sshPort,
+                    sshUser,
+                    captainIpAddress
+                ),
+            `adding ${nodeType} Swarm node ${remoteNodeIpAddress}`,
+            180_000
+        )
+    }
+
     getProFeaturesState(): Promise<ProFeaturesState> {
         return this.request(
             () => this.api.getProFeaturesState(),

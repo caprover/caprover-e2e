@@ -12,6 +12,7 @@ export interface ProvisioningConfig {
     digitalOceanImage: string
     caproverImage: string
     enableHttps: boolean
+    provisionWorker: boolean
 }
 
 const REQUIRED_VARIABLES = [
@@ -43,10 +44,14 @@ export function loadProvisioningConfig(
         throw new Error('E2E_BASE_DOMAIN must contain a domain name')
     }
 
-    const enableHttps = environment.E2E_ENABLE_HTTPS?.trim() || 'false'
-    if (enableHttps !== 'true' && enableHttps !== 'false') {
-        throw new Error('E2E_ENABLE_HTTPS must be true or false')
-    }
+    const enableHttps = parseBoolean(
+        environment.E2E_ENABLE_HTTPS,
+        'E2E_ENABLE_HTTPS'
+    )
+    const provisionWorker = parseBoolean(
+        environment.E2E_PROVISION_WORKER,
+        'E2E_PROVISION_WORKER'
+    )
 
     return {
         digitalOceanToken: environment.DIGITALOCEAN_TOKEN!.trim(),
@@ -65,8 +70,17 @@ export function loadProvisioningConfig(
             environment.DIGITALOCEAN_IMAGE?.trim() || 'docker-20-04',
         caproverImage:
             environment.CAPROVER_IMAGE?.trim() || 'caprover/caprover-edge',
-        enableHttps: enableHttps === 'true',
+        enableHttps,
+        provisionWorker,
     }
+}
+
+function parseBoolean(value: string | undefined, name: string): boolean {
+    const normalized = value?.trim() || 'false'
+    if (normalized !== 'true' && normalized !== 'false') {
+        throw new Error(`${name} must be true or false`)
+    }
+    return normalized === 'true'
 }
 
 function loadLocalEnvironment(environment: NodeJS.ProcessEnv): void {
