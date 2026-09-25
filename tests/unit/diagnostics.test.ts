@@ -86,12 +86,14 @@ test('diagnostic command failures do not stop later sections', async () => {
 test('diagnostics redact raw, escaped, and URL-encoded credentials', () => {
     const environment = {
         E2E_GIT_HTTP_PASSWORD: 'token:value/with spaces',
+        E2E_PRO_API_KEY: 'apikey_pro-test-value',
         E2E_GIT_SSH_PRIVATE_KEY:
             '-----BEGIN KEY-----\\nprivate-material\\n-----END KEY-----\\n',
     }
     const rawKey = environment.E2E_GIT_SSH_PRIVATE_KEY.replace(/\\n/g, '\n')
     const output = [
         environment.E2E_GIT_HTTP_PASSWORD,
+        environment.E2E_PRO_API_KEY,
         encodeURIComponent(environment.E2E_GIT_HTTP_PASSWORD),
         environment.E2E_GIT_SSH_PRIVATE_KEY,
         rawKey,
@@ -103,6 +105,7 @@ test('diagnostics redact raw, escaped, and URL-encoded credentials', () => {
 
     const redacted = redactSensitiveValues(output, environment)
     expect(redacted).not.toContain('token:value')
+    expect(redacted).not.toContain(environment.E2E_PRO_API_KEY)
     expect(redacted).not.toContain(
         encodeURIComponent(environment.E2E_GIT_HTTP_PASSWORD)
     )

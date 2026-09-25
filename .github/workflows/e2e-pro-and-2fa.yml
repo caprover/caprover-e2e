@@ -1,0 +1,76 @@
+name: CapRover E2E - Pro and 2FA
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: caprover-e2e-certificate-issuing
+    cancel-in-progress: false
+
+jobs:
+    e2e:
+        runs-on: ubuntu-latest
+        timeout-minutes: 80
+        env:
+            DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+            DIGITALOCEAN_SSH_KEY_ID: ${{ secrets.DIGITALOCEAN_SSH_KEY_ID }}
+            CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+            CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+            E2E_BASE_DOMAIN: ${{ secrets.E2E_BASE_DOMAIN }}
+            CAPROVER_E2E_SSH_PRIVATE_KEY: ${{ secrets.CAPROVER_E2E_SSH_PRIVATE_KEY }}
+            E2E_ENABLE_HTTPS: 'true'
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v7
+              with:
+                  persist-credentials: false
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v7
+              with:
+                  node-version: 22
+                  cache: npm
+
+            - name: Check dedicated Pro key before provisioning
+              env:
+                  E2E_PRO_API_KEY: ${{ secrets.E2E_PRO_API_KEY }}
+              run: |
+                  if [[ -z "$E2E_PRO_API_KEY" ]]; then
+                      echo '::error::Missing E2E_PRO_API_KEY Actions secret'
+                      exit 1
+                  fi
+
+            - name: Install dependencies
+              timeout-minutes: 5
+              run: npm ci
+
+            - name: Validate test code before provisioning
+              timeout-minutes: 5
+              run: npm run typecheck && npm run test:unit && npm run format
+
+            - name: Provision HTTPS-enabled CapRover server
+              timeout-minutes: 30
+              run: npm run provision
+
+            - name: Run Pro and 2FA E2E suite
+              id: e2e
+              timeout-minutes: 25
+              env:
+                  E2E_PRO_API_KEY: ${{ secrets.E2E_PRO_API_KEY }}
+              run: npm run test:specialized:pro-and-2fa
+
+            - name: Collect failure diagnostics
+              if: failure() && steps.e2e.outcome == 'failure'
+              continue-on-error: true
+              timeout-minutes: 3
+              env:
+                  E2E_PRO_API_KEY: ${{ secrets.E2E_PRO_API_KEY }}
+              run: npm run diagnose
+
+            - name: Destroy temporary infrastructure
+              if: always()
+              timeout-minutes: 5
+              run: npm run destroy

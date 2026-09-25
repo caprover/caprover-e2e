@@ -173,10 +173,11 @@ Each complete run requests four Let's Encrypt certificates: dashboard, app,
 custom domain, and registry. [Let's Encrypt currently permits 50 certificates
 per registered domain in a rolling seven-day period](https://letsencrypt.org/docs/rate-limits/#new-certificates-per-registered-domain).
 Manage its four-certificate cost together with the multi-node workflow's
-two-certificate cost. Keep `4 × SSL runs + 2 × multi-node runs` at or below 40
-per rolling seven days for the configured base domain. This leaves room for
-interrupted attempts and other HTTPS runs. A failed run may consume part of its
-certificate budget.
+two-certificate cost and the Pro workflow's one-certificate cost. Keep
+`4 × SSL runs + 2 × multi-node runs + Pro runs + HTTPS fresh-server runs`
+at or below 40 per rolling seven days for the configured base domain. This
+leaves room for interrupted attempts and other HTTPS runs. A failed run may
+consume part of its certificate budget.
 
 Dispatch the specialized workflow with:
 
@@ -207,6 +208,31 @@ Dispatch it with:
 
 ```bash
 gh workflow run e2e-multi-node.yml
+```
+
+### Pro and two-factor authentication coverage
+
+The manual **CapRover E2E - Pro and 2FA** workflow provisions one disposable
+HTTPS server and runs only `tests/specialized/pro-and-2fa.test.ts`. It claims a
+dedicated Pro key, checks subscription state and Pro configuration, requests a
+fresh TOTP URI, enables two-factor authentication, verifies login requires an
+OTP, then logs in with a generated code. Test cleanup disables 2FA and restores
+the initial Pro configuration before infrastructure teardown.
+
+Configure `E2E_PRO_API_KEY` as an Actions secret containing an instance key
+reserved solely for this suite. The Pro service updates the key's associated
+hostname on each claim and replaces its stored TOTP secret on setup, so the
+same key works across fresh runs. The Pro service retains the most recent
+hostname until the next claim; keep the key separate from any live server.
+The workflow validates the secret is present before provisioning. It uses the
+same six provisioning secrets as Fresh Server, shares the certificate-issuing
+concurrency group with the SSL and multi-node workflows, and requests one
+dashboard certificate per complete run.
+
+Dispatch it with:
+
+```bash
+gh workflow run e2e-pro-and-2fa.yml
 ```
 
 ### Git webhook coverage
@@ -288,6 +314,7 @@ failure.
 | `npm run test:destructive`                  | Explicitly listed global and destructive tests; requires ephemeral mode |
 | `npm run test:specialized:ssl-and-registry` | Controlled SSL and registry file; requires ephemeral mode               |
 | `npm run test:specialized:multi-node`       | Two-node placement and persistence file; requires ephemeral mode        |
+| `npm run test:specialized:pro-and-2fa`      | Pro claim and OTP login file; requires ephemeral mode                   |
 | `npm run test:all`                          | Unit, smoke, core; adds ordinary destructive tests in ephemeral mode    |
 
 Provisioning sets `CAPROVER_E2E_ENVIRONMENT=ephemeral` for the test process.

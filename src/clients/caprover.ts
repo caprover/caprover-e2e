@@ -31,6 +31,8 @@ type ProFeaturesState = Awaited<
 type ProConfigs = Awaited<
     ReturnType<CapRoverAPI['getProConfigs']>
 >['proConfigs']
+type OtpStatus = Awaited<ReturnType<CapRoverAPI['getOtpStatus']>>
+type OtpRequest = Parameters<CapRoverAPI['setOtpStatus']>[0]
 type DiskCleanupSettings = Awaited<
     ReturnType<CapRoverAPI['getDiskCleanUpSettings']>
 >
@@ -153,6 +155,31 @@ export class CapRoverClient {
             () => this.api.getProConfigs(),
             'retrieving Pro configuration'
         ).then((response) => response.proConfigs)
+    }
+
+    setProApiKey(apiKey: string): Promise<void> {
+        return this.request(
+            () => this.api.setProApiKey(apiKey),
+            'claiming the dedicated Pro key'
+        )
+    }
+
+    setProConfigs(config: ProConfigs): Promise<void> {
+        return this.request(
+            () => this.api.setProConfigs(config),
+            'updating Pro configuration'
+        )
+    }
+
+    getOtpStatus(): Promise<OtpStatus> {
+        return this.request(() => this.api.getOtpStatus(), 'reading 2FA state')
+    }
+
+    setOtpStatus(request: OtpRequest): Promise<OtpStatus> {
+        return this.request(
+            () => this.api.setOtpStatus(request),
+            'updating 2FA state'
+        )
     }
 
     createBackup(): Promise<{ downloadToken: string }> {

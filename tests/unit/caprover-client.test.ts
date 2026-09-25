@@ -271,6 +271,40 @@ test('worker addition uses the SDK node contract', async () => {
     }
 })
 
+test('Pro and OTP operations use the SDK contract', async () => {
+    const claim = vi
+        .spyOn(CapRoverAPI.prototype, 'setProApiKey')
+        .mockResolvedValue(undefined)
+    const setConfig = vi
+        .spyOn(CapRoverAPI.prototype, 'setProConfigs')
+        .mockResolvedValue(undefined)
+    const getOtp = vi
+        .spyOn(CapRoverAPI.prototype, 'getOtpStatus')
+        .mockResolvedValue({ isEnabled: false })
+    const setOtp = vi
+        .spyOn(CapRoverAPI.prototype, 'setOtpStatus')
+        .mockResolvedValue({ isEnabled: false, otpPath: 'otpauth://totp/test' })
+    const client = new CapRoverClient('https://example.test', 'password')
+    const config = { alerts: [] }
+    try {
+        await client.setProApiKey('dedicated-key')
+        await client.setProConfigs(config)
+        expect(await client.getOtpStatus()).toEqual({ isEnabled: false })
+        expect(await client.setOtpStatus({ enabled: true })).toEqual({
+            isEnabled: false,
+            otpPath: 'otpauth://totp/test',
+        })
+
+        expect(claim).toHaveBeenCalledExactlyOnceWith('dedicated-key')
+        expect(setConfig).toHaveBeenCalledExactlyOnceWith(config)
+        expect(getOtp).toHaveBeenCalledExactlyOnceWith()
+        expect(setOtp).toHaveBeenCalledExactlyOnceWith({ enabled: true })
+    } finally {
+        client.destroy()
+        vi.restoreAllMocks()
+    }
+})
+
 test('disk-cleanup and global Nginx operations use the SDK parameters', async () => {
     const cleanupSettings = {
         mostRecentLimit: 2,
