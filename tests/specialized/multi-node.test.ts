@@ -203,8 +203,15 @@ test('a worker runs pinned stateless and persistent applications', async () => {
                     false
                 )
             })
-            await workerDocker.removeVolume(volumeName)
-            expect(await workerDocker.volumeExists(volumeName)).toBe(false)
+            await eventually(
+                async () => {
+                    await workerDocker.removeVolume(volumeName)
+                    expect(await workerDocker.volumeExists(volumeName)).toBe(
+                        false
+                    )
+                },
+                { description: `worker volume ${volumeName} deletion` }
+            )
 
             await disableLocalRegistry(context)
             await removeWorkerNode(context, workerSsh, workerNodeId)
