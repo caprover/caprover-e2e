@@ -13,7 +13,7 @@ concurrency:
 jobs:
     e2e:
         runs-on: ubuntu-latest
-        timeout-minutes: 100
+        timeout-minutes: 110
         env:
             DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
             DIGITALOCEAN_SSH_KEY_ID: ${{ secrets.DIGITALOCEAN_SSH_KEY_ID }}

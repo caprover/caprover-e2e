@@ -82,11 +82,13 @@ The workflow uses `npm run provision` and `npm run destroy` as lower-level
 commands. For local end-to-end runs, prefer `npm run test:ephemeral` so the
 generated connection details are passed directly to the test process.
 
-`provision` creates one DigitalOcean droplet, creates a unique unproxied
-Cloudflare wildcard DNS record, verifies Docker is available, starts a fresh
-CapRover instance, configures its root domain, and generates a temporary
-CapRover password. The default DigitalOcean image has Docker preinstalled; custom
-images still use the existing Docker installation fallback when needed. The generated cleanup state is stored locally in
+By default, `provision` creates one DigitalOcean droplet, creates a unique
+unproxied Cloudflare wildcard DNS record, verifies Docker is available, starts a
+fresh CapRover instance, configures its root domain, and generates a temporary
+CapRover password. `E2E_PROVISION_WORKER=true` adds the optional second droplet
+used by the multi-node suite. The default DigitalOcean image has Docker
+preinstalled; custom images still use the existing Docker installation fallback
+when needed. The generated cleanup state is stored locally in
 `.e2e-provisioning-state.json` and is gitignored.
 
 See [Provisioning design](provisioning/README.md) for the full lifecycle,

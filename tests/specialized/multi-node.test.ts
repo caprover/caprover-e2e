@@ -120,6 +120,7 @@ test('a worker runs pinned stateless and persistent applications', async () => {
             await context.caprover.updateApp(statelessApp, {
                 nodeId: workerNodeId,
             })
+            await assertWorkerPlacement(context, statelessApp, workerNodeId)
             const sourceVersion = nextVersion(
                 await context.caprover.getApp(statelessApp)
             )
@@ -164,6 +165,11 @@ test('a worker runs pinned stateless and persistent applications', async () => {
                 nodeId: workerNodeId,
                 volumes: [{ volumeName, containerPath: VOLUME_PATH }],
             })
+            await assertWorkerPlacement(context, persistentApp, workerNodeId)
+            expect(
+                await context.docker.getServiceVolumeSources(persistentApp)
+            ).toEqual([volumeName])
+            expect(await workerDocker.volumeExists(volumeName)).toBe(true)
             await context.caprover.deployImage(persistentApp, FIRST_IMAGE)
             await waitForImage(context, persistentApp, FIRST_IMAGE)
             await assertWorkerPlacement(context, persistentApp, workerNodeId)
@@ -309,40 +315,63 @@ async function removeWorkerNode(
     workerSsh: SshClient,
     workerNodeId: string | undefined
 ): Promise<void> {
+    const failures: Error[] = []
     let nodeId = workerNodeId
     if (!nodeId) {
-        const info = await workerSsh.exec(
-            "docker info --format '{{.Swarm.NodeID}}'"
-        )
-        if (info.exitCode === 0 && info.stdout.trim()) {
-            nodeId = info.stdout.trim()
+        try {
+            const info = await workerSsh.exec(
+                "docker info --format '{{.Swarm.NodeID}}'"
+            )
+            if (info.exitCode === 0 && info.stdout.trim()) {
+                nodeId = info.stdout.trim()
+            }
+        } catch (error) {
+            failures.push(asError(error))
         }
     }
-    const leave = await workerSsh.exec('docker swarm leave')
-    if (leave.exitCode !== 0 && !isAlreadyOutsideSwarm(leave)) {
-        throw commandError('worker swarm leave', leave)
-    }
-    if (!nodeId) return
-    if (!/^[a-z0-9]{25}$/.test(nodeId)) {
-        throw new Error(`Unsafe Docker node ID: ${nodeId}`)
+
+    try {
+        const leave = await workerSsh.exec('docker swarm leave')
+        if (leave.exitCode !== 0 && !isAlreadyOutsideSwarm(leave)) {
+            failures.push(commandError('worker swarm leave', leave))
+        }
+    } catch (error) {
+        failures.push(asError(error))
     }
 
-    await eventually(
-        async () => {
-            const result = await context.ssh.exec(
-                `docker node rm --force '${nodeId}'`
-            )
-            if (result.exitCode !== 0 && !isMissingNode(result)) {
-                throw commandError('manager node removal', result)
-            }
-            expect(
-                (await context.docker.getNodes()).some(
-                    (node) => node.ID === nodeId
+    if (nodeId) {
+        if (!/^[a-z0-9]{25}$/.test(nodeId)) {
+            failures.push(new Error(`Unsafe Docker node ID: ${nodeId}`))
+        } else {
+            try {
+                await eventually(
+                    async () => {
+                        const result = await context.ssh.exec(
+                            `docker node rm --force '${nodeId}'`
+                        )
+                        if (result.exitCode !== 0 && !isMissingNode(result)) {
+                            throw commandError('manager node removal', result)
+                        }
+                        expect(
+                            (await context.docker.getNodes()).some(
+                                (node) => node.ID === nodeId
+                            )
+                        ).toBe(false)
+                    },
+                    {
+                        timeoutMs: 45_000,
+                        description: 'worker Swarm node removal',
+                    }
                 )
-            ).toBe(false)
-        },
-        { timeoutMs: 45_000, description: 'worker Swarm node removal' }
-    )
+            } catch (error) {
+                failures.push(asError(error))
+            }
+        }
+    }
+
+    if (failures.length) {
+        throw new AggregateError(failures, 'Failed to remove worker node')
+    }
 }
 
 function isAlreadyOutsideSwarm(result: SshCommandResult): boolean {
@@ -361,4 +390,8 @@ function commandError(description: string, result: SshCommandResult): Error {
     return new Error(
         `${description} failed with exit code ${result.exitCode}: ${result.stderr || result.stdout}`
     )
+}
+
+function asError(error: unknown): Error {
+    return error instanceof Error ? error : new Error(String(error))
 }
