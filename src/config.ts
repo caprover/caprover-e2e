@@ -6,6 +6,7 @@ export interface TestConfig {
     sshPort: number
     sshUser: string
     sshPrivateKey: string
+    workerIpAddress?: string
 }
 
 const REQUIRED_VARIABLES = [
@@ -41,6 +42,9 @@ export function loadConfig(
         sshPort,
         sshUser: environment.SSH_USER!.trim(),
         sshPrivateKey: environment.SSH_PRIVATE_KEY!.replace(/\\n/g, '\n'),
+        ...(environment.E2E_WORKER_IP?.trim()
+            ? { workerIpAddress: environment.E2E_WORKER_IP.trim() }
+            : {}),
     }
 }
 

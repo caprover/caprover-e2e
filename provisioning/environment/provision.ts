@@ -7,7 +7,7 @@ import {
 import type { ProvisioningConfig } from '../config'
 import { CloudflareClient } from '../infrastructure/cloudflare'
 import { DigitalOceanClient } from '../infrastructure/digitalocean'
-import { prepareServer } from '../infrastructure/server'
+import { prepareServer, prepareWorker } from '../infrastructure/server'
 import type { ProvisionedEnvironment, ProvisioningState } from '../types'
 import { destroyEnvironment } from './destroy'
 import { saveState } from './state'
@@ -62,6 +62,21 @@ export async function provisionEnvironment(
         )
         await saveState(state)
 
+        if (config.provisionWorker) {
+            console.log('Creating temporary worker droplet...')
+            state.workerDropletName = `caprover-e2e-worker-${suffix}`
+            await saveState(state)
+            state.workerDropletId = await digitalOcean.createDroplet(
+                state.workerDropletName
+            )
+            await saveState(state)
+            state.workerIpAddress = await digitalOcean.waitForPublicIp(
+                state.workerDropletId
+            )
+            await saveState(state)
+            await prepareWorker(state.workerIpAddress, config)
+        }
+
         const testEnvironment: NodeJS.ProcessEnv = {
             CAPROVER_E2E_ENVIRONMENT: 'ephemeral',
             CAPROVER_URL: state.caproverUrl,
@@ -70,6 +85,9 @@ export async function provisionEnvironment(
             SSH_PORT: '22',
             SSH_USER: 'root',
             SSH_PRIVATE_KEY: config.sshPrivateKey,
+            ...(state.workerIpAddress
+                ? { E2E_WORKER_IP: state.workerIpAddress }
+                : {}),
         }
 
         console.log('Fresh CapRover environment is ready for E2E tests.')

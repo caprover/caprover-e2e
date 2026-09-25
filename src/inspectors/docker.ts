@@ -276,7 +276,7 @@ export class DockerInspector {
         })
     }
 
-    async getLocalManagerNodeId(): Promise<string> {
+    async getLocalNodeId(): Promise<string> {
         const result = await this.exec(
             "docker info --format '{{.Swarm.NodeID}}'"
         )
@@ -285,6 +285,10 @@ export class DockerInspector {
             throw new Error('Docker did not report a local Swarm node ID')
         }
         return nodeId
+    }
+
+    getLocalManagerNodeId(): Promise<string> {
+        return this.getLocalNodeId()
     }
 
     async getNodes(): Promise<DockerNode[]> {

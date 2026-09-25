@@ -29,6 +29,7 @@ export const destructiveFiles = [
 export const sslAndRegistryFiles = [
     'tests/specialized/ssl-and-registry.test.ts',
 ]
+export const multiNodeFiles = ['tests/specialized/multi-node.test.ts']
 
 export function requireEphemeral(environment = process.env): void {
     if (environment.CAPROVER_E2E_ENVIRONMENT !== 'ephemeral') {
@@ -54,6 +55,9 @@ export function selectTests(mode: string, environment = process.env): string[] {
         case 'ssl-and-registry':
             requireEphemeral(environment)
             return sslAndRegistryFiles
+        case 'multi-node':
+            requireEphemeral(environment)
+            return multiNodeFiles
         case 'test':
         case 'all':
             return [

@@ -82,11 +82,13 @@ The workflow uses `npm run provision` and `npm run destroy` as lower-level
 commands. For local end-to-end runs, prefer `npm run test:ephemeral` so the
 generated connection details are passed directly to the test process.
 
-`provision` creates one DigitalOcean droplet, creates a unique unproxied
-Cloudflare wildcard DNS record, verifies Docker is available, starts a fresh
-CapRover instance, configures its root domain, and generates a temporary
-CapRover password. The default DigitalOcean image has Docker preinstalled; custom
-images still use the existing Docker installation fallback when needed. The generated cleanup state is stored locally in
+By default, `provision` creates one DigitalOcean droplet, creates a unique
+unproxied Cloudflare wildcard DNS record, verifies Docker is available, starts a
+fresh CapRover instance, configures its root domain, and generates a temporary
+CapRover password. `E2E_PROVISION_WORKER=true` adds the optional second droplet
+used by the multi-node suite. The default DigitalOcean image has Docker
+preinstalled; custom images still use the existing Docker installation fallback
+when needed. The generated cleanup state is stored locally in
 `.e2e-provisioning-state.json` and is gitignored.
 
 See [Provisioning design](provisioning/README.md) for the full lifecycle,
@@ -128,8 +130,8 @@ TypeScript suite.
 ### Fresh server
 
 The **CapRover E2E - Fresh Server** workflow provisions a new environment, runs
-the smoke, core, and ordinary destructive suites, and destroys the temporary DNS record and droplet
-even when the test step fails.
+the smoke, core, and ordinary destructive suites, and destroys its temporary
+infrastructure even when the test step fails.
 
 Run it normally to use HTTP without issuing a certificate. To exercise the
 dashboard SSL setup, check **Enable HTTPS** when dispatching the same workflow.
@@ -165,20 +167,46 @@ behavior, deletion protections, image contents, and cleanup.
 
 The workflow uses the same six provisioning secrets as the normal fresh-server
 workflow. Provisioning validates them before creating a droplet. The workflow is
-manual-only and serialized through a dedicated concurrency group.
+manual-only and serialized with other certificate-issuing E2E workflows.
 
 Each complete run requests four Let's Encrypt certificates: dashboard, app,
 custom domain, and registry. [Let's Encrypt currently permits 50 certificates
 per registered domain in a rolling seven-day period](https://letsencrypt.org/docs/rate-limits/#new-certificates-per-registered-domain).
-Limit this workflow to at most 10 dispatches per rolling seven days for the
-configured base domain, which budgets 40 certificates and leaves room for
+Manage its four-certificate cost together with the multi-node workflow's
+two-certificate cost. Keep `4 × SSL runs + 2 × multi-node runs` at or below 40
+per rolling seven days for the configured base domain. This leaves room for
 interrupted attempts and other HTTPS runs. A failed run may consume part of its
-four-certificate budget.
+certificate budget.
 
 Dispatch the specialized workflow with:
 
 ```bash
 gh workflow run e2e-ssl-and-registry.yml
+```
+
+### Multi-node coverage
+
+The manual **CapRover E2E - Multi-Node** workflow provisions a CapRover manager
+and a separate Docker worker. It enables the self-hosted registry, adds the
+worker through CapRover's node API, cross-checks node state with Docker Swarm,
+and verifies that source-built stateless and persistent applications run when
+pinned to the worker. The persistent case writes data to the worker-local named
+volume, replaces the task image, and verifies the data remains.
+
+Set `E2E_PROVISION_WORKER=true` only for a run that needs the second droplet.
+Provisioning exports its address as `E2E_WORKER_IP`, records its identifier for
+failure recovery, and destroys it independently from the manager. This workflow
+uses the same six provisioning secrets, is manual-only, and shares the
+certificate-issuing concurrency group with the SSL workflow.
+
+Each complete multi-node run requests two Let's Encrypt certificates, one for
+the dashboard and one for the self-hosted registry. Its dispatches count toward
+the shared certificate budget described above.
+
+Dispatch it with:
+
+```bash
+gh workflow run e2e-multi-node.yml
 ```
 
 ### Git webhook coverage
@@ -259,6 +287,7 @@ failure.
 | `npm run test:core`                         | Explicitly listed app-scoped tests on a dedicated test server           |
 | `npm run test:destructive`                  | Explicitly listed global and destructive tests; requires ephemeral mode |
 | `npm run test:specialized:ssl-and-registry` | Controlled SSL and registry file; requires ephemeral mode               |
+| `npm run test:specialized:multi-node`       | Two-node placement and persistence file; requires ephemeral mode        |
 | `npm run test:all`                          | Unit, smoke, core; adds ordinary destructive tests in ephemeral mode    |
 
 Provisioning sets `CAPROVER_E2E_ENVIRONMENT=ephemeral` for the test process.

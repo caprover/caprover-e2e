@@ -52,6 +52,24 @@ describe('provisioning configuration', () => {
             })
         ).toThrow('E2E_ENABLE_HTTPS must be true or false')
     })
+
+    test('defaults to one droplet and accepts an explicit worker opt-in', () => {
+        expect(loadProvisioningConfig(validEnvironment).provisionWorker).toBe(
+            false
+        )
+        expect(
+            loadProvisioningConfig({
+                ...validEnvironment,
+                E2E_PROVISION_WORKER: 'true',
+            }).provisionWorker
+        ).toBe(true)
+        expect(() =>
+            loadProvisioningConfig({
+                ...validEnvironment,
+                E2E_PROVISION_WORKER: 'yes',
+            })
+        ).toThrow('E2E_PROVISION_WORKER must be true or false')
+    })
 })
 
 describe('provisioning helpers', () => {

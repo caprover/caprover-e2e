@@ -18,6 +18,7 @@ The fresh-server workflow has three main phases:
           → create Cloudflare wildcard DNS
           → prepare server and start CapRover
           → configure CapRover
+          → if E2E_PROVISION_WORKER=true: create and prepare a worker droplet
           → return testEnvironment
       → write testEnvironment to GITHUB_ENV
 
@@ -40,6 +41,7 @@ test suite:
 
 - `CAPROVER_URL` and `CAPROVER_PASSWORD` for the CapRover API
 - `SSH_HOST`, `SSH_PORT`, `SSH_USER`, and `SSH_PRIVATE_KEY` for Docker inspection
+- `E2E_WORKER_IP` when the optional worker droplet is provisioned
 
 GitHub Actions writes these values to `GITHUB_ENV` between the provisioning and
 test steps. `npm run test:ephemeral` passes them directly to the test child
@@ -50,7 +52,7 @@ process during local runs.
 | Command                  | Behavior                                                                                                 |
 | ------------------------ | -------------------------------------------------------------------------------------------------------- |
 | `npm run provision`      | Creates and configures an environment. In GitHub Actions, exports its connection values to `GITHUB_ENV`. |
-| `npm run destroy`        | Loads the cleanup state and removes any remaining DNS record and droplet.                                |
+| `npm run destroy`        | Loads cleanup state and removes the DNS record, optional worker, and manager.                            |
 | `npm run test:ephemeral` | Provisions, runs `npm test`, and destroys the environment in one local process.                          |
 
 The GitHub Actions workflow uses separate `provision`, test, and `destroy` steps
@@ -97,6 +99,11 @@ npm run provision
                   → if HTTPS: forceSsl()
                   → changePass()
                   → verify login with the new password
+
+          → optional worker
+              → DigitalOceanClient.createDroplet()
+              → DigitalOceanClient.waitForPublicIp()
+              → prepareWorker()
 
           → return { state, testEnvironment }
 
@@ -177,14 +184,15 @@ npm run destroy
       → loadProvisioningConfig()
       → destroyEnvironment()
           → CloudflareClient.deleteRecord()
-          → DigitalOceanClient.deleteDroplet()
+          → DigitalOceanClient.deleteDroplet() for the worker, when present
+          → DigitalOceanClient.deleteDroplet() for the manager
           → removeState()
 ```
 
-DNS and droplet cleanup are attempted independently. If an ID was not persisted,
-`destroyEnvironment()` can recover the resource by its saved name before
-deleting it. `removeState()` runs only after both resources have been deleted
-successfully.
+DNS, worker, and manager cleanup are attempted independently. If an ID was not
+persisted, `destroyEnvironment()` can recover the resource by its saved name
+before deleting it. `removeState()` runs only after every created resource has
+been deleted successfully.
 
 ### Local all-in-one command
 
@@ -210,7 +218,7 @@ npm run test:ephemeral
 | `environment/state.ts`           | Persists cleanup state atomically                             |
 | `infrastructure/digitalocean.ts` | Creates, finds, polls, and deletes droplets                   |
 | `infrastructure/cloudflare.ts`   | Creates, finds, and deletes wildcard DNS records              |
-| `infrastructure/server.ts`       | Connects over SSH, installs Docker, and starts CapRover       |
+| `infrastructure/server.ts`       | Prepares Docker hosts and starts CapRover on the manager      |
 | `caprover.ts`                    | Configures DNS, root domain, HTTPS, and generated credentials |
 | `config.ts`                      | Loads required credentials and optional provisioning defaults |
 | `retry.ts`                       | Provides bounded retry and timeout behavior                   |
@@ -271,13 +279,14 @@ the cleanup state.
 Required credentials and identifiers are documented in the repository
 [README](../README.md#fresh-server). Optional infrastructure settings default to:
 
-| Variable              | Default                  |
-| --------------------- | ------------------------ |
-| `DIGITALOCEAN_REGION` | `nyc3`                   |
-| `DIGITALOCEAN_SIZE`   | `s-1vcpu-2gb`            |
-| `DIGITALOCEAN_IMAGE`  | `docker-20-04`           |
-| `CAPROVER_IMAGE`      | `caprover/caprover-edge` |
-| `E2E_ENABLE_HTTPS`    | `false`                  |
+| Variable               | Default                  |
+| ---------------------- | ------------------------ |
+| `DIGITALOCEAN_REGION`  | `nyc3`                   |
+| `DIGITALOCEAN_SIZE`    | `s-1vcpu-2gb`            |
+| `DIGITALOCEAN_IMAGE`   | `docker-20-04`           |
+| `CAPROVER_IMAGE`       | `caprover/caprover-edge` |
+| `E2E_ENABLE_HTTPS`     | `false`                  |
+| `E2E_PROVISION_WORKER` | `false`                  |
 
 Local execution loads a gitignored `.env` file. CI supplies environment variables
 directly and does not load `.env`.

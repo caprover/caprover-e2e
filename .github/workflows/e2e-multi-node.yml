@@ -1,4 +1,4 @@
-name: CapRover E2E - SSL and Registry
+name: CapRover E2E - Multi-Node
 
 on:
     workflow_dispatch:
@@ -13,7 +13,7 @@ concurrency:
 jobs:
     e2e:
         runs-on: ubuntu-latest
-        timeout-minutes: 80
+        timeout-minutes: 110
         env:
             DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
             DIGITALOCEAN_SSH_KEY_ID: ${{ secrets.DIGITALOCEAN_SSH_KEY_ID }}
@@ -22,6 +22,7 @@ jobs:
             E2E_BASE_DOMAIN: ${{ secrets.E2E_BASE_DOMAIN }}
             CAPROVER_E2E_SSH_PRIVATE_KEY: ${{ secrets.CAPROVER_E2E_SSH_PRIVATE_KEY }}
             E2E_ENABLE_HTTPS: 'true'
+            E2E_PROVISION_WORKER: 'true'
         steps:
             - name: Check out repository
               uses: actions/checkout@v7
@@ -42,14 +43,14 @@ jobs:
               timeout-minutes: 5
               run: npm run typecheck && npm run test:unit && npm run format
 
-            - name: Provision HTTPS-enabled CapRover server
-              timeout-minutes: 30
+            - name: Provision manager and worker
+              timeout-minutes: 40
               run: npm run provision
 
-            - name: Run SSL and registry E2E suite
+            - name: Run multi-node E2E suite
               id: e2e
-              timeout-minutes: 30
-              run: npm run test:specialized:ssl-and-registry
+              timeout-minutes: 35
+              run: npm run test:specialized:multi-node
 
             - name: Collect failure diagnostics
               if: failure() && steps.e2e.outcome == 'failure'
@@ -59,5 +60,5 @@ jobs:
 
             - name: Destroy temporary infrastructure
               if: always()
-              timeout-minutes: 5
+              timeout-minutes: 8
               run: npm run destroy

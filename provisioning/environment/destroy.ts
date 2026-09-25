@@ -35,6 +35,30 @@ export async function destroyEnvironment(
         }
     }
 
+    if (!state.workerDropletId && state.workerDropletName) {
+        try {
+            state.workerDropletId = await digitalOcean.findDropletIdByName(
+                state.workerDropletName
+            )
+            await saveState(state)
+        } catch (error) {
+            failures.push(asError(error))
+        }
+    }
+
+    if (state.workerDropletId) {
+        try {
+            console.log('Deleting temporary worker droplet...')
+            await digitalOcean.deleteDroplet(state.workerDropletId)
+            state.workerDropletId = undefined
+            state.workerDropletName = undefined
+            state.workerIpAddress = undefined
+            await saveState(state)
+        } catch (error) {
+            failures.push(asError(error))
+        }
+    }
+
     if (!state.dropletId && state.dropletName) {
         try {
             state.dropletId = await digitalOcean.findDropletIdByName(

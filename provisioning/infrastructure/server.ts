@@ -11,29 +11,7 @@ export async function prepareServer(
     const ssh = await connectWithRetry(ipAddress, config)
 
     try {
-        console.log('Installing Docker if needed...')
-        await runChecked(
-            ssh,
-            `set -eu
-if ! command -v docker >/dev/null 2>&1; then
-    export DEBIAN_FRONTEND=noninteractive
-    apt-get update -qq
-    apt-get install -y -qq ca-certificates curl
-    curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
-    sh /tmp/get-docker.sh
-fi
-systemctl enable --now docker >/dev/null 2>&1 || true
-docker version >/dev/null
-
-if command -v ufw >/dev/null 2>&1; then
-    ufw allow 80/tcp
-    ufw allow 443/tcp
-    ufw allow 3000/tcp
-    ufw allow 40000:40999/tcp
-    ufw allow 40000:40999/udp
-fi`,
-            180_000
-        )
+        await prepareDockerHost(ssh, config.provisionWorker)
 
         console.log('Starting fresh CapRover...')
         const image = shellQuote(config.caproverImage)
@@ -82,6 +60,69 @@ docker run --rm \\
     } finally {
         ssh.close()
     }
+}
+
+export async function prepareWorker(
+    ipAddress: string,
+    config: ProvisioningConfig
+): Promise<void> {
+    console.log('Waiting for worker SSH...')
+    const ssh = await connectWithRetry(ipAddress, config)
+
+    try {
+        await prepareDockerHost(ssh, true)
+        console.log('Worker Docker host is ready.')
+    } finally {
+        ssh.close()
+    }
+}
+
+async function prepareDockerHost(
+    ssh: SshClient,
+    enableMultiNode: boolean
+): Promise<void> {
+    const installUfw = enableMultiNode
+        ? `if ! command -v ufw >/dev/null 2>&1; then
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -qq
+    apt-get install -y -qq ufw
+fi`
+        : ''
+    const multiNodeRules = enableMultiNode
+        ? `    ufw allow 996/tcp
+    ufw allow 2377/tcp
+    ufw allow 7946/tcp
+    ufw allow 7946/udp
+    ufw allow 4789/tcp
+    ufw allow 4789/udp
+    ufw allow 2377/udp`
+        : ''
+
+    console.log('Installing Docker if needed...')
+    await runChecked(
+        ssh,
+        `set -eu
+if ! command -v docker >/dev/null 2>&1; then
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -qq
+    apt-get install -y -qq ca-certificates curl
+    curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+    sh /tmp/get-docker.sh
+fi
+${installUfw}
+systemctl enable --now docker >/dev/null 2>&1 || true
+docker version >/dev/null
+
+if command -v ufw >/dev/null 2>&1; then
+    ufw allow 80/tcp
+    ufw allow 443/tcp
+    ufw allow 3000/tcp
+${multiNodeRules}
+    ufw allow 40000:40999/tcp
+    ufw allow 40000:40999/udp
+fi`,
+        180_000
+    )
 }
 
 async function connectWithRetry(
