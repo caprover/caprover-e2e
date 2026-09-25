@@ -285,7 +285,8 @@ and named volume containing a unique marker, then performs two upgrades:
    `a45cce6b7fc0d30ca431a8d8ce83bef72a5a9913`.
 
 Before provisioning, the workflow checks all three images exist, support
-`linux/amd64`, and resolve to distinct edge digests. After each upgrade, it
+`linux/amd64`, and the two edge tags resolve to distinct `linux/amd64` child
+manifests. After each upgrade, it
 checks the actual running captain container image ID, logs in with a fresh
 client, and verifies project membership, app configuration, HTTP routing, and
 the volume marker. CapRover's edge images both report internal version `0.0.1`,

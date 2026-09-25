@@ -14,7 +14,7 @@ Confirmed second batch: PR7 through PR9 are merged as [PR #25](https://github.co
 
 - Confirm the existing DigitalOcean, Cloudflare, and SSH provisioning secrets are present and valid in GitHub Actions. Update missing or expired values in GitHub; keep credentials out of this document and PR discussions.
 - Keep the backend custom-port fix (PR10) and SDK prerequisites (PR13 and PR17) as separate repository changes. Link their PRs and the consumed package versions or server images before enabling dependent assertions.
-- The PR18a dedicated Git test repository and HTTPS/SSH credentials are configured and validated. The additional PR18c worker is opt-in and limited to its manual workflow. The PR18d Pro key is provided as a dedicated Actions secret and its workflow is manual-only. PR18e pins release `1.15.4` and two edge commit SHA tags, and checks their manifests before provisioning.
+- The PR18a dedicated Git test repository and HTTPS/SSH credentials are configured and validated. The additional PR18c worker is opt-in and limited to its manual workflow. The PR18d Pro key is provided as a dedicated Actions secret and its workflow is manual-only. PR18e pins release `1.15.4` and two edge commit SHA tags, and checks their `linux/amd64` child manifests before provisioning.
 - Implement PR18 as five independently reviewable follow-up PRs, tracked below as PR18a through PR18e.
 
 ## First-batch implementation status

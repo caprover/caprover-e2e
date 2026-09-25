@@ -11,23 +11,17 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 85
         env:
-            DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
-            DIGITALOCEAN_SSH_KEY_ID: ${{ secrets.DIGITALOCEAN_SSH_KEY_ID }}
-            CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-            CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
-            E2E_BASE_DOMAIN: ${{ secrets.E2E_BASE_DOMAIN }}
-            CAPROVER_E2E_SSH_PRIVATE_KEY: ${{ secrets.CAPROVER_E2E_SSH_PRIVATE_KEY }}
             E2E_UPGRADE_RELEASE_TAG: '1.15.4'
             E2E_UPGRADE_EDGE_FROM_SHA: 37fe03e3267d381342da14a6c9bab543590cc4f3
             E2E_UPGRADE_EDGE_TO_SHA: a45cce6b7fc0d30ca431a8d8ce83bef72a5a9913
         steps:
             - name: Check out repository
-              uses: actions/checkout@v7
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   persist-credentials: false
 
             - name: Set up Node.js
-              uses: actions/setup-node@v7
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
               with:
                   node-version: 22
                   cache: npm
@@ -46,6 +40,13 @@ jobs:
 
             - name: Provision pinned released CapRover server
               timeout-minutes: 30
+              env:
+                  DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+                  DIGITALOCEAN_SSH_KEY_ID: ${{ secrets.DIGITALOCEAN_SSH_KEY_ID }}
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+                  E2E_BASE_DOMAIN: ${{ secrets.E2E_BASE_DOMAIN }}
+                  CAPROVER_E2E_SSH_PRIVATE_KEY: ${{ secrets.CAPROVER_E2E_SSH_PRIVATE_KEY }}
               run: npm run provision
 
             - name: Run release-to-edge and edge-to-edge upgrade suite
@@ -62,4 +63,11 @@ jobs:
             - name: Destroy temporary infrastructure
               if: always()
               timeout-minutes: 5
+              env:
+                  DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+                  DIGITALOCEAN_SSH_KEY_ID: ${{ secrets.DIGITALOCEAN_SSH_KEY_ID }}
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+                  E2E_BASE_DOMAIN: ${{ secrets.E2E_BASE_DOMAIN }}
+                  CAPROVER_E2E_SSH_PRIVATE_KEY: ${{ secrets.CAPROVER_E2E_SSH_PRIVATE_KEY }}
               run: npm run destroy

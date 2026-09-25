@@ -104,6 +104,11 @@ test('a released server preserves its data through edge and the edge update API'
         // CapRover's edge image declares caprover/caprover-edge as its update
         // repository; its API accepts the target's commit SHA as a version tag.
         const edgeToId = await pullAndGetImageId(edgeTo)
+        if (edgeFromId === edgeToId) {
+            throw new Error(
+                'Edge source and target resolve to the same linux/amd64 image'
+            )
+        }
         try {
             await context.caprover.performUpdate(to!)
         } catch (error) {
