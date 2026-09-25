@@ -109,6 +109,14 @@ export class CapRoverClient {
         )
     }
 
+    performUpdate(versionTag: string): Promise<void> {
+        return this.request(
+            () => this.api.performUpdate(versionTag),
+            `updating captain to ${versionTag}`,
+            120_000
+        )
+    }
+
     getLoadBalancerInfo(): Promise<LoadBalancerInfo> {
         return this.request(
             () => this.api.getLoadBalancerInfo(),

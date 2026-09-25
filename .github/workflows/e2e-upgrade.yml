@@ -1,0 +1,65 @@
+name: CapRover E2E - Upgrade
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    e2e:
+        runs-on: ubuntu-latest
+        timeout-minutes: 85
+        env:
+            DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+            DIGITALOCEAN_SSH_KEY_ID: ${{ secrets.DIGITALOCEAN_SSH_KEY_ID }}
+            CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+            CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+            E2E_BASE_DOMAIN: ${{ secrets.E2E_BASE_DOMAIN }}
+            CAPROVER_E2E_SSH_PRIVATE_KEY: ${{ secrets.CAPROVER_E2E_SSH_PRIVATE_KEY }}
+            E2E_UPGRADE_RELEASE_TAG: '1.15.4'
+            E2E_UPGRADE_EDGE_FROM_SHA: 37fe03e3267d381342da14a6c9bab543590cc4f3
+            E2E_UPGRADE_EDGE_TO_SHA: a45cce6b7fc0d30ca431a8d8ce83bef72a5a9913
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v7
+              with:
+                  persist-credentials: false
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v7
+              with:
+                  node-version: 22
+                  cache: npm
+
+            - name: Verify all pinned images before provisioning
+              timeout-minutes: 5
+              run: node scripts/check-upgrade-images.mjs
+
+            - name: Install dependencies
+              timeout-minutes: 5
+              run: npm ci
+
+            - name: Validate test code before provisioning
+              timeout-minutes: 5
+              run: npm run typecheck && npm run test:unit && npm run format
+
+            - name: Provision pinned released CapRover server
+              timeout-minutes: 30
+              run: npm run provision
+
+            - name: Run release-to-edge and edge-to-edge upgrade suite
+              id: e2e
+              timeout-minutes: 30
+              run: npm run test:specialized:upgrade
+
+            - name: Collect failure diagnostics
+              if: failure() && steps.e2e.outcome == 'failure'
+              continue-on-error: true
+              timeout-minutes: 3
+              run: npm run diagnose
+
+            - name: Destroy temporary infrastructure
+              if: always()
+              timeout-minutes: 5
+              run: npm run destroy

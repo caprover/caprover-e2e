@@ -272,6 +272,36 @@ Dispatch it with:
 gh workflow run e2e-pro-and-2fa.yml
 ```
 
+### Upgrade coverage
+
+The manual **CapRover E2E - Upgrade** workflow provisions one HTTP server
+running the pinned `caprover/caprover:1.15.4` release. It creates an app, project,
+and named volume containing a unique marker, then performs two upgrades:
+
+1. Docker updates the captain service to edge commit
+   `37fe03e3267d381342da14a6c9bab543590cc4f3`, crossing from the released
+   image repository to `caprover/caprover-edge`.
+2. The running edge server's `performUpdate` API updates it to edge commit
+   `a45cce6b7fc0d30ca431a8d8ce83bef72a5a9913`.
+
+Before provisioning, the workflow checks all three images exist, support
+`linux/amd64`, and resolve to distinct edge digests. After each upgrade, it
+checks the actual running captain container image ID, logs in with a fresh
+client, and verifies project membership, app configuration, HTTP routing, and
+the volume marker. CapRover's edge images both report internal version `0.0.1`,
+so the service image and running container provide the build identity.
+
+The A-to-B transition exercises A's update code and B's data compatibility.
+Testing B's update code against a newer build requires a subsequent published
+edge commit. Refresh the pinned pair after the next edge publish to exercise
+B-to-C. SHA tags are retained only for the newest 100 edge commits, so update
+the pair if preflight reports a missing tag. This workflow is opt-in, shares the
+normal Fresh Server provisioning secrets, and requests no certificates.
+
+```bash
+gh workflow run e2e-upgrade.yml
+```
+
 ### Git webhook coverage
 
 The standard **CapRover E2E - Fresh Server** workflow includes

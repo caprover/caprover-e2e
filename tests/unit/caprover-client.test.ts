@@ -271,6 +271,20 @@ test('worker addition uses the SDK node contract', async () => {
     }
 })
 
+test('captain upgrade passes the pinned target tag to the SDK', async () => {
+    const update = vi
+        .spyOn(CapRoverAPI.prototype, 'performUpdate')
+        .mockResolvedValue(undefined)
+    const client = new CapRoverClient('https://example.test', 'password')
+    try {
+        await client.performUpdate('a'.repeat(40))
+        expect(update).toHaveBeenCalledExactlyOnceWith('a'.repeat(40))
+    } finally {
+        client.destroy()
+        vi.restoreAllMocks()
+    }
+})
+
 test('Pro and OTP operations use the SDK contract', async () => {
     const claim = vi
         .spyOn(CapRoverAPI.prototype, 'setProApiKey')

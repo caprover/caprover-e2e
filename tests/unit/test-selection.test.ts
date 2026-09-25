@@ -9,6 +9,7 @@ import {
     selectTests,
     smokeFiles,
     sslAndRegistryFiles,
+    upgradeFiles,
 } from '../../src/test-selection'
 
 test('default invocation excludes destructive and specialized files on persistent servers', () => {
@@ -51,6 +52,11 @@ test('ephemeral default adds only ordinary destructive files', () => {
             CAPROVER_E2E_ENVIRONMENT: 'ephemeral',
         })
     ).toEqual(proAnd2faFiles)
+    expect(
+        selectTests('upgrade', {
+            CAPROVER_E2E_ENVIRONMENT: 'ephemeral',
+        })
+    ).toEqual(upgradeFiles)
 })
 
 test('fresh-system defaults are sequenced before other test files', () => {
@@ -83,6 +89,9 @@ test.each([undefined, '', 'persistent', 'true', 'Ephemeral'])(
             'require CAPROVER_E2E_ENVIRONMENT=ephemeral'
         )
         expect(() => selectTests('pro-and-2fa', environment)).toThrow(
+            'require CAPROVER_E2E_ENVIRONMENT=ephemeral'
+        )
+        expect(() => selectTests('upgrade', environment)).toThrow(
             'require CAPROVER_E2E_ENVIRONMENT=ephemeral'
         )
         expect(() => requireEphemeral(environment)).toThrow()
