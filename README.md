@@ -190,7 +190,7 @@ Configure these repository secrets:
 | `CLOUDFLARE_ZONE_ID`           | Cloudflare zone ID containing the E2E base domain              |
 | `E2E_BASE_DOMAIN`              | Base domain under which temporary wildcard records are created |
 | `CAPROVER_E2E_SSH_PRIVATE_KEY` | Private key matching the DigitalOcean SSH key                  |
-| `E2E_PRO_API_KEY`               | Dedicated Pro instance key; required only for HTTPS runs        |
+| `E2E_PRO_API_KEY`              | Dedicated Pro instance key; required only for HTTPS runs       |
 
 The fresh-server workflow uses a generated CapRover password for each run. The
 existing-server workflow remains available for fast repeated test runs without
