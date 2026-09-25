@@ -112,11 +112,12 @@ and a bounded tail of logs from the generated test application.
 | `e2e-multi-node.yml`       | Multi-node worker joining, placement, self-hosted registry, and persistent-volume testing | 2 droplets, 2 certificates |
 | `e2e-ephemeral.yml`        | Full fresh-server suite; HTTPS mode also runs Pro and 2FA coverage                        | 1 droplet, HTTP by default |
 | `e2e-ssl-and-registry.yml` | Dedicated SSL and self-hosted registry coverage                                           | 1 droplet, 4 certificates  |
+| `e2e-upgrade.yml`          | Release-to-edge and edge-to-edge data-preservation coverage                               | 1 droplet, HTTP            |
 | `e2e.yml`                  | Run the ordinary non-destructive suite against an existing server you provide             | No provisioning            |
 
 ```mermaid
 flowchart TB
-    ALL["All four workflows<br/>TypeScript checking + 94 unit tests"]
+    ALL["All five workflows<br/>TypeScript checking + 101 unit tests"]
 
     subgraph ORDINARY["Ordinary E2E suite"]
         direction TB
@@ -135,9 +136,12 @@ flowchart TB
 
     MULTI["Multi-Node<br/><code>e2e-multi-node.yml</code><br/><br/>1 dedicated specialized test file<br/>Outside the ordinary suite"]
 
+    UPGRADE["Upgrade<br/><code>e2e-upgrade.yml</code><br/><br/>Release-to-edge + edge-to-edge<br/>Outside the ordinary suite"]
+
     ALL --> FRESH
     ALL --> SSL
     ALL --> MULTI
+    ALL --> UPGRADE
 
     SSL -. shared certificate / registry setup .- MULTI
 ```
