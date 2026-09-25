@@ -10,6 +10,20 @@ The suite validates each lifecycle change from three independent perspectives:
 - Docker Swarm state over SSH
 - Publicly observable HTTP behavior
 
+## Coverage map
+
+The suite covers the following CapRover behavior. The [test selection](src/test-selection.ts)
+defines the authoritative file-to-tier mapping.
+
+| Area | Coverage |
+| --- | --- |
+| Authentication and configuration | Login and authorization contracts; full app updates and PATCH preservation; projects; themes; system defaults |
+| Deployment and runtime | Image, captain-definition, source-upload, detached-build, failure-recovery, runtime-log, and deploy-token paths |
+| Routing and networking | HTTP routing, redirects, HTTP authentication, WebSockets, application and global Nginx, custom TCP/UDP ports, and HTTPS |
+| Data and server state | Persistent volumes, disk cleanup, backups, system information, and safe restoration of global settings |
+| Integrations | One-click applications and repositories, Git webhooks, remote and self-hosted registries, GoAccess, and NetData |
+| Specialized environments | HTTPS plus Pro/2FA, multi-node placement, and release-to-edge plus edge-to-edge upgrades |
+
 ## Covered lifecycle
 
 The initial suite runs one sequential application lifecycle:
@@ -423,6 +437,25 @@ Rapid repeated runs can encounter the server's global failed-login backoff; wait
 for that window to expire before retrying. Root-domain setup and password change
 are covered by every fresh-server run; root SSL and global force SSL are covered
 when **Enable HTTPS** is checked.
+
+## Adding E2E coverage
+
+Start from the confirmed CapRover backend and `caprover-api` contract. Keep each
+test focused and independently reviewable.
+
+- Validate important mutations through the API, Docker Swarm state over SSH, and
+  public behavior where applicable.
+- Use unique owned resource names, register cleanup before named-resource
+  creation, run cleanup in reverse order, and restore every changed global
+  setting.
+- Keep mutating tests serial. Use bounded polling with a concrete terminal
+  condition and set workflow timeouts from measured runtime.
+- Preserve the distinct full-update and PATCH paths. PATCH tests must prove that
+  omitted fields remain intact.
+- Prefer digest-pinned fixture images. Record the requested server image and
+  resolved running digest when a test depends on a backend version.
+- Keep credentials, tokens, decrypted configuration, and backup contents out of
+  assertions and diagnostics.
 
 ## Source uploads
 
