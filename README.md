@@ -107,12 +107,12 @@ and a bounded tail of logs from the generated test application.
 
 ### Workflow coverage
 
-| Workflow | Purpose | Infrastructure |
-| --- | --- | --- |
-| `e2e-multi-node.yml` | Multi-node worker joining, placement, self-hosted registry, and persistent-volume testing | 2 droplets, 2 certificates |
-| `e2e-ephemeral.yml` | Full ordinary suite on a fresh server | 1 droplet, HTTP by default |
-| `e2e-ssl-and-registry.yml` | Dedicated SSL and self-hosted registry coverage | 1 droplet, 4 certificates |
-| `e2e.yml` | Run the ordinary non-destructive suite against an existing server you provide | No provisioning |
+| Workflow                   | Purpose                                                                                   | Infrastructure             |
+| -------------------------- | ----------------------------------------------------------------------------------------- | -------------------------- |
+| `e2e-multi-node.yml`       | Multi-node worker joining, placement, self-hosted registry, and persistent-volume testing | 2 droplets, 2 certificates |
+| `e2e-ephemeral.yml`        | Full ordinary suite on a fresh server                                                     | 1 droplet, HTTP by default |
+| `e2e-ssl-and-registry.yml` | Dedicated SSL and self-hosted registry coverage                                           | 1 droplet, 4 certificates  |
+| `e2e.yml`                  | Run the ordinary non-destructive suite against an existing server you provide             | No provisioning            |
 
 ```mermaid
 flowchart TB
