@@ -17,6 +17,7 @@ const SENSITIVE_ENVIRONMENT_VARIABLES = [
     'CAPROVER_E2E_SSH_PRIVATE_KEY',
     'E2E_GIT_HTTP_PASSWORD',
     'E2E_GIT_SSH_PRIVATE_KEY',
+    'E2E_PRO_API_KEY',
 ] as const
 
 interface SshExecutor {

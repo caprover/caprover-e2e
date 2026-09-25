@@ -4,6 +4,7 @@ import {
     coreFiles,
     destructiveFiles,
     multiNodeFiles,
+    proAnd2faFiles,
     requireEphemeral,
     selectTests,
     smokeFiles,
@@ -45,6 +46,11 @@ test('ephemeral default adds only ordinary destructive files', () => {
             CAPROVER_E2E_ENVIRONMENT: 'ephemeral',
         })
     ).toEqual(multiNodeFiles)
+    expect(
+        selectTests('pro-and-2fa', {
+            CAPROVER_E2E_ENVIRONMENT: 'ephemeral',
+        })
+    ).toEqual(proAnd2faFiles)
 })
 
 test('fresh-system defaults are sequenced before other test files', () => {
@@ -74,6 +80,9 @@ test.each([undefined, '', 'persistent', 'true', 'Ephemeral'])(
             'require CAPROVER_E2E_ENVIRONMENT=ephemeral'
         )
         expect(() => selectTests('multi-node', environment)).toThrow(
+            'require CAPROVER_E2E_ENVIRONMENT=ephemeral'
+        )
+        expect(() => selectTests('pro-and-2fa', environment)).toThrow(
             'require CAPROVER_E2E_ENVIRONMENT=ephemeral'
         )
         expect(() => requireEphemeral(environment)).toThrow()

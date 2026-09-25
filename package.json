@@ -24,6 +24,7 @@
         "test:destructive": "vitest run --mode destructive",
         "test:specialized:ssl-and-registry": "vitest run --mode ssl-and-registry",
         "test:specialized:multi-node": "vitest run --mode multi-node",
+        "test:specialized:pro-and-2fa": "vitest run --mode pro-and-2fa",
         "test:all": "vitest run --mode all"
     },
     "dependencies": {
