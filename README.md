@@ -105,6 +105,43 @@ and a bounded tail of logs from the generated test application.
 
 ## GitHub Actions
 
+### Workflow coverage
+
+| Workflow | Purpose | Infrastructure |
+| --- | --- | --- |
+| `e2e-multi-node.yml` | Multi-node worker joining, placement, self-hosted registry, and persistent-volume testing | 2 droplets, 2 certificates |
+| `e2e-ephemeral.yml` | Full ordinary suite on a fresh server | 1 droplet, HTTP by default |
+| `e2e-ssl-and-registry.yml` | Dedicated SSL and self-hosted registry coverage | 1 droplet, 4 certificates |
+| `e2e.yml` | Run the ordinary non-destructive suite against an existing server you provide | No provisioning |
+
+```mermaid
+flowchart TB
+    ALL["All four workflows<br/>TypeScript checking + 94 unit tests"]
+
+    subgraph ORDINARY["Ordinary E2E suite"]
+        direction TB
+
+        FRESH["Fresh Server<br/><code>e2e-ephemeral.yml</code><br/><br/>Complete ordinary ephemeral suite"]
+
+        EXISTING["Existing Server<br/><code>e2e.yml</code><br/><br/>Smoke + core tests<br/>Strict subset of Fresh Server"]
+
+        EXTRA["Fresh-only addition<br/><br/>12 destructive test files"]
+
+        FRESH --> EXISTING
+        FRESH --> EXTRA
+    end
+
+    SSL["SSL + Registry<br/><code>e2e-ssl-and-registry.yml</code><br/><br/>1 dedicated specialized test file<br/>Outside the ordinary suite"]
+
+    MULTI["Multi-Node<br/><code>e2e-multi-node.yml</code><br/><br/>1 dedicated specialized test file<br/>Outside the ordinary suite"]
+
+    ALL --> FRESH
+    ALL --> SSL
+    ALL --> MULTI
+
+    SSL -. shared certificate / registry setup .- MULTI
+```
+
 ### Existing server
 
 The existing **CapRover E2E** workflow runs manually through **Actions → CapRover
