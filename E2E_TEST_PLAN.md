@@ -10,11 +10,11 @@ Future agents should check each implementation item as it lands. A PR is complet
 
 PR1 through PR6 were merged and validated through [PR #23](https://github.com/caprover/caprover-e2e/pull/23). The CapRover NGINX keep-alive fix landed in [CapRover PR #2491](https://github.com/caprover/caprover/pull/2491), and [PR #24](https://github.com/caprover/caprover-e2e/pull/24) removed the temporary API serialization and spacing mitigation after the full unmitigated suite passed.
 
-Confirmed second batch: PR7 through PR9 are merged as [PR #25](https://github.com/caprover/caprover-e2e/pull/25), [PR #26](https://github.com/caprover/caprover-e2e/pull/26), and [PR #27](https://github.com/caprover/caprover-e2e/pull/27). The delayed NGINX reload and connection-reuse regression was added in [PR #28](https://github.com/caprover/caprover-e2e/pull/28), with backend support in [CapRover PR #2494](https://github.com/caprover/caprover/pull/2494). PR10 through PR18d are implemented, with [PR #36](https://github.com/caprover/caprover-e2e/pull/36) adding one-click deployment and repository coverage, [PR #38](https://github.com/caprover/caprover-e2e/pull/38) adding registry and observability coverage, [PR #39](https://github.com/caprover/caprover-e2e/pull/39) adding Git webhook coverage, [PR #41](https://github.com/caprover/caprover-e2e/pull/41) adding controlled SSL and self-hosted registry coverage, validated by its [specialized run](https://github.com/caprover/caprover-e2e/actions/runs/36072876777), [PR #43](https://github.com/caprover/caprover-e2e/pull/43) adding multi-node coverage, and [PR #46](https://github.com/caprover/caprover-e2e/pull/46) adding Pro and 2FA coverage. PR18e remains pending.
+Confirmed second batch: PR7 through PR9 are merged as [PR #25](https://github.com/caprover/caprover-e2e/pull/25), [PR #26](https://github.com/caprover/caprover-e2e/pull/26), and [PR #27](https://github.com/caprover/caprover-e2e/pull/27). The delayed NGINX reload and connection-reuse regression was added in [PR #28](https://github.com/caprover/caprover-e2e/pull/28), with backend support in [CapRover PR #2494](https://github.com/caprover/caprover/pull/2494). PR10 through PR18d are implemented, with [PR #36](https://github.com/caprover/caprover-e2e/pull/36) adding one-click deployment and repository coverage, [PR #38](https://github.com/caprover/caprover-e2e/pull/38) adding registry and observability coverage, [PR #39](https://github.com/caprover/caprover-e2e/pull/39) adding Git webhook coverage, [PR #41](https://github.com/caprover/caprover-e2e/pull/41) adding controlled SSL and self-hosted registry coverage, validated by its [specialized run](https://github.com/caprover/caprover-e2e/actions/runs/36072876777), [PR #43](https://github.com/caprover/caprover-e2e/pull/43) adding multi-node coverage, and [PR #46](https://github.com/caprover/caprover-e2e/pull/46) adding Pro and 2FA coverage, validated by its [specialized run](https://github.com/caprover/caprover-e2e/actions/runs/36091515980). [PR #47](https://github.com/caprover/caprover-e2e/pull/47) implements PR18e upgrade coverage; its live run is pending.
 
 - Confirm the existing DigitalOcean, Cloudflare, and SSH provisioning secrets are present and valid in GitHub Actions. Update missing or expired values in GitHub; keep credentials out of this document and PR discussions.
 - Keep the backend custom-port fix (PR10) and SDK prerequisites (PR13 and PR17) as separate repository changes. Link their PRs and the consumed package versions or server images before enabling dependent assertions.
-- The PR18a dedicated Git test repository and HTTPS/SSH credentials are configured and validated. The additional PR18c worker is opt-in and limited to its manual workflow. The PR18d Pro key is provided as a dedicated Actions secret and its workflow is manual-only. Defer the pinned upgrade-version pair until the PR18e specialized follow-up.
+- The PR18a dedicated Git test repository and HTTPS/SSH credentials are configured and validated. The additional PR18c worker is opt-in and limited to its manual workflow. The PR18d Pro key is provided as a dedicated Actions secret and its workflow is manual-only. PR18e pins release `1.15.4` and two edge commit SHA tags, and checks their `linux/amd64` child manifests before provisioning.
 - Implement PR18 as five independently reviewable follow-up PRs, tracked below as PR18a through PR18e.
 
 ## First-batch implementation status
@@ -581,11 +581,17 @@ File: `tests/specialized/pro-and-2fa.test.ts`. Tier: destructive (specialized).
 
 File: `tests/specialized/upgrade.test.ts`. Tier: destructive (specialized).
 
-- [ ] Provision a pinned older CapRover version.
-- [ ] Create applications, projects, and persistent data.
-- [ ] Upgrade to a pinned newer version.
-- [ ] Wait for captain recovery.
-- [ ] Verify authentication, configuration, routing, and persistent data.
+- [x] Provision a pinned older CapRover version.
+- [x] Create applications, projects, and persistent data.
+- [x] Upgrade to a pinned newer version, then upgrade edge commit A to B through the edge API.
+- [x] Wait for captain recovery and verify the running image digest and image ID.
+- [x] Verify authentication, configuration, routing, and persistent data.
+
+The release-to-edge transition uses Docker because the released server's update
+API selects the `caprover/caprover` repository. The edge-to-edge transition
+uses `performUpdate` and the SHA tag for the target edge commit. The latest
+edge image's own forward-upgrade path can be verified after its next build
+publishes; refresh the SHA pair to test that transition.
 
 ## API coverage map
 
@@ -632,5 +638,5 @@ This table should be updated whenever `caprover-api` adds or removes a public me
 - [x] PR18a implemented ([caprover-e2e PR #39](https://github.com/caprover/caprover-e2e/pull/39); [fresh-server run](https://github.com/caprover/caprover-e2e/actions/runs/35954049277): 37 files, 106 tests)
 - [x] PR18b SSL and self-hosted registry workflow implemented ([caprover-e2e PR #41](https://github.com/caprover/caprover-e2e/pull/41); [specialized run](https://github.com/caprover/caprover-e2e/actions/runs/36072876777): 1 file, 1 test)
 - [x] PR18c multi-node workflow implemented ([caprover-e2e PR #43](https://github.com/caprover/caprover-e2e/pull/43))
-- [x] PR18d Pro and 2FA workflow implemented ([caprover-e2e PR #46](https://github.com/caprover/caprover-e2e/pull/46); specialized live run pending)
-- [ ] PR18e upgrade workflow implemented or linked to a follow-up issue
+- [x] PR18d Pro and 2FA workflow implemented ([caprover-e2e PR #46](https://github.com/caprover/caprover-e2e/pull/46); [specialized run](https://github.com/caprover/caprover-e2e/actions/runs/36091515980))
+- [x] PR18e upgrade workflow implemented ([caprover-e2e PR #47](https://github.com/caprover/caprover-e2e/pull/47); specialized live run pending)
