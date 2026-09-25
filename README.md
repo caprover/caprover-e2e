@@ -105,6 +105,34 @@ and a bounded tail of logs from the generated test application.
 
 ## GitHub Actions
 
+### Workflow coverage at a glance
+
+All four workflows run type checking and the unit tests. Their end-to-end test
+files are selected separately:
+
+```mermaid
+flowchart TB
+    subgraph Fresh[Fresh Server: smoke + core + destructive]
+        Existing[Existing Server: smoke + core]
+        Extra[Fresh-only: 12 destructive test files]
+    end
+    SSL[SSL + Registry: dedicated specialized test]
+    Multi[Multi-Node: dedicated specialized test]
+    Shared[Shared setup: ephemeral provisioning, HTTPS, self-hosted registry]
+
+    Existing -. strict test-file subset .-> Fresh
+    SSL --- Shared
+    Multi --- Shared
+```
+
+`Existing Server` is a strict subset of `Fresh Server` by E2E test files. The
+SSL/Registry and Multi-Node tests are separate specialized suites, so neither
+is included in the ordinary fresh-server suite or in the other specialized
+suite. They share some infrastructure setup: both provision a fresh server,
+issue dashboard and registry certificates, and enable the self-hosted registry.
+Multi-Node additionally provisions a worker. The Existing Server workflow uses
+your supplied server and does not provision or destroy infrastructure.
+
 ### Existing server
 
 The existing **CapRover E2E** workflow runs manually through **Actions → CapRover
