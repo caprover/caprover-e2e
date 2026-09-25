@@ -1,6 +1,6 @@
 # CapRover E2E Test Expansion Plan
 
-This document tracks expansion of the CapRover end-to-end test suite.
+This document tracks expansion of the CapRover end-to-end test suite. The planned PR1 through PR18 work is complete; future coverage belongs in a separate follow-up plan.
 
 The suite covers authentication; application and project lifecycle; deployments; routing and Nginx; storage and ports; themes, backups, system settings, and one-click deployments; plus registry validation, GoAccess, and NetData. Provisioning covers root-domain configuration and password change on every fresh run. Root SSL and global force SSL are covered when HTTPS is enabled.
 
@@ -10,11 +10,11 @@ Future agents should check each implementation item as it lands. A PR is complet
 
 PR1 through PR6 were merged and validated through [PR #23](https://github.com/caprover/caprover-e2e/pull/23). The CapRover NGINX keep-alive fix landed in [CapRover PR #2491](https://github.com/caprover/caprover/pull/2491), and [PR #24](https://github.com/caprover/caprover-e2e/pull/24) removed the temporary API serialization and spacing mitigation after the full unmitigated suite passed.
 
-Confirmed second batch: PR7 through PR9 are merged as [PR #25](https://github.com/caprover/caprover-e2e/pull/25), [PR #26](https://github.com/caprover/caprover-e2e/pull/26), and [PR #27](https://github.com/caprover/caprover-e2e/pull/27). The delayed NGINX reload and connection-reuse regression was added in [PR #28](https://github.com/caprover/caprover-e2e/pull/28), with backend support in [CapRover PR #2494](https://github.com/caprover/caprover/pull/2494). PR10 through PR18d are implemented, with [PR #36](https://github.com/caprover/caprover-e2e/pull/36) adding one-click deployment and repository coverage, [PR #38](https://github.com/caprover/caprover-e2e/pull/38) adding registry and observability coverage, [PR #39](https://github.com/caprover/caprover-e2e/pull/39) adding Git webhook coverage, [PR #41](https://github.com/caprover/caprover-e2e/pull/41) adding controlled SSL and self-hosted registry coverage, validated by its [specialized run](https://github.com/caprover/caprover-e2e/actions/runs/36072876777), [PR #43](https://github.com/caprover/caprover-e2e/pull/43) adding multi-node coverage, and [PR #46](https://github.com/caprover/caprover-e2e/pull/46) adding Pro and 2FA coverage, validated by its [specialized run](https://github.com/caprover/caprover-e2e/actions/runs/36091515980). [PR #47](https://github.com/caprover/caprover-e2e/pull/47) implements PR18e upgrade coverage, validated by its [specialized run](https://github.com/caprover/caprover-e2e/actions/runs/36164950171).
+Confirmed second batch: PR7 through PR9 are merged as [PR #25](https://github.com/caprover/caprover-e2e/pull/25), [PR #26](https://github.com/caprover/caprover-e2e/pull/26), and [PR #27](https://github.com/caprover/caprover-e2e/pull/27). The delayed NGINX reload and connection-reuse regression was added in [PR #28](https://github.com/caprover/caprover-e2e/pull/28), with backend support in [CapRover PR #2494](https://github.com/caprover/caprover/pull/2494). PR10 through PR18 are implemented, with [PR #36](https://github.com/caprover/caprover-e2e/pull/36) adding one-click deployment and repository coverage, [PR #38](https://github.com/caprover/caprover-e2e/pull/38) adding registry and observability coverage, [PR #39](https://github.com/caprover/caprover-e2e/pull/39) adding Git webhook coverage, [PR #41](https://github.com/caprover/caprover-e2e/pull/41) adding controlled SSL and self-hosted registry coverage, validated by its [specialized run](https://github.com/caprover/caprover-e2e/actions/runs/36072876777), [PR #43](https://github.com/caprover/caprover-e2e/pull/43) adding multi-node coverage, and [PR #46](https://github.com/caprover/caprover-e2e/pull/46) adding Pro and 2FA coverage, later consolidated into the Fresh Server HTTPS mode by [PR #48](https://github.com/caprover/caprover-e2e/pull/48) and validated by its [combined run](https://github.com/caprover/caprover-e2e/actions/runs/36164935884). [PR #47](https://github.com/caprover/caprover-e2e/pull/47) implements PR18e upgrade coverage, validated by its [specialized run](https://github.com/caprover/caprover-e2e/actions/runs/36164950171).
 
 - Confirm the existing DigitalOcean, Cloudflare, and SSH provisioning secrets are present and valid in GitHub Actions. Update missing or expired values in GitHub; keep credentials out of this document and PR discussions.
 - Keep the backend custom-port fix (PR10) and SDK prerequisites (PR13 and PR17) as separate repository changes. Link their PRs and the consumed package versions or server images before enabling dependent assertions.
-- The PR18a dedicated Git test repository and HTTPS/SSH credentials are configured and validated. The additional PR18c worker is opt-in and limited to its manual workflow. The PR18d Pro key is provided as a dedicated Actions secret and its workflow is manual-only. PR18e pins release `1.15.4` and two edge commit SHA tags, and checks their `linux/amd64` child manifests before provisioning.
+- The PR18a dedicated Git test repository and HTTPS/SSH credentials are configured and validated. The additional PR18c worker is opt-in and limited to its manual workflow. The PR18d Pro key is provided as a dedicated Actions secret and runs through the Fresh Server workflow's HTTPS option. PR18e pins release `1.15.4` and two edge commit SHA tags, and checks their `linux/amd64` child manifests before provisioning.
 - Implement PR18 as five independently reviewable follow-up PRs, tracked below as PR18a through PR18e.
 
 ## First-batch implementation status
@@ -74,7 +74,7 @@ The existing-server workflow should run smoke and core tests. The fresh-server w
 
 Assign every test file to exactly one tier using explicit file lists or non-overlapping patterns. The existing lifecycle file belongs to smoke. Helper unit tests belong to unit. Each feature section below names its E2E files and tiers; mixed-tier PRs use separate files. Core assumes a dedicated test server and may create and delete uniquely owned apps and projects. Volume deletion, host-port changes, and global mutations require destructive mode.
 
-PR18a belongs to the ordinary destructive tier and runs in the default fresh-server suite after its Git fixture prerequisites are validated before provisioning. PR18b through PR18e are specialized opt-in suites: exclude them from the default destructive selection and `test:all`, and run each through its dedicated workflow with an ephemeral guard and explicit prerequisites. Missing required configuration must fail clearly before provisioning.
+PR18a belongs to the ordinary destructive tier and runs in the default fresh-server suite after its Git fixture prerequisites are validated before provisioning. PR18b, PR18c, and PR18e are specialized opt-in suites with dedicated workflows. PR18d runs after the ordinary suite when the Fresh Server workflow's HTTPS option is selected. Every specialized path requires the ephemeral guard and explicit prerequisites before provisioning.
 
 ## PR1: Upgrade the API package and add minimal safety foundations
 
@@ -523,7 +523,7 @@ Full self-hosted registry build-and-push coverage belongs in the controlled SSL 
 
 Implement the following five areas in separate follow-up PRs (PR18a through PR18e). Each has its own prerequisites and completion entry.
 
-Tier: destructive. PR18a joins the default fresh-server suite. PR18b through PR18e remain specialized opt-in workflows that provision their own ephemeral environments and run only their assigned files under `tests/specialized/`.
+Tier: destructive. PR18a joins the default fresh-server suite. PR18b, PR18c, and PR18e remain specialized opt-in workflows that provision their own ephemeral environments and run only their assigned files under `tests/specialized/`. PR18d runs on the Fresh Server workflow's HTTPS path after the ordinary suite.
 
 ### PR18a: Git webhook workflow
 
@@ -568,7 +568,7 @@ File: `tests/specialized/multi-node.test.ts`. Tier: destructive (specialized).
 
 ### PR18d: Pro and 2FA workflow
 
-File: `tests/specialized/pro-and-2fa.test.ts`. Tier: destructive (specialized).
+File: `tests/specialized/pro-and-2fa.test.ts`. Tier: destructive (specialized). It runs after the ordinary suite through `e2e-ephemeral.yml` when its HTTPS option is selected, as implemented by [PR #48](https://github.com/caprover/caprover-e2e/pull/48).
 
 - [x] Use a dedicated Pro key.
 - [x] Verify Pro state and configuration.
@@ -637,6 +637,6 @@ This table should be updated whenever `caprover-api` adds or removes a public me
 - [x] PR17 merged ([caprover-e2e PR #38](https://github.com/caprover/caprover-e2e/pull/38); [fresh-server run](https://github.com/caprover/caprover-e2e/actions/runs/35820353928): 36 files, 104 tests)
 - [x] PR18a implemented ([caprover-e2e PR #39](https://github.com/caprover/caprover-e2e/pull/39); [fresh-server run](https://github.com/caprover/caprover-e2e/actions/runs/35954049277): 37 files, 106 tests)
 - [x] PR18b SSL and self-hosted registry workflow implemented ([caprover-e2e PR #41](https://github.com/caprover/caprover-e2e/pull/41); [specialized run](https://github.com/caprover/caprover-e2e/actions/runs/36072876777): 1 file, 1 test)
-- [x] PR18c multi-node workflow implemented ([caprover-e2e PR #43](https://github.com/caprover/caprover-e2e/pull/43))
-- [x] PR18d Pro and 2FA workflow implemented ([caprover-e2e PR #46](https://github.com/caprover/caprover-e2e/pull/46); [specialized run](https://github.com/caprover/caprover-e2e/actions/runs/36091515980))
+- [x] PR18c multi-node workflow implemented ([caprover-e2e PR #43](https://github.com/caprover/caprover-e2e/pull/43); [specialized run](https://github.com/caprover/caprover-e2e/actions/runs/36168859000))
+- [x] PR18d Pro and 2FA workflow implemented ([caprover-e2e PR #46](https://github.com/caprover/caprover-e2e/pull/46), consolidated by [PR #48](https://github.com/caprover/caprover-e2e/pull/48); [combined run](https://github.com/caprover/caprover-e2e/actions/runs/36164935884))
 - [x] PR18e upgrade workflow implemented ([caprover-e2e PR #47](https://github.com/caprover/caprover-e2e/pull/47); [specialized run](https://github.com/caprover/caprover-e2e/actions/runs/36164950171))
