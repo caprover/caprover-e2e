@@ -92,7 +92,7 @@ jobs:
                   # Diagnostics need the values so they can redact Captain logs.
                   E2E_GIT_HTTP_PASSWORD: ${{ secrets.E2E_GIT_HTTP_PASSWORD }}
                   E2E_GIT_SSH_PRIVATE_KEY: ${{ secrets.E2E_GIT_SSH_PRIVATE_KEY }}
-                  E2E_PRO_API_KEY: ${{ secrets.E2E_PRO_API_KEY }}
+                  E2E_PRO_API_KEY: ${{ inputs.enable_https && secrets.E2E_PRO_API_KEY || '' }}
               run: npm run diagnose
 
             - name: Destroy temporary infrastructure
