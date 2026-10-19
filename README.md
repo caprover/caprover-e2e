@@ -111,7 +111,9 @@ failure-recovery behavior, credential flow, and code layout.
 The default provisioning configuration uses `nyc3`, `s-1vcpu-2gb`,
 `docker-20-04`, and `caprover/caprover-edge`. These can be overridden with
 `DIGITALOCEAN_REGION`, `DIGITALOCEAN_SIZE`, `DIGITALOCEAN_IMAGE`, and
-`CAPROVER_IMAGE`.
+`CAPROVER_IMAGE`. If the size is unavailable in the preferred region, provisioning
+tries `nyc1` and `sfo3`. Override that ordered list with
+`DIGITALOCEAN_FALLBACK_REGIONS`, or set it to an empty value to disable fallback.
 
 The test output never prints the CapRover password or SSH private key. Failure
 diagnostics include sanitized CapRover state, Docker service state, task state,
@@ -131,7 +133,7 @@ and a bounded tail of logs from the generated test application.
 
 ```mermaid
 flowchart TB
-    ALL["All five workflows<br/>TypeScript checking + 101 unit tests"]
+    ALL["All five workflows<br/>TypeScript checking + 114 unit tests"]
 
     subgraph ORDINARY["Ordinary E2E suite"]
         direction TB

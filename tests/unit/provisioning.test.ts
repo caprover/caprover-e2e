@@ -37,6 +37,24 @@ describe('provisioning configuration', () => {
         )
     })
 
+    test('configures ordered fallback regions and allows disabling fallback', () => {
+        expect(
+            loadProvisioningConfig(validEnvironment).digitalOceanFallbackRegions
+        ).toEqual(['nyc1', 'sfo3'])
+        expect(
+            loadProvisioningConfig({
+                ...validEnvironment,
+                DIGITALOCEAN_FALLBACK_REGIONS: ' sfo3, ,nyc1 ',
+            }).digitalOceanFallbackRegions
+        ).toEqual(['sfo3', 'nyc1'])
+        expect(
+            loadProvisioningConfig({
+                ...validEnvironment,
+                DIGITALOCEAN_FALLBACK_REGIONS: '',
+            }).digitalOceanFallbackRegions
+        ).toEqual([])
+    })
+
     test('defaults to HTTP and accepts an explicit HTTPS opt-in', () => {
         expect(loadProvisioningConfig(validEnvironment).enableHttps).toBe(false)
         expect(

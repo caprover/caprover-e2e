@@ -18,23 +18,77 @@ interface DropletsResponse {
     droplets: DropletResponse['droplet'][]
 }
 
+class DigitalOceanApiError extends Error {
+    constructor(
+        readonly status: number,
+        readonly apiMessage: string,
+        detail: string
+    ) {
+        super(detail)
+    }
+}
+
 export class DigitalOceanClient {
-    constructor(private readonly config: ProvisioningConfig) {}
+    private selectedRegion: string
+
+    constructor(private readonly config: ProvisioningConfig) {
+        this.selectedRegion = config.digitalOceanRegion
+    }
 
     async createDroplet(name: string): Promise<number> {
-        const response = await this.request<DropletResponse>('/droplets', {
-            method: 'POST',
-            body: JSON.stringify({
-                name,
-                region: this.config.digitalOceanRegion,
-                size: this.config.digitalOceanSize,
-                image: this.config.digitalOceanImage,
-                ssh_keys: [this.config.digitalOceanSshKeyId],
-                tags: ['caprover-e2e', name],
-            }),
-        })
+        const regions = [
+            ...new Set([
+                this.selectedRegion,
+                this.config.digitalOceanRegion,
+                ...this.config.digitalOceanFallbackRegions,
+            ]),
+        ]
 
-        return response.droplet.id
+        for (const [index, region] of regions.entries()) {
+            console.log(
+                `Creating DigitalOcean droplet in ${region} (${this.config.digitalOceanSize})...`
+            )
+            try {
+                const response = await this.request<DropletResponse>(
+                    '/droplets',
+                    {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            name,
+                            region,
+                            size: this.config.digitalOceanSize,
+                            image: this.config.digitalOceanImage,
+                            ssh_keys: [this.config.digitalOceanSshKeyId],
+                            tags: ['caprover-e2e', name],
+                        }),
+                    }
+                )
+                this.selectedRegion = region
+                return response.droplet.id
+            } catch (error) {
+                // Only retry an explicit rejection that created no droplet.
+                // A lost POST response may have created one; let cleanup reconcile it.
+                if (
+                    !(error instanceof DigitalOceanApiError) ||
+                    error.status !== 422 ||
+                    !/^Size is not available in this region\.?$/i.test(
+                        error.apiMessage
+                    )
+                ) {
+                    throw error
+                }
+                if (index === regions.length - 1) {
+                    throw new Error(
+                        `DigitalOcean size ${this.config.digitalOceanSize} is unavailable in all attempted regions: ${regions.join(', ')}`,
+                        { cause: error }
+                    )
+                }
+                console.warn(
+                    `DigitalOcean size ${this.config.digitalOceanSize} is unavailable in ${region}; trying ${regions[index + 1]}.`
+                )
+            }
+        }
+        throw new Error('No DigitalOcean regions configured')
     }
 
     async findDropletIdByName(name: string): Promise<number | undefined> {
@@ -95,7 +149,17 @@ export class DigitalOceanClient {
 
         if (!response.ok) {
             const body = await response.text()
-            throw new Error(
+            let apiMessage = ''
+            try {
+                const parsed = JSON.parse(body)
+                if (typeof parsed.message === 'string')
+                    apiMessage = parsed.message
+            } catch {
+                // Non-JSON errors still retain their original status and body.
+            }
+            throw new DigitalOceanApiError(
+                response.status,
+                apiMessage,
                 `DigitalOcean API ${response.status} ${response.statusText}: ${body}`
             )
         }

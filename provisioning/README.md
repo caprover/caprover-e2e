@@ -279,14 +279,24 @@ the cleanup state.
 Required credentials and identifiers are documented in the repository
 [README](../README.md#fresh-server). Optional infrastructure settings default to:
 
-| Variable               | Default                  |
-| ---------------------- | ------------------------ |
-| `DIGITALOCEAN_REGION`  | `nyc3`                   |
-| `DIGITALOCEAN_SIZE`    | `s-1vcpu-2gb`            |
-| `DIGITALOCEAN_IMAGE`   | `docker-20-04`           |
-| `CAPROVER_IMAGE`       | `caprover/caprover-edge` |
-| `E2E_ENABLE_HTTPS`     | `false`                  |
-| `E2E_PROVISION_WORKER` | `false`                  |
+| Variable                        | Default                  |
+| ------------------------------- | ------------------------ |
+| `DIGITALOCEAN_REGION`           | `nyc3`                   |
+| `DIGITALOCEAN_FALLBACK_REGIONS` | `nyc1,sfo3`              |
+| `DIGITALOCEAN_SIZE`             | `s-1vcpu-2gb`            |
+| `DIGITALOCEAN_IMAGE`            | `docker-20-04`           |
+| `CAPROVER_IMAGE`                | `caprover/caprover-edge` |
+| `E2E_ENABLE_HTTPS`              | `false`                  |
+| `E2E_PROVISION_WORKER`          | `false`                  |
 
 Local execution loads a gitignored `.env` file. CI supplies environment variables
 directly and does not load `.env`.
+
+Droplet creation tries the preferred region first. If DigitalOcean explicitly
+returns HTTP 422 with `Size is not available in this region.`, it tries the
+comma-separated `DIGITALOCEAN_FALLBACK_REGIONS` in order, once per distinct
+region, keeping the requested size and image. The optional worker starts with
+the manager's successful region and can fall back independently. Each attempt
+logs its region and size. Set `DIGITALOCEAN_FALLBACK_REGIONS=` to disable fallback.
+Other API errors and ambiguous network failures stop provisioning and use the
+existing cleanup path, which can recover droplets by their saved names.
