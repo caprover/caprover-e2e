@@ -15,14 +15,14 @@ The suite validates each lifecycle change from three independent perspectives:
 The suite covers the following CapRover behavior. The [test selection](src/test-selection.ts)
 defines the authoritative file-to-tier mapping.
 
-| Area | Coverage |
-| --- | --- |
-| Authentication and configuration | Login and authorization contracts; full app updates and PATCH preservation; projects; themes; system defaults |
-| Deployment and runtime | Image, captain-definition, source-upload, detached-build, failure-recovery, runtime-log, and deploy-token paths |
-| Routing and networking | HTTP routing, redirects, HTTP authentication, WebSockets, application and global Nginx, custom TCP/UDP ports, and HTTPS |
-| Data and server state | Persistent volumes, disk cleanup, backups, system information, and safe restoration of global settings |
-| Integrations | One-click applications and repositories, Git webhooks, remote and self-hosted registries, GoAccess, and NetData |
-| Specialized environments | HTTPS plus Pro/2FA, multi-node placement, and release-to-edge plus edge-to-edge upgrades |
+| Area                             | Coverage                                                                                                                |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Authentication and configuration | Login and authorization contracts; full app updates and PATCH preservation; projects; themes; system defaults           |
+| Deployment and runtime           | Image, captain-definition, source-upload, detached-build, failure-recovery, runtime-log, and deploy-token paths         |
+| Routing and networking           | HTTP routing, redirects, HTTP authentication, WebSockets, application and global Nginx, custom TCP/UDP ports, and HTTPS |
+| Data and server state            | Persistent volumes, disk cleanup, backups, system information, and safe restoration of global settings                  |
+| Integrations                     | One-click applications and repositories, Git webhooks, remote and self-hosted registries, GoAccess, and NetData         |
+| Specialized environments         | HTTPS plus Pro/2FA, multi-node placement, and release-to-edge plus edge-to-edge upgrades                                |
 
 ## Covered lifecycle
 

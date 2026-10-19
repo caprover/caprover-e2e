@@ -26,12 +26,12 @@ The registry coverage includes add, invalid credential rejection, default-push b
 
 ## Status
 
-| Item | Status | Primary repo | Dependency |
-| --- | --- | --- | --- |
-| PR19: Parameterized release-candidate testing | [ ] Todo | `caprover/caprover-e2e` | None |
-| PR20: Connect E2E to the release process | [ ] Todo | `caprover/caprover` + `caprover/caprover-e2e` | PR19 |
-| PR21: Close `updateDockerRegistry()` SDK coverage gap | [ ] Todo | `caprover/caprover-e2e` | None |
-| Maintenance: rotate edge upgrade fixtures | [ ] Recurring | `caprover/caprover-e2e` | A newer edge image must exist |
+| Item                                                  | Status        | Primary repo                                  | Dependency                    |
+| ----------------------------------------------------- | ------------- | --------------------------------------------- | ----------------------------- |
+| PR19: Parameterized release-candidate testing         | [ ] Todo      | `caprover/caprover-e2e`                       | None                          |
+| PR20: Connect E2E to the release process              | [ ] Todo      | `caprover/caprover` + `caprover/caprover-e2e` | PR19                          |
+| PR21: Close `updateDockerRegistry()` SDK coverage gap | [ ] Todo      | `caprover/caprover-e2e`                       | None                          |
+| Maintenance: rotate edge upgrade fixtures             | [ ] Recurring | `caprover/caprover-e2e`                       | A newer edge image must exist |
 
 ---
 
@@ -203,10 +203,10 @@ This fixture lets the same specialized run test both successful remote updates a
 1. Add `updateDockerRegistry(registry)` to `src/clients/caprover.ts` and route it through the existing request/error wrapper.
 2. Add unit coverage in `tests/unit/caprover-client.test.ts` proving the client delegates to the SDK method with the complete registry object.
 3. Extend the SSL/registry specialized test after the self-hosted registry is confirmed healthy:
-   - create a remote registry record using the local registry's working domain and credentials
-   - identify the newly created `REMOTE_REG` entry by its unique test prefix
-   - update a mutable field such as `registryImagePrefix` while retaining valid authentication fields
-   - read the registry list back and verify the same ID contains the updated state
+    - create a remote registry record using the local registry's working domain and credentials
+    - identify the newly created `REMOTE_REG` entry by its unique test prefix
+    - update a mutable field such as `registryImagePrefix` while retaining valid authentication fields
+    - read the registry list back and verify the same ID contains the updated state
 4. Exercise required-field rejection using the remote registry and verify the registry list is unchanged.
 5. Exercise invalid-credential rejection and verify the registry list is unchanged.
 6. Exercise an unknown ID with valid credentials and expect `1111`; valid credentials matter because authentication happens before the datastore checks the ID.
