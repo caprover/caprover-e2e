@@ -281,8 +281,8 @@ Required credentials and identifiers are documented in the repository
 
 | Variable                        | Default                  |
 | ------------------------------- | ------------------------ |
-| `DIGITALOCEAN_REGION`           | `nyc3`                   |
-| `DIGITALOCEAN_FALLBACK_REGIONS` | `nyc1,sfo3`              |
+| `DIGITALOCEAN_REGION`           | `sfo2`                   |
+| `DIGITALOCEAN_FALLBACK_REGIONS` | `tor1,lon1`              |
 | `DIGITALOCEAN_SIZE`             | `s-1vcpu-2gb`            |
 | `DIGITALOCEAN_IMAGE`            | `docker-20-04`           |
 | `CAPROVER_IMAGE`                | `caprover/caprover-edge` |

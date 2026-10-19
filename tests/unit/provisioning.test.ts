@@ -40,13 +40,13 @@ describe('provisioning configuration', () => {
     test('configures ordered fallback regions and allows disabling fallback', () => {
         expect(
             loadProvisioningConfig(validEnvironment).digitalOceanFallbackRegions
-        ).toEqual(['nyc1', 'sfo3'])
+        ).toEqual(['tor1', 'lon1'])
         expect(
             loadProvisioningConfig({
                 ...validEnvironment,
-                DIGITALOCEAN_FALLBACK_REGIONS: ' sfo3, ,nyc1 ',
+                DIGITALOCEAN_FALLBACK_REGIONS: ' lon1, ,tor1 ',
             }).digitalOceanFallbackRegions
-        ).toEqual(['sfo3', 'nyc1'])
+        ).toEqual(['lon1', 'tor1'])
         expect(
             loadProvisioningConfig({
                 ...validEnvironment,
