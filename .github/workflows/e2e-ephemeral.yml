@@ -14,6 +14,7 @@ permissions:
 concurrency:
     group: ${{ inputs.enable_https && 'caprover-e2e-certificate-issuing' || format('caprover-e2e-ephemeral-{0}', github.run_id) }}
     cancel-in-progress: false
+    queue: max
 
 jobs:
     e2e:

@@ -8,6 +8,7 @@ export interface ProvisioningConfig {
     baseDomain: string
     sshPrivateKey: string
     digitalOceanRegion: string
+    digitalOceanFallbackRegions: string[]
     digitalOceanSize: string
     digitalOceanImage: string
     caproverImage: string
@@ -64,6 +65,12 @@ export function loadProvisioningConfig(
             '\n'
         ),
         digitalOceanRegion: environment.DIGITALOCEAN_REGION?.trim() || 'nyc3',
+        digitalOceanFallbackRegions: (
+            environment.DIGITALOCEAN_FALLBACK_REGIONS ?? 'nyc1,sfo3'
+        )
+            .split(',')
+            .map((region) => region.trim())
+            .filter(Boolean),
         digitalOceanSize:
             environment.DIGITALOCEAN_SIZE?.trim() || 's-1vcpu-2gb',
         digitalOceanImage:

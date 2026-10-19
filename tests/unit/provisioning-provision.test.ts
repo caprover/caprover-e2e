@@ -55,6 +55,7 @@ const baseConfig: ProvisioningConfig = {
     baseDomain: 'example.test',
     sshPrivateKey: 'private-key',
     digitalOceanRegion: 'nyc3',
+    digitalOceanFallbackRegions: ['nyc1', 'sfo3'],
     digitalOceanSize: 's-1vcpu-2gb',
     digitalOceanImage: 'docker-20-04',
     caproverImage: 'caprover/caprover-edge',

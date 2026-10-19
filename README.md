@@ -15,14 +15,14 @@ The suite validates each lifecycle change from three independent perspectives:
 The suite covers the following CapRover behavior. The [test selection](src/test-selection.ts)
 defines the authoritative file-to-tier mapping.
 
-| Area | Coverage |
-| --- | --- |
-| Authentication and configuration | Login and authorization contracts; full app updates and PATCH preservation; projects; themes; system defaults |
-| Deployment and runtime | Image, captain-definition, source-upload, detached-build, failure-recovery, runtime-log, and deploy-token paths |
-| Routing and networking | HTTP routing, redirects, HTTP authentication, WebSockets, application and global Nginx, custom TCP/UDP ports, and HTTPS |
-| Data and server state | Persistent volumes, disk cleanup, backups, system information, and safe restoration of global settings |
-| Integrations | One-click applications and repositories, Git webhooks, remote and self-hosted registries, GoAccess, and NetData |
-| Specialized environments | HTTPS plus Pro/2FA, multi-node placement, and release-to-edge plus edge-to-edge upgrades |
+| Area                             | Coverage                                                                                                                |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Authentication and configuration | Login and authorization contracts; full app updates and PATCH preservation; projects; themes; system defaults           |
+| Deployment and runtime           | Image, captain-definition, source-upload, detached-build, failure-recovery, runtime-log, and deploy-token paths         |
+| Routing and networking           | HTTP routing, redirects, HTTP authentication, WebSockets, application and global Nginx, custom TCP/UDP ports, and HTTPS |
+| Data and server state            | Persistent volumes, disk cleanup, backups, system information, and safe restoration of global settings                  |
+| Integrations                     | One-click applications and repositories, Git webhooks, remote and self-hosted registries, GoAccess, and NetData         |
+| Specialized environments         | HTTPS plus Pro/2FA, multi-node placement, and release-to-edge plus edge-to-edge upgrades                                |
 
 ## Covered lifecycle
 
@@ -111,7 +111,9 @@ failure-recovery behavior, credential flow, and code layout.
 The default provisioning configuration uses `nyc3`, `s-1vcpu-2gb`,
 `docker-20-04`, and `caprover/caprover-edge`. These can be overridden with
 `DIGITALOCEAN_REGION`, `DIGITALOCEAN_SIZE`, `DIGITALOCEAN_IMAGE`, and
-`CAPROVER_IMAGE`.
+`CAPROVER_IMAGE`. If the size is unavailable in the preferred region, provisioning
+tries `nyc1` and `sfo3`. Override that ordered list with
+`DIGITALOCEAN_FALLBACK_REGIONS`, or set it to an empty value to disable fallback.
 
 The test output never prints the CapRover password or SSH private key. Failure
 diagnostics include sanitized CapRover state, Docker service state, task state,
@@ -131,7 +133,7 @@ and a bounded tail of logs from the generated test application.
 
 ```mermaid
 flowchart TB
-    ALL["All five workflows<br/>TypeScript checking + 101 unit tests"]
+    ALL["All five workflows<br/>TypeScript checking + 114 unit tests"]
 
     subgraph ORDINARY["Ordinary E2E suite"]
         direction TB
