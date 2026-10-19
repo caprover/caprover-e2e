@@ -9,6 +9,7 @@ permissions:
 concurrency:
     group: caprover-e2e-certificate-issuing
     cancel-in-progress: false
+    queue: max
 
 jobs:
     e2e:
