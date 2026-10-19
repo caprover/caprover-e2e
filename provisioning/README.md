@@ -55,6 +55,12 @@ process during local runs.
 | `npm run destroy`        | Loads cleanup state and removes the DNS record, optional worker, and manager.                            |
 | `npm run test:ephemeral` | Provisions, runs `npm test`, and destroys the environment in one local process.                          |
 
+After the installer returns, provisioning waits up to three minutes for the
+running captain container and resolves its repository digest through the
+container's image ID. It also requires that image ID to match the requested
+installer image, including digest-pinned upgrade fixtures. The service's tag can
+appear before its image is available locally.
+
 The GitHub Actions workflow uses separate `provision`, test, and `destroy` steps
 so test failures remain visible and the cleanup step can use `if: always()`.
 

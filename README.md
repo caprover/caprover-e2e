@@ -133,7 +133,7 @@ and a bounded tail of logs from the generated test application.
 
 ```mermaid
 flowchart TB
-    ALL["All five workflows<br/>TypeScript checking + 114 unit tests"]
+    ALL["All five workflows<br/>TypeScript checking + 118 unit tests"]
 
     subgraph ORDINARY["Ordinary E2E suite"]
         direction TB

@@ -39,22 +39,69 @@ docker run --rm \\
             throw new Error('Unable to resolve running CapRover image')
         const runningImage = imageResult.stdout.trim()
         console.log(`Running CapRover image: ${runningImage}`)
-        const digestResult = await ssh.exec(
-            `docker image inspect ${shellQuote(runningImage)} --format '{{join .RepoDigests "\\n"}}'`
+        const requestedImageResult = await ssh.exec(
+            `docker image inspect ${image} --format '{{.Id}}'`
         )
-        const repository = runningImage
+        const requestedImageId = requestedImageResult.stdout.trim()
+        if (
+            requestedImageResult.exitCode !== 0 ||
+            !/^sha256:[a-f0-9]{64}$/i.test(requestedImageId)
+        ) {
+            throw new Error('Unable to resolve requested CapRover image ID')
+        }
+        const repository = config.caproverImage
             .replace(/@sha256:[a-f0-9]{64}$/i, '')
             .replace(/:[^/:]+$/, '')
-        const resolvedImage = digestResult.stdout
-            .split(/\r?\n/)
-            .map((value) => value.trim())
-            .find(
-                (value) =>
-                    value.startsWith(`${repository}@sha256:`) &&
-                    /^.+@sha256:[a-f0-9]{64}$/i.test(value)
+        // The installer creates the service with a tag, even when launched by
+        // digest. That tag may not exist locally yet; inspect the actual task.
+        const { imageId, resolvedImage } = await retryUntil(
+            'Running CapRover image digest',
+            async () => {
+                const containers = await ssh.exec(
+                    "docker ps --filter 'label=com.docker.swarm.service.name=captain-captain' --format '{{.ID}}'"
+                )
+                const ids = containers.stdout.trim().split(/\s+/)
+                if (
+                    containers.exitCode !== 0 ||
+                    ids.length !== 1 ||
+                    !/^[a-f0-9]{12,64}$/i.test(ids[0])
+                ) {
+                    throw new Error('CapRover task is not running yet')
+                }
+                const containerImage = await ssh.exec(
+                    `docker inspect ${shellQuote(ids[0])} --format '{{.Image}}'`
+                )
+                const imageId = containerImage.stdout.trim()
+                if (
+                    containerImage.exitCode !== 0 ||
+                    !/^sha256:[a-f0-9]{64}$/i.test(imageId)
+                ) {
+                    throw new Error('Unable to inspect running CapRover task')
+                }
+                const digestResult = await ssh.exec(
+                    `docker image inspect ${shellQuote(imageId)} --format '{{join .RepoDigests "\\n"}}'`
+                )
+                const resolvedImage = digestResult.stdout
+                    .split(/\r?\n/)
+                    .map((value) => value.trim())
+                    .find(
+                        (value) =>
+                            value.startsWith(`${repository}@sha256:`) &&
+                            /^.+@sha256:[a-f0-9]{64}$/i.test(value)
+                    )
+                if (digestResult.exitCode !== 0 || !resolvedImage) {
+                    throw new Error(
+                        'Unable to resolve running CapRover image digest'
+                    )
+                }
+                return { imageId, resolvedImage }
+            },
+            { timeoutMs: 180_000, intervalMs: 5_000 }
+        )
+        if (imageId !== requestedImageId) {
+            throw new Error(
+                `Running CapRover image ID ${imageId} does not match requested image ID ${requestedImageId}`
             )
-        if (digestResult.exitCode !== 0 || !resolvedImage) {
-            throw new Error('Unable to resolve running CapRover image digest')
         }
         console.log(`Resolved running CapRover image digest: ${resolvedImage}`)
     } finally {
