@@ -108,11 +108,11 @@ when needed. The generated cleanup state is stored locally in
 See [Provisioning design](provisioning/README.md) for the full lifecycle,
 failure-recovery behavior, credential flow, and code layout.
 
-The default provisioning configuration uses `nyc3`, `s-1vcpu-2gb`,
+The default provisioning configuration uses `sfo2`, `s-1vcpu-2gb`,
 `docker-20-04`, and `caprover/caprover-edge`. These can be overridden with
 `DIGITALOCEAN_REGION`, `DIGITALOCEAN_SIZE`, `DIGITALOCEAN_IMAGE`, and
 `CAPROVER_IMAGE`. If the size is unavailable in the preferred region, provisioning
-tries `nyc1` and `sfo3`. Override that ordered list with
+tries `tor1` and `lon1`. Override that ordered list with
 `DIGITALOCEAN_FALLBACK_REGIONS`, or set it to an empty value to disable fallback.
 
 The test output never prints the CapRover password or SSH private key. Failure

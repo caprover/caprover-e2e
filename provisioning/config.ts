@@ -64,9 +64,9 @@ export function loadProvisioningConfig(
             /\\n/g,
             '\n'
         ),
-        digitalOceanRegion: environment.DIGITALOCEAN_REGION?.trim() || 'nyc3',
+        digitalOceanRegion: environment.DIGITALOCEAN_REGION?.trim() || 'sfo2',
         digitalOceanFallbackRegions: (
-            environment.DIGITALOCEAN_FALLBACK_REGIONS ?? 'nyc1,sfo3'
+            environment.DIGITALOCEAN_FALLBACK_REGIONS ?? 'tor1,lon1'
         )
             .split(',')
             .map((region) => region.trim())

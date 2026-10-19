@@ -48,7 +48,7 @@ describe('DigitalOcean region fallback', () => {
         await expect(
             new DigitalOceanClient(config).createDroplet('manager')
         ).resolves.toBe(101)
-        expect(requests().map((request) => request.region)).toEqual(['nyc3'])
+        expect(requests().map((request) => request.region)).toEqual(['sfo2'])
     })
 
     test('falls back in order, preserves the request, and starts the worker in the successful region', async () => {
@@ -61,13 +61,13 @@ describe('DigitalOcean region fallback', () => {
         await expect(client.createDroplet('manager')).resolves.toBe(101)
         await expect(client.createDroplet('worker')).resolves.toBe(202)
         expect(requests().map((request) => request.region)).toEqual([
-            'nyc3',
-            'nyc1',
-            'sfo3',
-            'sfo3',
+            'sfo2',
+            'tor1',
+            'lon1',
+            'lon1',
         ])
         expect(requests().slice(0, 3)).toEqual(
-            ['nyc3', 'nyc1', 'sfo3'].map((region) => ({
+            ['sfo2', 'tor1', 'lon1'].map((region) => ({
                 name: 'manager',
                 region,
                 size: config.digitalOceanSize,
@@ -82,14 +82,14 @@ describe('DigitalOcean region fallback', () => {
         fetchMock.mockImplementation(async () => unavailable())
         const client = new DigitalOceanClient({
             ...config,
-            digitalOceanFallbackRegions: ['nyc3', 'sfo3', 'sfo3'],
+            digitalOceanFallbackRegions: ['sfo2', 'lon1', 'lon1'],
         })
         await expect(client.createDroplet('manager')).rejects.toThrow(
-            'unavailable in all attempted regions: nyc3, sfo3'
+            'unavailable in all attempted regions: sfo2, lon1'
         )
         expect(requests().map((request) => request.region)).toEqual([
-            'nyc3',
-            'sfo3',
+            'sfo2',
+            'lon1',
         ])
     })
 
@@ -100,7 +100,7 @@ describe('DigitalOcean region fallback', () => {
             digitalOceanFallbackRegions: [],
         })
         await expect(client.createDroplet('manager')).rejects.toThrow(
-            'unavailable in all attempted regions: nyc3'
+            'unavailable in all attempted regions: sfo2'
         )
         expect(fetchMock).toHaveBeenCalledTimes(1)
     })
