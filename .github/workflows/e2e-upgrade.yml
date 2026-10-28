@@ -28,8 +28,14 @@ jobs:
             - name: Resolve latest edge SHA from Docker Hub
               timeout-minutes: 5
               run: |
-                  SHA=$(curl -sS "https://hub.docker.com/v2/repositories/caprover/caprover-edge/tags?page_size=100&ordering=last_updated" | jq -r '.results | sort_by(.last_updated) | reverse | .[].name | select(test("^[a-f0-9]{40}$"))' | head -n 1)
-                  if [ -z "$SHA" ]; then echo 'Failed to resolve latest edge SHA from Docker Hub' >&2; exit 1; fi
+                  if ! SHA=$(
+                      curl -fsS --retry 3 --max-time 30 \
+                          "https://hub.docker.com/v2/repositories/caprover/caprover-edge/tags?page_size=100&ordering=last_updated" |
+                          jq -er '[.results[] | select(.name | test("^[a-f0-9]{40}$"))] | max_by(.last_updated).name'
+                  ); then
+                      echo 'Failed to resolve latest edge SHA from Docker Hub' >&2
+                      exit 1
+                  fi
                   echo "E2E_UPGRADE_EDGE_TO_SHA=$SHA" >> "$GITHUB_ENV"
                   echo "Resolved latest edge SHA: $SHA"
 
