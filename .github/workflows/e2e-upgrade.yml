@@ -13,7 +13,6 @@ jobs:
         env:
             E2E_UPGRADE_RELEASE_TAG: '1.15.4'
             E2E_UPGRADE_EDGE_FROM_SHA: 37fe03e3267d381342da14a6c9bab543590cc4f3
-            E2E_UPGRADE_EDGE_TO_SHA: a45cce6b7fc0d30ca431a8d8ce83bef72a5a9913
         steps:
             - name: Check out repository
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -26,7 +25,21 @@ jobs:
                   node-version: 22
                   cache: npm
 
-            - name: Verify all pinned images before provisioning
+            - name: Resolve latest edge SHA from Docker Hub
+              timeout-minutes: 5
+              run: |
+                  if ! SHA=$(
+                      curl -fsS --retry 3 --max-time 30 \
+                          "https://hub.docker.com/v2/repositories/caprover/caprover-edge/tags?page_size=100&ordering=last_updated" |
+                          jq -er '[.results[] | select(.name | test("^[a-f0-9]{40}$"))] | max_by(.last_updated).name'
+                  ); then
+                      echo 'Failed to resolve latest edge SHA from Docker Hub' >&2
+                      exit 1
+                  fi
+                  echo "E2E_UPGRADE_EDGE_TO_SHA=$SHA" >> "$GITHUB_ENV"
+                  echo "Resolved latest edge SHA: $SHA"
+
+            - name: Verify upgrade images before provisioning
               timeout-minutes: 5
               run: node scripts/check-upgrade-images.mjs
 
