@@ -2,6 +2,7 @@ export interface EventuallyOptions {
     timeoutMs?: number
     intervalMs?: number
     description?: string
+    shouldRetry?: (error: unknown) => boolean
 }
 
 export async function eventually<T>(
@@ -17,6 +18,9 @@ export async function eventually<T>(
         try {
             return await operation()
         } catch (error) {
+            if (options.shouldRetry && !options.shouldRetry(error)) {
+                throw error
+            }
             lastError = error
         }
 

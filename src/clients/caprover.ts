@@ -2,7 +2,7 @@ import CapRoverAPI, {
     CapRoverModels,
     SimpleAuthenticationProvider,
 } from 'caprover-api'
-import { withTimeout } from '../helpers/retry'
+import { eventually, withTimeout } from '../helpers/retry'
 
 type AppDeleteResponse = Awaited<ReturnType<CapRoverAPI['deleteApp']>>
 
@@ -69,6 +69,11 @@ export interface OneClickValuePair {
 
 const API_TIMEOUT_MS = 30_000
 const DEPLOYMENT_TIMEOUT_MS = 90_000
+const CERTBOT_BUSY_RETRY_TIMEOUT_MS = 30_000
+const CERTBOT_BUSY_RETRY_INTERVAL_MS = 1_000
+const CERTBOT_BUSY_STATUS = 1000
+const CERTBOT_BUSY_MESSAGE =
+    'Another operation is in process for Certbot. Please wait a few seconds and try again.'
 
 export class CapRoverClient {
     private readonly api: CapRoverAPI
@@ -434,18 +439,28 @@ export class CapRoverClient {
     }
 
     enableSslForBaseDomain(name: string): Promise<void> {
-        return this.request(
-            () => this.api.enableSslForBaseDomain(name),
-            `enabling base-domain SSL for ${name}`,
-            180_000
+        const description = `enabling base-domain SSL for ${name}`
+        return this.retryCertbotBusy(
+            () =>
+                this.request(
+                    () => this.api.enableSslForBaseDomain(name),
+                    description,
+                    180_000
+                ),
+            description
         )
     }
 
     enableSslForCustomDomain(name: string, domain: string): Promise<void> {
-        return this.request(
-            () => this.api.enableSslForCustomDomain(name, domain),
-            `enabling custom-domain SSL for ${domain}`,
-            180_000
+        const description = `enabling custom-domain SSL for ${domain}`
+        return this.retryCertbotBusy(
+            () =>
+                this.request(
+                    () => this.api.enableSslForCustomDomain(name, domain),
+                    description,
+                    180_000
+                ),
+            description
         )
     }
 
@@ -642,6 +657,18 @@ export class CapRoverClient {
         this.api.destroy()
     }
 
+    private retryCertbotBusy(
+        operation: () => Promise<void>,
+        description: string
+    ): Promise<void> {
+        return eventually(operation, {
+            timeoutMs: CERTBOT_BUSY_RETRY_TIMEOUT_MS,
+            intervalMs: CERTBOT_BUSY_RETRY_INTERVAL_MS,
+            description,
+            shouldRetry: isCertbotBusyError,
+        })
+    }
+
     private async request<T>(
         operation: () => Promise<T>,
         description: string,
@@ -649,6 +676,20 @@ export class CapRoverClient {
     ): Promise<T> {
         return withTimeout(operation(), timeoutMs, description)
     }
+}
+
+function isCertbotBusyError(error: unknown): boolean {
+    if (!(error instanceof Error)) return false
+
+    const caproverError = error as Error & {
+        captainStatus?: unknown
+        captainMessage?: unknown
+    }
+
+    return (
+        caproverError.captainStatus === CERTBOT_BUSY_STATUS &&
+        caproverError.captainMessage === CERTBOT_BUSY_MESSAGE
+    )
 }
 
 export type {

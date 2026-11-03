@@ -130,6 +130,65 @@ test('custom-domain operations use the SDK parameters', async () => {
     }
 })
 
+test('SSL operations retry CapRover Certbot lock contention', async () => {
+    vi.useFakeTimers()
+    const certbotBusyMessage =
+        'Another operation is in process for Certbot. Please wait a few seconds and try again.'
+    const certbotBusyError = () =>
+        Object.assign(new Error(certbotBusyMessage), {
+            captainStatus: 1000,
+            captainMessage: certbotBusyMessage,
+        })
+    const enableBaseSsl = vi
+        .spyOn(CapRoverAPI.prototype, 'enableSslForBaseDomain')
+        .mockRejectedValueOnce(certbotBusyError())
+        .mockResolvedValue(undefined)
+    const enableCustomSsl = vi
+        .spyOn(CapRoverAPI.prototype, 'enableSslForCustomDomain')
+        .mockRejectedValueOnce(certbotBusyError())
+        .mockResolvedValue(undefined)
+    const client = new CapRoverClient('https://example.test', 'password')
+    try {
+        const baseSsl = client.enableSslForBaseDomain('test-app')
+        await vi.runAllTimersAsync()
+        await baseSsl
+
+        const customSsl = client.enableSslForCustomDomain(
+            'test-app',
+            'custom.example.test'
+        )
+        await vi.runAllTimersAsync()
+        await customSsl
+
+        expect(enableBaseSsl).toHaveBeenCalledTimes(2)
+        expect(enableCustomSsl).toHaveBeenCalledTimes(2)
+    } finally {
+        client.destroy()
+        vi.useRealTimers()
+        vi.restoreAllMocks()
+    }
+})
+
+test('SSL operations do not retry unrelated CapRover errors', async () => {
+    const unrelatedError = Object.assign(new Error('ACME validation failed'), {
+        captainStatus: 1000,
+        captainMessage: 'ACME validation failed',
+    })
+    const enableBaseSsl = vi
+        .spyOn(CapRoverAPI.prototype, 'enableSslForBaseDomain')
+        .mockRejectedValue(unrelatedError)
+    const client = new CapRoverClient('https://example.test', 'password')
+    try {
+        await expect(client.enableSslForBaseDomain('test-app')).rejects.toBe(
+            unrelatedError
+        )
+        expect(enableBaseSsl).toHaveBeenCalledTimes(1)
+    } finally {
+        client.destroy()
+        vi.restoreAllMocks()
+    }
+})
+
 test('self-hosted registry operations use the SDK contracts', async () => {
     const enable = vi
         .spyOn(CapRoverAPI.prototype, 'enableSelfHostedDockerRegistry')

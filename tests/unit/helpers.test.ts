@@ -47,4 +47,24 @@ describe('eventually', () => {
             'Timed out after 5ms while waiting for test state. Last error: still converging'
         )
     })
+
+    test('does not retry an error rejected by the retry predicate', async () => {
+        const fatalError = new Error('fatal')
+        let attempts = 0
+
+        await expect(
+            eventually(
+                () => {
+                    attempts += 1
+                    throw fatalError
+                },
+                {
+                    timeoutMs: 100,
+                    intervalMs: 1,
+                    shouldRetry: () => false,
+                }
+            )
+        ).rejects.toBe(fatalError)
+        expect(attempts).toBe(1)
+    })
 })
